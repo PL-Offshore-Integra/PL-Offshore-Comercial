@@ -5,7 +5,10 @@ App de seguimiento comercial que reemplaza el tracker
 calendario de ferias/eventos del sector, para Terra Mare, Clean Sea, Parana
 Logistica y HF Offshore.
 
-Stack: Next.js (App Router) + TypeScript + Tailwind + Supabase.
+Stack: Next.js (App Router) + TypeScript + Supabase (datos y Auth). Estetica
+y layout tomados del modulo Compras: sistema de marca "INTEGRA Brand Book
+v1.0" (IBM Plex Sans/Mono, navy `#002247` para la instancia PL Offshore),
+mismo shell (barra superior + sidebar) y misma pantalla de login.
 
 - GitHub: https://github.com/PL-Offshore-Integra/PL-Offshore-Comerical
 - Supabase (proyecto compartido, esquema propio `comercial`):
@@ -36,6 +39,13 @@ con otras tablas del mismo proyecto Supabase (ej. `proveedores`).
    lista de esquemas expuestos (por defecto solo `public` esta expuesto), o
    el cliente de Supabase no va a poder leer/escribir estas tablas.
 
+## Usuarios (login)
+
+No hay alta de usuarios publica: el acceso es por invitacion. Para crear el
+primer usuario, en el dashboard de Supabase ir a **Authentication > Users >
+Add user**, cargar email y contrasena, y compartirle esos datos a la persona.
+Cualquier usuario de Supabase Auth del proyecto puede loguearse.
+
 ## Deploy
 
 1. `git push` a `main` en GitHub.
@@ -46,8 +56,14 @@ con otras tablas del mismo proyecto Supabase (ej. `proveedores`).
 
 ## Estructura
 
-- `app/oportunidades` — pipeline de oportunidades, agrupado por estadio.
-- `app/calendario` — calendario de ferias/eventos y participacion por empresa.
-- `app/dashboard` — ganancia total, por empresa y por proyecto.
+- `app/login` — pantalla de acceso (Supabase Auth, email + contrasena).
+- `app/(app)/layout.tsx` — exige sesion activa y arma el shell (barra
+  superior + sidebar + encabezado de pantalla).
+- `app/(app)/oportunidades` — pipeline de oportunidades, agrupado por estadio.
+- `app/(app)/calendario` — calendario de ferias/eventos y participacion por empresa.
+- `app/(app)/dashboard` — ganancia total, por empresa y por proyecto.
+- `components/Shell.tsx` — navegacion y encabezado, estilo modulo Compras.
+- `proxy.ts` — refresca la sesion de Supabase en cada request (antes
+  `middleware.ts`; Next.js 16 renombro la convencion a "Proxy").
 - `supabase/migrations` — esquema SQL.
 - `supabase/seed.sql` — datos iniciales migrados del Excel original.

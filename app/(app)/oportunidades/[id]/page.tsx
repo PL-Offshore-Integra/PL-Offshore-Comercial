@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import OportunidadForm from "@/components/OportunidadForm";
 import { createClient } from "@/lib/supabase/server";
-import { deleteOportunidad, updateOportunidad } from "@/app/oportunidades/actions";
+import { deleteOportunidad, updateOportunidad } from "@/app/(app)/oportunidades/actions";
 import type { Oportunidad } from "@/lib/types";
 
 export default async function EditarOportunidadPage({
@@ -21,12 +21,12 @@ export default async function EditarOportunidadPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">
-          {oportunidad.compania} - {oportunidad.nombre_proyecto}
-        </h1>
+      <div className="flex-between mb16">
+        <span className="tag">
+          {oportunidad.compania} &middot; {oportunidad.nombre_proyecto}
+        </span>
         <form action={remove}>
-          <button type="submit" className="text-sm text-red-600 hover:underline">
+          <button type="submit" className="btn btn-danger btn-sm">
             Eliminar
           </button>
         </form>
