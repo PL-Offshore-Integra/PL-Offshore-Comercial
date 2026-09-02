@@ -79,7 +79,7 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
   "/oportunidades": {
     grupo: "Pipeline",
     titulo: "Oportunidades",
-    sub: "Pipeline comercial de Terra Mare, Clean Sea, Parana Logistica y HF Offshore.",
+    sub: "Oportunidades comerciales de PL Offshore.",
   },
   "/clientes": {
     grupo: "Maestros",

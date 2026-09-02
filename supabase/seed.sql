@@ -1,33 +1,28 @@
 -- Carga inicial con los datos del tracker "Tacker Ventas-Calendario Ferias -.xlsx"
 -- Ejecutar despues de 0001_init.sql
+--
+-- El tracker original traia 20 oportunidades de cuatro empresas propias:
+-- Terra Mare (11), Clean Sea (3), HF Offshore (2) y Parana Logistica (4). El
+-- 2 de septiembre de 2026 el modulo paso a ser solo de PL Offshore, asi que
+-- las 16 que no eran de Parana Logistica se borraron de la base y se sacan de
+-- aca: si quedaran, cualquiera que corriera el seed de nuevo las traeria de
+-- vuelta.
+--
+-- Las 16 filas siguen en el historial de git, en el commit 9754bf4 (el
+-- scaffold inicial), por si alguna vez hay que recuperarlas.
 
 insert into comercial.oportunidades
   (compania, nombre_proyecto, alcance_oportunidad, descripcion_alcance, nro_oportunidad,
    contacto, estadio, valor, costo, fecha_creacion, fecha_esperada_cierre, empresa,
    last_interacted_on, proximos_pasos, notas)
 values
-  ('Total', 'Ampliacion Fenix', 'Crewing', null, 'TM-8', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Terra Mare', null, null, null),
-  ('CIATI', 'Analisis Arena de Fractura', 'Supply Chain', null, 'TM-3', 'pablor@ciati.com.ar', 'Pedido de Cotizacion', 0, 0, '2025-05-15', '2025-12-31', 'Terra Mare', null, 'Esperar Cotizacion', null),
-  ('Subsea', 'Cable Removal Las Toninas', 'Project Management', null, 'TM-2', 'Simon@subsea.cc', 'Qualified', 0, 0, '2025-05-15', '2025-07-31', 'Terra Mare', null, 'Llamada el Martes 27 de Mayo', null),
-  ('Pacific Basin', 'Cotizacion 1 Items', 'Supply Chain', null, 'TM-7', 'opsprocurement@pacificbasin.com', 'Pedido de Cotizacion', 0, 0, '2025-05-15', '2025-12-31', 'Terra Mare', null, 'Esperando Cotizacion', null),
-  ('Execlerate', 'Gasero Escobar', 'Crewing', null, 'TM-6', 'sarah.sherman@excelerateenergy.com', 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Terra Mare', null, 'Investigar', null),
-  ('Excelerate', 'Gasero Escobar', 'Servicios Operacion', 'Barco de Carga', 'CS-2', 'sarah.sherman@excelerateenergy.com', 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Clean Sea', null, null, 'Fede hablar con Bruno para ofrecer un palero para suministro de repuesto, viveres, basura, etc'),
-  ('Southern Energy', 'LNG/Golar', 'Servicios Operacion', 'Crewing', 'TM-5', null, 'Investigando', 0, 0, '2025-05-15', '2025-07-31', 'Terra Mare', '2025-05-30', null, 'Reunion con Raul Hurtado'),
-  ('Southern Energy', 'LNG/Golar', 'Servicios Operacion', 'Embarcaciones', 'HF-2', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'HF Offshore', '2025-05-30', null, 'Reunion con Raul Hurtado'),
-  ('Southern Energy', 'LNG/Golar', 'Servicios Operacion', 'OSRO', 'CS-1', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Clean Sea', '2025-05-30', null, 'Reunion con Raul Hurtado'),
   ('Arendal', 'LNG/Golar', 'Obra Gasoducto', 'Embarcaciones', 'PL-4', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Parana Logistica', null, null, null),
-  ('Arendal', 'LNG/Golar', 'Obra Gasoducto', 'Crewing + Supply Chain', 'TM-9', null, 'Investigando', 0, 0, '2025-05-15', '2025-07-31', 'Terra Mare', null, null, null),
-  ('YPF', 'Transporte Arena', 'Project Management', null, 'TM-1', 'guillermo.farina@ypf.com', 'Investigando', 0, 0, '2025-05-15', '2025-07-31', 'Terra Mare', null, 'Investigar', null),
   ('Arendal', 'VMOS', 'Obra Oleoducto', 'Embarcaciones', 'PL-3', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Parana Logistica', null, null, null),
-  ('Arendal', 'VMOS', 'Obra Oleoducto', 'Crewing + Supply Chain', 'TM-11', null, 'Investigando', 0, 0, '2025-05-15', '2025-07-31', 'Terra Mare', null, null, null),
   ('Buzca', 'VMOS', 'Obra Oleoducto', 'Embarcaciones', 'PL-2', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Parana Logistica', null, null, null),
-  ('Buzca', 'VMOS', 'Obra Oleoducto', 'Crewing', 'TM-10', null, 'Investigando', 0, 0, '2025-05-15', '2025-07-31', 'Terra Mare', null, null, null),
-  ('GAC', 'VMOS', 'Obra Oleoducto', 'Crewing', 'TM-4', 'erica.gomez@gac.com', 'Propuesta Enviada', 440363, 405957.7613623554, '2025-05-15', '2025-07-31', 'Terra Mare', null, 'Esperar Cotizacion Formal', null),
-  ('IEA', 'VMOS', 'Obra Oleoducto', 'Boyas Meterologicas', 'PL-1', 'Andres Dorta', 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Parana Logistica', null, null, null),
-  ('YPF', 'VMOS', 'Servicios Operacion', 'Embarcaciones', 'HF-1', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'HF Offshore', '2025-05-15',
-    null, 'Hubo un RFI (Bahia Grande, Svitzer, Antares, Stapem Offshore fueron invitados). Flavio Llamedo confirmo invitar a PL y HF para el RfQ. 1) 1x AHTS 120 Tons bp + 1x TUG 60 a 70 tons bp + 1x Lancha para autoridades/practico/mooring master. 2) Contrato 5 a 10 anos'),
-  ('YPF', 'VMOS', 'Servicios Operacion', 'OSRO', 'CS-3', null, 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Clean Sea', '2025-05-15', null, null);
+  ('IEA', 'VMOS', 'Obra Oleoducto', 'Boyas Meterologicas', 'PL-1', 'Andres Dorta', 'Investigando', 0, 0, '2025-05-15', '2025-12-31', 'Parana Logistica', null, null, null);
 
+-- El calendario de ferias se deja completo: las columnas de participacion son
+-- de las cuatro empresas y el calendario se comparte, no es del pipeline.
 insert into comercial.eventos
   (fecha, evento, lugar, referencias, participa_terra_mare, participa_clean_sea, participa_parana_logistica)
 values
