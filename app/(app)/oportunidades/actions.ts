@@ -179,70 +179,44 @@ async function guardarTarifas(supabase: Cliente, id: string, formData: FormData)
 // Cerrar la oportunidad
 // ------------------------------------------------------------
 
-// Ganar crea el proyecto en public.proyectos —el maestro que leen los demas
-// modulos— y recien despues marca la oportunidad.
+// Ganar es solo ganar: marca el estadio y nada mas. NO crea el proyecto en
+// public.proyectos.
 //
-// El proyecto nace SIN centro de costo, SIN publicar y SIN presupuesto: eso
-// es de Finanzas, que es donde esta el control. El monto cotizado no se copia
-// al presupuesto, porque uno es precio y el otro es costo.
-//
-// El cliente de la app apunta al esquema `comercial`; para escribir en
-// `public` hay que pedirlo explicitamente con .schema("public").
-export async function ganarOportunidad(id: string, formData: FormData) {
+// Antes lo creaba, y esa era la version del circuito Integra: ganar una
+// oportunidad daba de alta el proyecto que despues leen Compras, Viveres,
+// Reparaciones y Finanzas. Se saco por pedido explicito. La funcion que lo
+// hacia —`ganarOportunidad`, con el insert a public.proyectos y el
+// origen: "comercial"— esta en el historial de git; la columna proyecto_id y
+// su foreign key siguen en la tabla, sin usar. Para volver atras hay que
+// recuperar esa funcion y la regla opp_ganado_con_proyecto (ver 0008).
+export async function marcarGanado(id: string) {
   const supabase = await createClient();
 
-  const codigo = str(formData, "proyecto_codigo");
-  const nombre = str(formData, "proyecto_nombre");
-  if (!nombre) throw new Error("El proyecto necesita un nombre.");
-
-  const { data: opp, error: eOpp } = await supabase
+  const { data: previa } = await supabase
     .from("oportunidades")
-    .select("*")
+    .select("estadio")
     .eq("id", id)
     .single();
-  if (eOpp) throw new Error(eOpp.message);
-  if (opp.proyecto_id) throw new Error("Esta oportunidad ya tiene un proyecto asociado.");
 
-  const { data: proyecto, error: eProy } = await supabase
-    .schema("public")
-    .from("proyectos")
-    .insert({
-      codigo,
-      nombre,
-      empresa: opp.empresa,
-      cliente: opp.compania,
-      fecha_inicio: opp.fecha_esperada_cierre,
-      descripcion: opp.descripcion_alcance ?? opp.alcance_oportunidad,
-      estado_financiero: "abierto",
-      // De donde salio el proyecto. Finanzas ya estampa origen: "finanzas"
-      // cuando lo crea desde ahi; sin esto un proyecto nacido de una
-      // oportunidad quedaba con el default 'projects' y no habia forma de
-      // saber que vino del circuito comercial. Nadie filtra por esta
-      // columna: se lee para mostrarla.
-      origen: "comercial",
-    })
-    .select("id")
-    .single();
-  if (eProy) throw new Error(`No se pudo crear el proyecto: ${eProy.message}`);
+  if (previa && ESTADIOS_CERRADOS.includes(previa.estadio)) {
+    throw new Error("Esta oportunidad ya esta cerrada.");
+  }
 
   const { error } = await supabase
     .from("oportunidades")
-    .update({ estadio: "Ganado", proyecto_id: proyecto.id })
+    .update({ estadio: "Ganado" })
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  await registrarHistorial(
-    supabase,
-    id,
-    opp.estadio,
-    "Ganado",
-    `Proyecto creado: ${codigo ?? nombre}`
-  );
+  await registrarHistorial(supabase, id, previa?.estadio ?? null, "Ganado", null);
 
   revalidatePath("/oportunidades");
   revalidatePath(`/oportunidades/${id}`);
 }
 
+// El motivo es obligatorio de este lado tambien, no solo en el cuadro de
+// dialogo: el `required` del formulario lo puede saltear cualquiera, la regla
+// opp_perdido_con_motivo de la base no.
 export async function perderOportunidad(id: string, formData: FormData) {
   const supabase = await createClient();
 
@@ -254,6 +228,10 @@ export async function perderOportunidad(id: string, formData: FormData) {
     .select("estadio")
     .eq("id", id)
     .single();
+
+  if (previa && ESTADIOS_CERRADOS.includes(previa.estadio)) {
+    throw new Error("Esta oportunidad ya esta cerrada.");
+  }
 
   const { error } = await supabase
     .from("oportunidades")

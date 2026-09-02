@@ -1,6 +1,10 @@
 import Link from "next/link";
+import CerrarOportunidad from "@/components/CerrarOportunidad";
+import { marcarGanado, perderOportunidad } from "@/app/(app)/oportunidades/actions";
 import { createClient } from "@/lib/supabase/server";
 import type { Oportunidad } from "@/lib/types";
+
+const CERRADOS = ["Ganado", "Perdido", "Cancelado"];
 
 const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD" });
 
@@ -87,10 +91,21 @@ export default async function OportunidadesPage() {
                     <td className="text-mono">{currency.format(o.valor)}</td>
                     <td className="text-mono">{o.fecha_esperada_cierre ?? "-"}</td>
                     <td className="text-muted">{o.proximos_pasos ?? "-"}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <Link href={`/oportunidades/${o.id}`} className="btn btn-ghost btn-sm">
-                        Editar
-                      </Link>
+                    <td>
+                      <div className="fila-acciones">
+                        {/* Los botones de cierre solo mientras esta abierta.
+                            Una ya cerrada no se reabre desde aca. */}
+                        {!CERRADOS.includes(o.estadio) && (
+                          <CerrarOportunidad
+                            ganar={marcarGanado.bind(null, o.id)}
+                            perder={perderOportunidad.bind(null, o.id)}
+                            etiqueta={`${o.nro_oportunidad ?? "esta oportunidad"} · ${o.compania}`}
+                          />
+                        )}
+                        <Link href={`/oportunidades/${o.id}`} className="btn btn-ghost btn-sm">
+                          Editar
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

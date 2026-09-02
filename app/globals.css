@@ -206,3 +206,13 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
   .login-left-sub{max-width:100%}
   .login-right{padding:40px 24px}
 }
+
+/* ── CUADRO DE DIALOGO ─────────────────────────────────────────────────── */
+/* <dialog> nativo: el ::backdrop es del navegador, no un div propio. */
+.modal{border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);padding:24px;width:min(480px,calc(100vw - 32px));box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.modal::backdrop{background:rgba(15,20,25,.45)}
+.modal-titulo{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.modal-pie{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+
+/* Los botones de la ultima columna de la lista, en una sola linea. */
+.fila-acciones{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
