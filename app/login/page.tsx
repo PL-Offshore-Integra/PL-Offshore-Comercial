@@ -51,7 +51,7 @@ export default function LoginPage() {
 
       <div className="login-right">
         <div className="login-card">
-          <div className="login-card-eyebrow">PL Offshore | Pipeline Comercial</div>
+          <div className="login-card-eyebrow">PL Offshore | Comercial</div>
           <div className="login-card-title">Acceso al portal</div>
           <div className="login-card-sub">Solo personal autorizado</div>
           {error && <div className="login-error">{error}</div>}

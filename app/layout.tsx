@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Comercial | PL Offshore",
-  description: "Pipeline de oportunidades y calendario de ferias",
+  description: "Oportunidades comerciales y calendario de ferias de PL Offshore",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -58,7 +58,7 @@ const ICONS = {
 
 const NAV: NavGroup[] = [
   {
-    titulo: "Pipeline",
+    titulo: "Comercial",
     items: [{ href: "/oportunidades", label: "Oportunidades", icon: "chart" }],
   },
   {
@@ -77,7 +77,7 @@ const NAV: NavGroup[] = [
 
 const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> = {
   "/oportunidades": {
-    grupo: "Pipeline",
+    grupo: "Comercial",
     titulo: "Oportunidades",
     sub: "Oportunidades comerciales de PL Offshore.",
   },
@@ -101,10 +101,10 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
 function seccionFor(pathname: string) {
   if (SECCIONES[pathname]) return SECCIONES[pathname];
   if (pathname === "/oportunidades/nueva") {
-    return { grupo: "Pipeline", titulo: "Nueva oportunidad", sub: "Se agrega al pipeline con estadio inicial Investigando." };
+    return { grupo: "Comercial", titulo: "Nueva oportunidad", sub: "Se agrega con estadio inicial Investigando." };
   }
   if (pathname.startsWith("/oportunidades/")) {
-    return { grupo: "Pipeline", titulo: "Editar oportunidad", sub: "" };
+    return { grupo: "Comercial", titulo: "Editar oportunidad", sub: "" };
   }
   const base = "/" + pathname.split("/")[1];
   return SECCIONES[base] ?? { grupo: "Comercial", titulo: "Comercial", sub: "" };
