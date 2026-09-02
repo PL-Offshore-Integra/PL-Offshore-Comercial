@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Cliente } from "@/lib/types";
+import { EditarContacto, NuevaEmpresa, NuevoContacto } from "@/components/ContactoDialogo";
+import type { Cliente, ClienteEmpresa } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -34,7 +35,15 @@ const SITUACIONES: { id: Situacion; label: string }[] = [
 // filas en una consulta y son pocas —una por contacto—, asi que filtrar en el
 // navegador es instantaneo y no vuelve al servidor por cada tecla. Si algun dia
 // esto crece a miles de contactos, el corte pasa a la consulta.
-export default function ClientesTabla({ filas }: { filas: Cliente[] }) {
+export default function ClientesTabla({
+  filas,
+  empresas,
+}: {
+  filas: Cliente[];
+  // Para el desplegable del alta de contacto. Viene del maestro y no de las
+  // filas: una empresa recien creada todavia no tiene ninguna.
+  empresas: ClienteEmpresa[];
+}) {
   const [busqueda, setBusqueda] = useState("");
   const [compania, setCompania] = useState("");
   const [situacion, setSituacion] = useState<Situacion>("todas");
@@ -129,6 +138,11 @@ export default function ClientesTabla({ filas }: { filas: Cliente[] }) {
       </div>
 
       <div className="card">
+        <div className="filter-row" style={{ marginBottom: 8 }}>
+          <NuevaEmpresa />
+          <NuevoContacto empresas={empresas} />
+        </div>
+
         <div className="filter-row">
         {/* La busqueda absorbe el espacio que sobra: los demas controles tienen
             ancho fijo para que la barra entre en una sola linea. */}
@@ -216,6 +230,7 @@ export default function ClientesTabla({ filas }: { filas: Cliente[] }) {
               <th>Perdidas</th>
               <th>Cotizado</th>
               <th>Ultimo contacto</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -259,6 +274,9 @@ export default function ClientesTabla({ filas }: { filas: Cliente[] }) {
                 <td className="text-mono">{c.perdidas}</td>
                 <td className="text-mono">{currency.format(Number(c.valor_total ?? 0))}</td>
                 <td className="text-mono">{fecha(c.ultimo_contacto)}</td>
+                <td style={{ textAlign: "right" }}>
+                  <EditarContacto fila={c} />
+                </td>
               </tr>
             ))}
           </tbody>

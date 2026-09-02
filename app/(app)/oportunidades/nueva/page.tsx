@@ -1,5 +1,6 @@
 import OportunidadForm from "@/components/OportunidadForm";
 import { createOportunidad } from "@/app/(app)/oportunidades/actions";
+import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 
 // Para mostrar el numero antes de guardar hay que saber cuantas oportunidades
@@ -23,5 +24,14 @@ export default async function NuevaOportunidadPage() {
     for (const fila of data ?? []) contadores[fila.anio] = fila.ultimo;
   }
 
-  return <OportunidadForm action={createOportunidad} contadores={contadores} />;
+  const { empresas, contactos } = await leerMaestroClientes();
+
+  return (
+    <OportunidadForm
+      action={createOportunidad}
+      contadores={contadores}
+      empresas={empresas}
+      contactos={contactos}
+    />
+  );
 }

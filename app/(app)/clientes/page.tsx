@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ClientesTabla from "@/components/ClientesTabla";
+import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 import type { Cliente } from "@/lib/types";
 
@@ -11,6 +12,7 @@ export default async function ClientesPage() {
     .order("compania", { ascending: true });
 
   const filas = (data ?? []) as Cliente[];
+  const { empresas } = await leerMaestroClientes();
 
   return (
     <div>
@@ -23,20 +25,16 @@ export default async function ClientesPage() {
       )}
 
       <div className="info-box accent mb16">
-        Esta pantalla no se carga a mano: sale de las oportunidades. La compañía,
-        el nombre del contacto, el mail y el teléfono se toman de cada
-        oportunidad que das de alta. Para corregir un dato, se corrige en la
-        oportunidad.
+        Este es el maestro de clientes: se carga acá o desde el formulario de una
+        oportunidad, que toma la empresa y el contacto de esta misma lista. Los
+        contadores de oportunidades, en cambio, salen de las oportunidades
+        cargadas.
       </div>
 
-      {!error && filas.length === 0 ? (
-        <div className="empty-state">
-          Todavía no hay clientes. Cargá una oportunidad y aparecen acá.
-        </div>
-      ) : (
-        // La tabla y los filtros van del lado del cliente; la consulta, de este.
-        <ClientesTabla filas={filas} />
-      )}
+      {/* La tabla, los filtros y los cuadros de dialogo van del lado del
+          cliente; las consultas, de este. Con la base vacia se muestra igual:
+          los botones para cargar la primera empresa estan ahi. */}
+      {!error && <ClientesTabla filas={filas} empresas={empresas} />}
 
       {filas.length > 0 && (
         <div className="mt16">

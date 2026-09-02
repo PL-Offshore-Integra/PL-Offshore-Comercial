@@ -131,6 +131,14 @@ export interface Oportunidad {
   contacto_email: string | null;
   contacto_telefono: string | null;
   contacto_linkedin: string | null;
+
+  // --- 0009 · el maestro de clientes ---
+  // Manda el FK. Las columnas de texto de arriba (compania, contacto, mail,
+  // telefono, linkedin) son la foto del momento en que se cargo: si la empresa
+  // se renombra, la oportunidad vieja conserva el nombre con el que se firmo.
+  cliente_empresa_id: string | null;
+  cliente_contacto_id: string | null;
+
   // Cuando se haria el trabajo. Distinto de fecha_esperada_cierre, que es
   // cuando se define la venta.
   fecha_inicio_estimada: string | null;
@@ -147,13 +155,38 @@ export interface Adjunto {
   created_at: string;
 }
 
-// Sale de la vista comercial.clientes: una fila por contacto.
+// El maestro de clientes (0009). Dos niveles: la empresa se firma, la persona
+// se llama por telefono.
+export interface ClienteEmpresa {
+  id: string;
+  nombre: string;
+  notas: string | null;
+  created_at: string;
+}
+
+export interface ClienteContacto {
+  id: string;
+  empresa_id: string;
+  nombre: string | null;
+  email: string | null;
+  telefono: string | null;
+  linkedin: string | null;
+  cargo: string | null;
+  notas: string | null;
+  created_at: string;
+}
+
+// Sale de la vista comercial.clientes: una fila por contacto, mas una fila por
+// empresa que todavia no tiene ninguno.
 export interface Cliente {
+  empresa_id: string;
   compania: string;
+  contacto_id: string | null;
   contacto: string | null;
   contacto_email: string | null;
   contacto_telefono: string | null;
   contacto_linkedin: string | null;
+  contacto_cargo: string | null;
   oportunidades: number;
   ganadas: number;
   perdidas: number;

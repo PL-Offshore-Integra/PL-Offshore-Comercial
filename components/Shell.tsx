@@ -84,7 +84,7 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
   "/clientes": {
     grupo: "Maestros",
     titulo: "Base de datos clientes",
-    sub: "Sale de las oportunidades cargadas: cada compania con sus contactos, mail y telefono.",
+    sub: "El maestro de clientes: empresas, contactos y su historia comercial.",
   },
   "/calendario": {
     grupo: "Eventos",

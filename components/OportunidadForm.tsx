@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import ClientePicker from "@/components/ClientePicker";
+import type { ClienteContacto, ClienteEmpresa } from "@/lib/types";
 import {
   camposDe,
   ESTADIOS,
@@ -12,9 +15,8 @@ import {
 } from "@/lib/types";
 
 // Los dos estadios cerrados no se eligen a mano: se llega por los botones
-// Ganar y Perder de la ficha, que son los que crean el proyecto o exigen el
-// motivo. Dejarlos en el desplegable seria ofrecer un camino que la base
-// rechaza.
+// Ganado y Perdido de la lista, y Perdido es el que pide el motivo. Dejarlos
+// en el desplegable seria ofrecer un camino que la base rechaza.
 const ESTADIOS_ABIERTOS = ESTADIOS.filter(
   (e) => e.estadio !== "Ganado" && e.estadio !== "Perdido"
 );
@@ -26,10 +28,15 @@ export default function OportunidadForm({
   oportunidad,
   tarifas = [],
   contadores = null,
+  empresas,
+  contactos,
 }: {
   action: (formData: FormData) => void;
   oportunidad?: Oportunidad;
   tarifas?: Tarifa[];
+  // El maestro de clientes, para los dos desplegables.
+  empresas: ClienteEmpresa[];
+  contactos: ClienteContacto[];
   // Cuantas oportunidades lleva cada anio, para poder mostrar el numero que
   // sigue antes de guardar. Solo se usa en el alta. null = no se pudo leer.
   contadores?: Record<number, number> | null;
@@ -92,11 +99,6 @@ export default function OportunidadForm({
           )}
         </div>
         <div className="fg">
-          <label>Compania / cliente</label>
-          <input name="compania" defaultValue={oportunidad?.compania} required />
-        </div>
-
-        <div className="fg">
           <label>Estadio</label>
           <select name="estadio" defaultValue={oportunidad?.estadio ?? "Investigando"}>
             {ESTADIOS_ABIERTOS.map((e) => (
@@ -114,48 +116,20 @@ export default function OportunidadForm({
             placeholder="Para quien es el trabajo"
           />
         </div>
-        <div className="fg">
-          <label>Buque que se podria usar</label>
-          <input
-            name="buque"
-            defaultValue={oportunidad?.buque ?? ""}
-            placeholder="Atlantic Dama"
-          />
-        </div>
       </div>
 
-      <div className="form-section">Contacto</div>
+      <div className="form-section">Cliente y contacto</div>
       <div className="form-grid">
-        <div className="fg">
-          <label>Nombre y apellido</label>
-          <input name="contacto" defaultValue={oportunidad?.contacto ?? ""} />
-        </div>
-        <div className="fg">
-          <label>Mail</label>
-          <input
-            type="email"
-            name="contacto_email"
-            defaultValue={oportunidad?.contacto_email ?? ""}
-            placeholder="nombre@empresa.com"
-          />
-        </div>
-        <div className="fg">
-          <label>Telefono de contacto</label>
-          <input
-            type="tel"
-            name="contacto_telefono"
-            defaultValue={oportunidad?.contacto_telefono ?? ""}
-            placeholder="+54 9 11 ..."
-          />
-        </div>
-        <div className="fg">
-          <label>Linkedin</label>
-          <input
-            name="contacto_linkedin"
-            defaultValue={oportunidad?.contacto_linkedin ?? ""}
-            placeholder="linkedin.com/in/..."
-          />
-        </div>
+        {/* Empresa y persona salen del maestro de clientes, con la opcion de
+            crear cualquiera de las dos ahi mismo. Los campos de texto que
+            habia antes (nombre, mail, telefono, linkedin sueltos en la
+            oportunidad) se cargan una vez en el cliente y se reusan. */}
+        <ClientePicker
+          empresas={empresas}
+          contactos={contactos}
+          empresaId={oportunidad?.cliente_empresa_id}
+          contactoId={oportunidad?.cliente_contacto_id}
+        />
       </div>
 
       <div className="form-section">La tarea</div>
@@ -169,6 +143,16 @@ export default function OportunidadForm({
         />
       </div>
       <div className="form-grid">
+        {/* El buque vive aca y no arriba: es parte de lo que la tarea
+            necesita, no de la identidad de la oportunidad. */}
+        <div className="fg">
+          <label>Buque que se podria usar</label>
+          <input
+            name="buque"
+            defaultValue={oportunidad?.buque ?? ""}
+            placeholder="Atlantic Dama"
+          />
+        </div>
         <div className="fg">
           <label>Alcance (categoria)</label>
           <input
@@ -277,7 +261,12 @@ export default function OportunidadForm({
         <input name="referencias" defaultValue={oportunidad?.referencias ?? ""} />
       </div>
 
-      <div className="flex-between mt16" style={{ justifyContent: "flex-end" }}>
+      {/* Atras sale sin guardar: es un link y no un boton dentro del form,
+          asi no puede disparar el submit por accidente. */}
+      <div className="flex-between mt16">
+        <Link href="/oportunidades" className="btn btn-ghost">
+          Atras
+        </Link>
         <button type="submit" className="btn btn-primary">
           Guardar
         </button>

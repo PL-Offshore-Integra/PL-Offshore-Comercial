@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import OportunidadForm from "@/components/OportunidadForm";
+import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 import {
   borrarAdjunto,
@@ -59,6 +60,8 @@ export default async function EditarOportunidadPage({
   const remove = deleteOportunidad.bind(null, oportunidad.id);
   const subir = subirAdjunto.bind(null, oportunidad.id);
 
+  const { empresas, contactos } = await leerMaestroClientes();
+
   const cerrada = oportunidad.estadio === "Ganado" || oportunidad.estadio === "Perdido";
 
   return (
@@ -75,7 +78,13 @@ export default async function EditarOportunidadPage({
         </form>
       </div>
 
-      <OportunidadForm action={update} oportunidad={oportunidad} tarifas={tarifas} />
+      <OportunidadForm
+        action={update}
+        oportunidad={oportunidad}
+        tarifas={tarifas}
+        empresas={empresas}
+        contactos={contactos}
+      />
 
       <div className="card">
         <div className="form-section">Documentacion</div>
@@ -139,31 +148,26 @@ export default async function EditarOportunidadPage({
         </form>
       </div>
 
-      {/* El bloque para cerrar la oportunidad (Ganar / Perder) se saco de la
-          pantalla. Ganar creaba el proyecto en public.proyectos y Perder
-          exigia el motivo; las dos acciones siguen en actions.ts, sin nada
-          que las llame. Con esto hoy NO hay forma de cerrar una oportunidad
-          desde la app: los estadios Ganado y Perdido tampoco estan en el
-          desplegable, y no se pueden agregar ahi porque la base los rechaza
-          sin proyecto y sin motivo (0002). Volver a mostrarlo es recuperar
-          este bloque del historial de git.
-
-          Lo que sigue solo aparece si una oportunidad ya esta cerrada. */}
+      {/* Cerrar y reabrir se hace desde los botones de la lista. Aca solo se
+          muestra como quedo, y solo si esta cerrada. */}
       {cerrada && (
         <div className="card">
           <div className="form-section">Cierre</div>
           {oportunidad.estadio === "Ganado" ? (
             <div className="info-box accent">
-              Ganada. El proyecto ya existe en el maestro de Integra
-              {oportunidad.proyecto_id && (
+              Ganada.{" "}
+              {oportunidad.proyecto_id ? (
                 <>
-                  {" "}
-                  (<span className="text-mono">{oportunidad.proyecto_id}</span>)
+                  El proyecto existe en el maestro de Integra (
+                  <span className="text-mono">{oportunidad.proyecto_id}</span>). Falta
+                  que <strong>Finanzas le asigne el centro de costo y lo publique</strong>.
+                </>
+              ) : (
+                <>
+                  No se creo ningun proyecto en Integra: ganar solo marca la
+                  oportunidad. El alta del proyecto la hace Finanzas.
                 </>
               )}
-              . Falta que <strong>Finanzas le asigne el centro de costo y lo
-              publique</strong>: hasta entonces no aparece en Compras, Viveres ni
-              Reparaciones.
             </div>
           ) : (
             <div className="info-box danger">
