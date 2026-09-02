@@ -242,3 +242,14 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .btn-amarillo{background:var(--amarillo);color:var(--navy)}
 .btn-amarillo:hover{background:var(--amarillo-press)}
 .btn-amarillo:active{background:#C99700}
+
+/* Etiquetas y contador dentro de la barra de filtros. */
+.filter-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.filter-cuenta{text-align:right;font-size:12px;color:var(--muted2);letter-spacing:.04em;margin:-8px 0 12px}
+/* La compania es lo que se busca primero: se lee antes que el resto. */
+.cel-compania{font-weight:600;color:var(--navy);white-space:nowrap}
+.filter-buscar{flex:1 1 180px;min-width:180px}
+.filter-fecha{min-width:0;width:132px;padding:0 8px}
+.filter-guion{color:var(--muted2);font-size:12px}
+.filter-row .filter-select{min-width:0;width:158px}
+.filter-fechas{display:flex;align-items:center;gap:8px;flex:0 0 auto}
