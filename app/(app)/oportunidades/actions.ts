@@ -214,6 +214,12 @@ export async function ganarOportunidad(id: string, formData: FormData) {
       fecha_inicio: opp.fecha_esperada_cierre,
       descripcion: opp.descripcion_alcance ?? opp.alcance_oportunidad,
       estado_financiero: "abierto",
+      // De donde salio el proyecto. Finanzas ya estampa origen: "finanzas"
+      // cuando lo crea desde ahi; sin esto un proyecto nacido de una
+      // oportunidad quedaba con el default 'projects' y no habia forma de
+      // saber que vino del circuito comercial. Nadie filtra por esta
+      // columna: se lee para mostrarla.
+      origen: "comercial",
     })
     .select("id")
     .single();
