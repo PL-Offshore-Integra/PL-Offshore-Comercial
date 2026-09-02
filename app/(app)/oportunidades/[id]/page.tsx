@@ -4,8 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   borrarAdjunto,
   deleteOportunidad,
-  ganarOportunidad,
-  perderOportunidad,
   subirAdjunto,
   updateOportunidad,
 } from "@/app/(app)/oportunidades/actions";
@@ -59,8 +57,6 @@ export default async function EditarOportunidadPage({
 
   const update = updateOportunidad.bind(null, oportunidad.id);
   const remove = deleteOportunidad.bind(null, oportunidad.id);
-  const ganar = ganarOportunidad.bind(null, oportunidad.id);
-  const perder = perderOportunidad.bind(null, oportunidad.id);
   const subir = subirAdjunto.bind(null, oportunidad.id);
 
   const cerrada = oportunidad.estadio === "Ganado" || oportunidad.estadio === "Perdido";
@@ -143,7 +139,17 @@ export default async function EditarOportunidadPage({
         </form>
       </div>
 
-      {cerrada ? (
+      {/* El bloque para cerrar la oportunidad (Ganar / Perder) se saco de la
+          pantalla. Ganar creaba el proyecto en public.proyectos y Perder
+          exigia el motivo; las dos acciones siguen en actions.ts, sin nada
+          que las llame. Con esto hoy NO hay forma de cerrar una oportunidad
+          desde la app: los estadios Ganado y Perdido tampoco estan en el
+          desplegable, y no se pueden agregar ahi porque la base los rechaza
+          sin proyecto y sin motivo (0002). Volver a mostrarlo es recuperar
+          este bloque del historial de git.
+
+          Lo que sigue solo aparece si una oportunidad ya esta cerrada. */}
+      {cerrada && (
         <div className="card">
           <div className="form-section">Cierre</div>
           {oportunidad.estadio === "Ganado" ? (
@@ -165,66 +171,6 @@ export default async function EditarOportunidadPage({
               {oportunidad.competidor && <> &middot; Competidor: {oportunidad.competidor}</>}
             </div>
           )}
-        </div>
-      ) : (
-        <div className="card">
-          <div className="form-section">Cerrar la oportunidad</div>
-
-          <form action={ganar} className="mb16">
-            <div className="info-box accent mb16">
-              Ganar <strong>crea el proyecto</strong> en el maestro de Integra, sin
-              centro de costo y sin publicar. El presupuesto lo carga Finanzas: el
-              valor cotizado es precio, no costo.
-            </div>
-            <div className="form-grid">
-              <div className="fg">
-                <label>Codigo del proyecto</label>
-                <input name="proyecto_codigo" placeholder="PRY-2027-004" />
-              </div>
-              <div className="fg">
-                <label>Nombre del proyecto</label>
-                <input
-                  name="proyecto_nombre"
-                  defaultValue={oportunidad.nombre_proyecto ?? ""}
-                  placeholder="Como se va a llamar en Integra"
-                  required
-                />
-              </div>
-              <div className="fg">
-                <label>&nbsp;</label>
-                <button type="submit" className="btn btn-primary">
-                  Crear proyecto y marcar Ganado
-                </button>
-              </div>
-            </div>
-          </form>
-
-          <form action={perder}>
-            <div className="info-box warn mb16">
-              El motivo es obligatorio. Es el unico dato que hoy no queda registrado
-              en ningun lado cuando una cotizacion se cae.
-            </div>
-            <div className="form-grid">
-              <div className="fg">
-                <label>Motivo de la perdida</label>
-                <input
-                  name="motivo_perdida"
-                  placeholder="Precio, disponibilidad de buque, plazo..."
-                  required
-                />
-              </div>
-              <div className="fg">
-                <label>Competidor</label>
-                <input name="competidor" placeholder="Opcional" />
-              </div>
-              <div className="fg">
-                <label>&nbsp;</label>
-                <button type="submit" className="btn btn-danger">
-                  Marcar Perdido
-                </button>
-              </div>
-            </div>
-          </form>
         </div>
       )}
     </div>
