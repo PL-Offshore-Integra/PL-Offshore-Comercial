@@ -10,7 +10,6 @@ import {
   subirAdjunto,
   updateOportunidad,
 } from "@/app/(app)/oportunidades/actions";
-import { listarCentrosCosto } from "@/lib/centros";
 import type { Adjunto, Oportunidad, Tarifa } from "@/lib/types";
 
 function pesoLegible(bytes: number | null) {
@@ -39,8 +38,6 @@ export default async function EditarOportunidadPage({
     .eq("oportunidad_id", id)
     .order("orden", { ascending: true });
   const tarifas = (filas ?? []) as Tarifa[];
-
-  const centros = await listarCentrosCosto();
 
   const { data: docs } = await supabase
     .from("oportunidad_adjuntos")
@@ -83,7 +80,7 @@ export default async function EditarOportunidadPage({
         </form>
       </div>
 
-      <OportunidadForm action={update} oportunidad={oportunidad} centros={centros} />
+      <OportunidadForm action={update} oportunidad={oportunidad} />
 
       <div className="card">
         <div className="form-section">Documentacion</div>

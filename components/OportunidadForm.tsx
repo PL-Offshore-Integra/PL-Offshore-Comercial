@@ -7,7 +7,6 @@ import {
   ESTRUCTURAS,
   PRESET_TARIFAS,
   UNIDADES,
-  type CentroCosto,
   type Concepto,
   type EstructuraTarifaria,
   type Oportunidad,
@@ -26,19 +25,10 @@ const ESTADIOS_ABIERTOS = ESTADIOS.filter(
 export default function OportunidadForm({
   action,
   oportunidad,
-  centros = [],
 }: {
   action: (formData: FormData) => void;
   oportunidad?: Oportunidad;
-  centros?: CentroCosto[];
 }) {
-  // El buque puede haberse cargado antes de que existiera el desplegable, o
-  // el centro puede haberse dado de baja. En cualquiera de los dos casos el
-  // valor guardado se muestra igual: perderlo en silencio seria peor.
-  const buqueActual = oportunidad?.buque ?? "";
-  const buqueHuerfano =
-    buqueActual !== "" && !centros.some((c) => c.nombre === buqueActual);
-
   return (
     <form action={action} className="card">
       <div className="form-section">Oportunidad</div>
@@ -81,22 +71,11 @@ export default function OportunidadForm({
         </div>
         <div className="fg">
           <label>Buque que se podria usar</label>
-          <select name="buque" defaultValue={buqueActual}>
-            <option value="">&mdash; sin definir &mdash;</option>
-            {buqueHuerfano && (
-              <option value={buqueActual}>{buqueActual} (fuera del maestro)</option>
-            )}
-            {centros.map((c) => (
-              <option key={c.id} value={c.nombre}>
-                {c.codigo ? `${c.codigo} · ${c.nombre}` : c.nombre}
-              </option>
-            ))}
-          </select>
-          {centros.length === 0 && (
-            <span className="text-muted">
-              No hay centros de costo activos para PL Offshore.
-            </span>
-          )}
+          <input
+            name="buque"
+            defaultValue={oportunidad?.buque ?? ""}
+            placeholder="Atlantic Dama"
+          />
         </div>
       </div>
 

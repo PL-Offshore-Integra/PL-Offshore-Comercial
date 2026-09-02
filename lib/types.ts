@@ -131,16 +131,6 @@ export interface Oportunidad {
   fecha_fin_estimada: string | null;
 }
 
-// Un centro de costo de public.centros_costo. Para PL Offshore los centros
-// SON los buques (mas oficina y astillero), asi que el desplegable de buque
-// se alimenta de ahi en lugar de tener su propia lista.
-export interface CentroCosto {
-  id: string;
-  codigo: string | null;
-  nombre: string;
-  activo: boolean;
-}
-
 export interface Adjunto {
   id: string;
   oportunidad_id: string;
