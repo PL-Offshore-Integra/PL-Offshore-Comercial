@@ -94,7 +94,7 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
   "/dashboard": {
     grupo: "Resumen",
     titulo: "Dashboard",
-    sub: "Ganancia total, por empresa propia y por proyecto.",
+    sub: "Valor cotizado por empresa propia y por cliente.",
   },
 };
 

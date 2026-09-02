@@ -8,18 +8,21 @@ export default async function DashboardPage() {
   const { data, error } = await supabase.from("oportunidades").select("*");
   const oportunidades = (data ?? []) as Oportunidad[];
 
-  const porEmpresa = new Map<string, number>();
-  const porCliente = new Map<string, number>();
-  let total = 0;
-
+  // Se agrupa por VALOR COTIZADO, no por ganancia. La ganancia es
+  // valor - costo, y el costo salio del formulario: queda en 0, asi que
+  // "ganancia" mostraba el precio disfrazado de resultado. Mientras el costo
+  // no venga de algun lado —Finanzas es el candidato— el unico numero real
+  // que tiene una oportunidad es lo que se cotizo.
+  //
   // Nombre de proyecto dejo de pedirse en el formulario (0004), asi que
   // agrupar por ahi dejaria casi todo en una fila vacia. El corte pasa a ser
   // el cliente.
+  const porEmpresa = new Map<string, number>();
+  const porCliente = new Map<string, number>();
+
   for (const o of oportunidades) {
-    const ganancia = o.valor - o.costo;
-    total += ganancia;
-    porEmpresa.set(o.empresa, (porEmpresa.get(o.empresa) ?? 0) + ganancia);
-    porCliente.set(o.compania, (porCliente.get(o.compania) ?? 0) + ganancia);
+    porEmpresa.set(o.empresa, (porEmpresa.get(o.empresa) ?? 0) + o.valor);
+    porCliente.set(o.compania, (porCliente.get(o.compania) ?? 0) + o.valor);
   }
 
   return (
@@ -30,24 +33,17 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="stats">
-        <div className="stat">
-          <div className="stat-label">Ganancia total</div>
-          <div className="stat-value">{currency.format(total)}</div>
-        </div>
-      </div>
-
       <div className="form-grid">
         <div className="card">
-          <div className="card-title">Por empresa propia</div>
+          <div className="card-title">Cotizado por empresa propia</div>
           <div className="table-wrap">
             <table>
               <tbody>
-                {[...porEmpresa.entries()].map(([empresa, ganancia]) => (
+                {[...porEmpresa.entries()].map(([empresa, cotizado]) => (
                   <tr key={empresa}>
                     <td>{empresa}</td>
                     <td className="text-mono" style={{ textAlign: "right" }}>
-                      {currency.format(ganancia)}
+                      {currency.format(cotizado)}
                     </td>
                   </tr>
                 ))}
@@ -57,15 +53,15 @@ export default async function DashboardPage() {
         </div>
 
         <div className="card">
-          <div className="card-title">Por cliente</div>
+          <div className="card-title">Cotizado por cliente</div>
           <div className="table-wrap">
             <table>
               <tbody>
-                {[...porCliente.entries()].map(([cliente, ganancia]) => (
+                {[...porCliente.entries()].map(([cliente, cotizado]) => (
                   <tr key={cliente}>
                     <td>{cliente}</td>
                     <td className="text-mono" style={{ textAlign: "right" }}>
-                      {currency.format(ganancia)}
+                      {currency.format(cotizado)}
                     </td>
                   </tr>
                 ))}
