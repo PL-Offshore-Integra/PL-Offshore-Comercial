@@ -66,7 +66,7 @@ export default function OportunidadForm({
   };
 
   return (
-    <form action={action} className="card">
+    <form action={action} className="card" id={ID_FORM_OPORTUNIDAD}>
       <div className="form-section">Oportunidad</div>
       <div className="form-grid">
         <div className="fg">
@@ -261,16 +261,47 @@ export default function OportunidadForm({
         <input name="referencias" defaultValue={oportunidad?.referencias ?? ""} />
       </div>
 
-      {/* Atras sale sin guardar: es un link y no un boton dentro del form,
-          asi no puede disparar el submit por accidente. */}
-      <div className="flex-between mt16">
-        <Link href="/oportunidades" className="btn btn-ghost">
-          Atras
-        </Link>
-        <button type="submit" className="btn btn-primary">
-          Guardar
-        </button>
-      </div>
+      {/* Adjuntar en el alta. En la ficha no va: ahi abajo esta el bloque de
+          Documentacion, que ademas lista lo que ya se subio y permite
+          borrarlo. Aca se puede elegir mas de un archivo de una vez. */}
+      {!oportunidad && (
+        <>
+          <div className="form-section">Documentacion</div>
+          <div className="fg">
+            <label>Adjuntar archivos (hasta 25 MB cada uno)</label>
+            <input type="file" name="archivo" multiple />
+            <span className="hint">
+              Opcional. Despues se pueden agregar mas desde la oportunidad.
+            </span>
+          </div>
+        </>
+      )}
+
+      {/* En el alta el pie va aca, que ya es el final del formulario. En la
+          ficha no: abajo hay otra tarjeta con la documentacion ya subida, y el
+          pie tiene que quedar debajo de todo. Como no se pueden anidar
+          formularios, ese pie lo dibuja la ficha con <PieDelFormulario />, que
+          apunta a este form por id. */}
+      {!oportunidad && <PieDelFormulario />}
     </form>
+  );
+}
+
+// El id que une el boton Guardar de la ficha con el formulario, aunque esten
+// en distintos lugares del arbol.
+export const ID_FORM_OPORTUNIDAD = "form-oportunidad";
+
+// Atras es un link y no un boton: dentro del formulario un boton sin type
+// dispara el submit, y este tiene que salir sin guardar.
+export function PieDelFormulario() {
+  return (
+    <div className="flex-between mt16">
+      <Link href="/oportunidades" className="btn btn-ghost">
+        Atras
+      </Link>
+      <button type="submit" form={ID_FORM_OPORTUNIDAD} className="btn btn-primary">
+        Guardar
+      </button>
+    </div>
   );
 }

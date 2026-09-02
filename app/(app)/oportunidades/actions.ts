@@ -177,6 +177,17 @@ export async function createOportunidad(formData: FormData) {
   // completa los casilleros que le muestra la estructura elegida y guarda una
   // sola vez.
   await guardarTarifas(supabase, data.id, formData);
+
+  // La documentacion tambien puede venir en el alta. Se sube despues del
+  // insert porque el archivo se cuelga de la oportunidad, que hasta hace un
+  // renglon no existia. Si no viene ninguno, no pasa nada.
+  const archivos = formData
+    .getAll("archivo")
+    .filter((a): a is File => a instanceof File && a.size > 0);
+  for (const archivo of archivos) {
+    await guardarAdjunto(supabase, data.id, archivo);
+  }
+
   await registrarHistorial(supabase, data.id, null, datos.estadio, "Alta");
 
   revalidatePath("/oportunidades");
@@ -409,16 +420,13 @@ function extensionDe(nombre: string): string {
   return /^[a-z0-9]{1,8}$/.test(ext) ? `.${ext}` : "";
 }
 
-export async function subirAdjunto(id: string, formData: FormData) {
-  const archivo = formData.get("archivo");
-  if (!(archivo instanceof File) || archivo.size === 0) {
-    throw new Error("No se eligio ningun archivo.");
-  }
+// El trabajo real de subir, separado de la accion: lo usan el boton de la
+// ficha y tambien el alta, que puede traer un archivo en el mismo submit.
+async function guardarAdjunto(supabase: Cliente, id: string, archivo: File) {
   if (archivo.size > MAX_ADJUNTO_BYTES) {
     throw new Error("El archivo supera los 25 MB.");
   }
 
-  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -443,6 +451,16 @@ export async function subirAdjunto(id: string, formData: FormData) {
     await supabase.storage.from("comercial").remove([path]);
     throw new Error(error.message);
   }
+}
+
+export async function subirAdjunto(id: string, formData: FormData) {
+  const archivo = formData.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    throw new Error("No se eligio ningun archivo.");
+  }
+
+  const supabase = await createClient();
+  await guardarAdjunto(supabase, id, archivo);
 
   revalidatePath(`/oportunidades/${id}`);
 }

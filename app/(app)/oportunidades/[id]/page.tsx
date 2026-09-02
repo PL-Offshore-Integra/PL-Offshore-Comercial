@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import OportunidadForm from "@/components/OportunidadForm";
+import OportunidadForm, { PieDelFormulario } from "@/components/OportunidadForm";
 import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -147,6 +147,12 @@ export default async function EditarOportunidadPage({
           </div>
         </form>
       </div>
+
+      {/* El pie del formulario va al final de todo, debajo de la
+          documentacion. Guardar apunta al formulario de arriba por id: no se
+          pueden anidar formularios, y la tarjeta de documentacion tiene los
+          suyos. */}
+      <PieDelFormulario />
 
       {/* Cerrar y reabrir se hace desde los botones de la lista. Aca solo se
           muestra como quedo, y solo si esta cerrada. */}
