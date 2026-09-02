@@ -19,14 +19,20 @@ const ESTADIOS_ABIERTOS = ESTADIOS.filter(
   (e) => e.estadio !== "Ganado" && e.estadio !== "Perdido"
 );
 
+const HOY = () => new Date().toISOString().slice(0, 10);
+
 export default function OportunidadForm({
   action,
   oportunidad,
   tarifas = [],
+  contadores = null,
 }: {
   action: (formData: FormData) => void;
   oportunidad?: Oportunidad;
   tarifas?: Tarifa[];
+  // Cuantas oportunidades lleva cada anio, para poder mostrar el numero que
+  // sigue antes de guardar. Solo se usa en el alta. null = no se pudo leer.
+  contadores?: Record<number, number> | null;
 }) {
   // La estructura vive en estado porque de ella dependen los casilleros de
   // monto: elegir "Daily Hire + Mobilization + Demobilization" tiene que hacer
@@ -35,6 +41,17 @@ export default function OportunidadForm({
     oportunidad?.estructura_tarifaria ?? "diaria"
   );
   const campos = camposDe(estructura);
+
+  // La fecha de alta esta en estado porque el numero depende de ella: el anio
+  // del numero es el de la fecha que se carga, no el del reloj. Si alguien
+  // pone una fecha del anio pasado, el numero acompana.
+  const [fechaAlta, setFechaAlta] = useState(oportunidad?.fecha_creacion ?? HOY());
+
+  const anio = Number(fechaAlta.slice(0, 4));
+  const nroQueSigue =
+    contadores && Number.isInteger(anio) && anio > 1900
+      ? `Ploffshore-${(contadores[anio] ?? 0) + 1}-${anio}`
+      : "—";
 
   const montoDe = (concepto: Concepto) => {
     const t = tarifas.find((x) => x.concepto === concepto);
@@ -47,12 +64,32 @@ export default function OportunidadForm({
       <div className="form-grid">
         <div className="fg">
           <label>Nro Oportunidad</label>
-          <input
-            name="nro_oportunidad"
-            defaultValue={oportunidad?.nro_oportunidad ?? ""}
-            readOnly={!oportunidad}
-            placeholder={oportunidad ? "" : "se genera solo al guardar"}
-          />
+          {oportunidad?.nro_oportunidad ? (
+            // Una oportunidad ya numerada tampoco se edita: cambiarle el
+            // numero a mano rompe la correspondencia con lo que se le mando
+            // al cliente. Viaja escondido para no borrarlo en el update.
+            <>
+              <input value={oportunidad.nro_oportunidad} readOnly />
+              <input type="hidden" name="nro_oportunidad" value={oportunidad.nro_oportunidad} />
+            </>
+          ) : oportunidad ? (
+            // Excepcion: una fila vieja que quedo sin numero. El trigger solo
+            // actua al insertar, asi que el unico modo de completarla es a
+            // mano.
+            <>
+              <input name="nro_oportunidad" defaultValue="" placeholder="Ploffshore-1-2026" />
+              <span className="hint">Esta oportunidad quedo sin numero: se puede completar</span>
+            </>
+          ) : (
+            // En el alta va SIN name: lo que se ve es el numero que sigue,
+            // pero el que queda es el que asigna la base al insertar. Si se
+            // mandara este valor y otra persona guardo primero, entrarian dos
+            // oportunidades con el mismo numero.
+            <>
+              <input value={nroQueSigue} readOnly />
+              <span className="hint">Lo asigna el sistema al guardar</span>
+            </>
+          )}
         </div>
         <div className="fg">
           <label>Compania / cliente</label>
@@ -208,7 +245,8 @@ export default function OportunidadForm({
           <input
             type="date"
             name="fecha_creacion"
-            defaultValue={oportunidad?.fecha_creacion ?? new Date().toISOString().slice(0, 10)}
+            value={fechaAlta}
+            onChange={(e) => setFechaAlta(e.target.value)}
           />
         </div>
         <div className="fg">
