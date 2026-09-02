@@ -59,8 +59,10 @@ export default async function OportunidadesPage() {
                   <th>Tarea</th>
                   <th>Buque</th>
                   <th>Contacto</th>
+                  {/* Sin columna de ganancia: seria valor - costo, y el costo
+                      no se pide, queda en 0. Repetia el valor al lado del
+                      valor. */}
                   <th>Valor</th>
-                  <th>Ganancia</th>
                   <th>Cierre esperado</th>
                   <th>Proximos pasos</th>
                   <th />
@@ -83,7 +85,6 @@ export default async function OportunidadesPage() {
                     <td className="text-muted">{o.buque ?? "-"}</td>
                     <td className="text-muted">{o.contacto ?? o.contacto_email ?? "-"}</td>
                     <td className="text-mono">{currency.format(o.valor)}</td>
-                    <td className="text-mono">{currency.format(o.valor - o.costo)}</td>
                     <td className="text-mono">{o.fecha_esperada_cierre ?? "-"}</td>
                     <td className="text-muted">{o.proximos_pasos ?? "-"}</td>
                     <td style={{ textAlign: "right" }}>
