@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { Cliente, ClienteEmpresa } from "@/lib/types";
 import {
   actualizarContacto,
@@ -9,9 +9,11 @@ import {
 } from "@/app/(app)/clientes/actions";
 
 // Los cuadros de dialogo de la base de clientes: alta de contacto y edicion de
-// uno ya cargado. Alta de empresa no tiene el suyo: la empresa se elige —o se
-// crea— adentro del alta de contacto. Con dos altas separadas habia que cargar
-// la empresa primero y volver por el contacto despues.
+// uno ya cargado.
+//
+// La empresa aca solo se elige de las que ya estan. Las empresas nuevas entran
+// por el formulario de la oportunidad, que es donde aparece un cliente que
+// todavia no esta cargado.
 //
 // Es <dialog> nativo, igual que el de Perdido: foco atrapado, Escape para
 // cerrar, y adentro un formulario apuntado a la server action.
@@ -37,16 +39,18 @@ function cerrarDespues(
 export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
   const d = useRef<HTMLDialogElement>(null);
 
-  // Arranca en "nueva" si todavia no hay ninguna empresa cargada: es el unico
-  // camino posible y no tiene sentido hacer elegir de una lista vacia.
-  const [empresa, setEmpresa] = useState(empresas.length === 0 ? "nueva" : "");
-
   return (
     <>
       <button
         type="button"
         className="btn btn-ghost btn-sm"
         onClick={() => d.current?.showModal()}
+        disabled={empresas.length === 0}
+        title={
+          empresas.length === 0
+            ? "Todavia no hay empresas: la primera se carga al dar de alta una oportunidad"
+            : undefined
+        }
       >
         + Nuevo contacto
       </button>
@@ -57,14 +61,10 @@ export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
 
           <div className="fg mb16">
             <label>Empresa</label>
-            {/* Las que ya estan, y la ultima opcion crea una nueva sin salir
-                de aca. */}
-            <select
-              name="empresa_id"
-              required
-              value={empresa}
-              onChange={(e) => setEmpresa(e.target.value)}
-            >
+            {/* Solo las que ya estan. Las empresas nuevas entran por el
+                formulario de la oportunidad, que es donde aparece un cliente
+                que todavia no esta en la base. */}
+            <select name="empresa_id" required defaultValue="">
               <option value="" disabled>
                 Elegir empresa...
               </option>
@@ -73,11 +73,7 @@ export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
                   {e.nombre}
                 </option>
               ))}
-              <option value="nueva">+ Nueva empresa</option>
             </select>
-            {empresa === "nueva" && (
-              <input name="empresa_nueva" placeholder="Nombre de la empresa" required />
-            )}
           </div>
 
           <CamposContacto />

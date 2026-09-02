@@ -80,43 +80,15 @@ function datosContacto(formData: FormData) {
   return datos;
 }
 
-// El alta de contacto puede traer una empresa que todavia no existe: se elige
-// "+ Nueva empresa" en el mismo desplegable y se escribe el nombre al lado.
-// Asi cargar un cliente nuevo es un solo paso y no dos.
-//
-// Si el nombre ya existe se reusa esa empresa en lugar de fallar: el objetivo
-// de la persona es cargar el contacto, no discutir sobre la empresa.
-async function resolverEmpresa(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  formData: FormData
-): Promise<string> {
-  const empresaId = str(formData, "empresa_id");
-
-  if (empresaId && empresaId !== "nueva") return empresaId;
-
-  const nombre = str(formData, "empresa_nueva");
-  if (!nombre) throw new Error("Hay que elegir la empresa o escribir el nombre de la nueva.");
-
-  const { data: existente } = await supabase
-    .from("cliente_empresas")
-    .select("id")
-    .ilike("nombre", nombre)
-    .maybeSingle();
-  if (existente) return existente.id;
-
-  const { data, error } = await supabase
-    .from("cliente_empresas")
-    .insert({ nombre })
-    .select("id")
-    .single();
-  if (error) throw new Error(`No se pudo crear la empresa: ${error.message}`);
-  return data.id;
-}
-
+// El contacto se cuelga de una empresa que ya existe. Crear empresas desde
+// aca se saco a proposito: las nuevas entran por el formulario de la
+// oportunidad, que es donde aparece un cliente que todavia no esta cargado.
+// Asi hay un solo lugar por el que nacen las empresas.
 export async function crearContacto(formData: FormData) {
-  const supabase = await createClient();
-  const empresaId = await resolverEmpresa(supabase, formData);
+  const empresaId = str(formData, "empresa_id");
+  if (!empresaId) throw new Error("Hay que elegir de que empresa es el contacto.");
 
+  const supabase = await createClient();
   const { error } = await supabase
     .from("cliente_contactos")
     .insert({ empresa_id: empresaId, ...datosContacto(formData) });
