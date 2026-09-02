@@ -47,12 +47,23 @@ const ICONS = {
       <path d="M11 6l-6 6 6 6" />
     </>
   ),
+  clientes: (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    </>
+  ),
 };
 
 const NAV: NavGroup[] = [
   {
     titulo: "Pipeline",
     items: [{ href: "/oportunidades", label: "Oportunidades", icon: "chart" }],
+  },
+  {
+    titulo: "Maestros",
+    items: [{ href: "/clientes", label: "Base de datos clientes", icon: "clientes" }],
   },
   {
     titulo: "Eventos",
@@ -69,6 +80,11 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     grupo: "Pipeline",
     titulo: "Oportunidades",
     sub: "Pipeline comercial de Terra Mare, Clean Sea, Parana Logistica y HF Offshore.",
+  },
+  "/clientes": {
+    grupo: "Maestros",
+    titulo: "Base de datos clientes",
+    sub: "Sale de las oportunidades cargadas: cada compania con sus contactos, mail y telefono.",
   },
   "/calendario": {
     grupo: "Eventos",
