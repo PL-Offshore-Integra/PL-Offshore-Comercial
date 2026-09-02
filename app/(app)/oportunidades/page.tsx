@@ -54,10 +54,11 @@ export default async function OportunidadesPage() {
             <table>
               <thead>
                 <tr>
+                  <th>Nro</th>
                   <th>Compania</th>
-                  <th>Proyecto</th>
-                  <th>Alcance</th>
-                  <th>Empresa</th>
+                  <th>Tarea</th>
+                  <th>Buque</th>
+                  <th>Contacto</th>
                   <th>Valor</th>
                   <th>Ganancia</th>
                   <th>Cierre esperado</th>
@@ -68,10 +69,19 @@ export default async function OportunidadesPage() {
               <tbody>
                 {grupo.items.map((o) => (
                   <tr key={o.id} className="click">
+                    <td className="text-mono">{o.nro_oportunidad ?? "-"}</td>
                     <td>{o.compania}</td>
-                    <td>{o.nombre_proyecto}</td>
-                    <td className="text-muted">{o.alcance_oportunidad ?? "-"}</td>
-                    <td>{o.empresa}</td>
+                    {/* Nombre de proyecto salio del formulario: para las filas
+                        nuevas lo que identifica el trabajo es en que consiste.
+                        Las del tracker original siguen mostrando el suyo. */}
+                    <td>
+                      {o.descripcion_alcance ??
+                        o.nombre_proyecto ??
+                        o.alcance_oportunidad ??
+                        "-"}
+                    </td>
+                    <td className="text-muted">{o.buque ?? "-"}</td>
+                    <td className="text-muted">{o.contacto ?? o.contacto_email ?? "-"}</td>
                     <td className="text-mono">{currency.format(o.valor)}</td>
                     <td className="text-mono">{currency.format(o.valor - o.costo)}</td>
                     <td className="text-mono">{o.fecha_esperada_cierre ?? "-"}</td>

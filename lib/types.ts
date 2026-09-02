@@ -30,10 +30,73 @@ export const ESTADIOS: { estadio: Estadio; probabilidad: number }[] = [
   { estadio: "Cancelado", probabilidad: 0 },
 ];
 
+// Como se cotiza. No es una etiqueta: define exactamente que casilleros de
+// monto aparecen en el formulario. Elegir "Daily Hire + Mobilization +
+// Demobilization" hace aparecer esos tres y ningun otro.
+export type EstructuraTarifaria =
+  | "diaria"
+  | "daily_hire_mob_desmob"
+  | "lump_sum"
+  | "otra";
+
+export type Concepto =
+  | "movilizacion"
+  | "desmovilizacion"
+  | "dia_garantizado"
+  | "tarifa_diaria"
+  | "tarifa_diferencial"
+  | "standby"
+  | "lump_sum"
+  | "otro";
+
+export type Unidad = "dia" | "hora" | "viaje" | "global";
+
+// `concepto` y `unidad` son lo que se guarda; `label` es como se lo nombra en
+// pantalla. Daily hire y tarifa diaria son el mismo concepto con dos nombres
+// segun la estructura, asi que comparten el valor guardado.
+export type CampoTarifa = { concepto: Concepto; label: string; unidad: Unidad };
+
+export const ESTRUCTURAS: {
+  id: EstructuraTarifaria;
+  label: string;
+  campos: CampoTarifa[];
+}[] = [
+  {
+    id: "diaria",
+    label: "Tarifa diaria",
+    campos: [{ concepto: "tarifa_diaria", label: "Valor de la tarifa diaria", unidad: "dia" }],
+  },
+  {
+    id: "daily_hire_mob_desmob",
+    label: "Daily Hire + Mobilization + Demobilization",
+    campos: [
+      { concepto: "tarifa_diaria", label: "Daily hire", unidad: "dia" },
+      { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
+      { concepto: "desmovilizacion", label: "Demobilization", unidad: "global" },
+    ],
+  },
+  {
+    id: "lump_sum",
+    label: "Lump Sum",
+    campos: [{ concepto: "lump_sum", label: "Lump sum", unidad: "global" }],
+  },
+  {
+    id: "otra",
+    label: "Otra",
+    campos: [{ concepto: "otro", label: "Monto", unidad: "global" }],
+  },
+];
+
+export function camposDe(estructura: EstructuraTarifaria): CampoTarifa[] {
+  return ESTRUCTURAS.find((e) => e.id === estructura)?.campos ?? [];
+}
+
 export interface Oportunidad {
   id: string;
   compania: string;
-  nombre_proyecto: string;
+  // Deja de pedirse en el formulario (0004). Las filas del tracker original
+  // lo conservan.
+  nombre_proyecto: string | null;
   alcance_oportunidad: string | null;
   descripcion_alcance: string | null;
   nro_oportunidad: string | null;
@@ -50,6 +113,67 @@ export interface Oportunidad {
   referencias: string | null;
   created_at: string;
   updated_at: string;
+
+  // --- 0002 · el puente con el resto de Integra ---
+  // Para quien es el trabajo, cuando no es el mismo que firma.
+  cliente_final: string | null;
+  buque: string | null;
+  estructura_tarifaria: EstructuraTarifaria;
+  motivo_perdida: string | null;
+  competidor: string | null;
+  // Se llena al ganar. Apunta a public.proyectos, el maestro que leen
+  // Compras, Viveres, Reparaciones y Finanzas.
+  proyecto_id: string | null;
+
+  // --- 0003 · como la carga PL Offshore ---
+  // `contacto` es el nombre de la persona; el mail y el telefono tienen
+  // columna propia (en el tracker original venian mezclados en `contacto`).
+  contacto_email: string | null;
+  contacto_telefono: string | null;
+  contacto_linkedin: string | null;
+  // Cuando se haria el trabajo. Distinto de fecha_esperada_cierre, que es
+  // cuando se define la venta.
+  fecha_inicio_estimada: string | null;
+  fecha_fin_estimada: string | null;
+}
+
+export interface Adjunto {
+  id: string;
+  oportunidad_id: string;
+  nombre: string;
+  path: string;
+  tipo: string | null;
+  tamano_bytes: number | null;
+  created_at: string;
+}
+
+// Sale de la vista comercial.clientes: una fila por contacto.
+export interface Cliente {
+  compania: string;
+  contacto: string | null;
+  contacto_email: string | null;
+  contacto_telefono: string | null;
+  contacto_linkedin: string | null;
+  oportunidades: number;
+  ganadas: number;
+  perdidas: number;
+  abiertas: number;
+  valor_total: number | null;
+  ultimo_contacto: string | null;
+  ultima_oportunidad: string | null;
+}
+
+export interface Tarifa {
+  id: string;
+  oportunidad_id: string;
+  concepto: Concepto;
+  detalle: string | null;
+  unidad: Unidad;
+  monto: number;
+  cantidad: number | null;
+  aplica_desde_horas: number | null;
+  orden: number;
+  created_at: string;
 }
 
 export interface Evento {

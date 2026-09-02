@@ -1,43 +1,68 @@
-import { EMPRESAS_PROPIAS, ESTADIOS, type Oportunidad } from "@/lib/types";
+"use client";
+
+import { useState } from "react";
+import {
+  camposDe,
+  ESTADIOS,
+  ESTRUCTURAS,
+  type Concepto,
+  type EstructuraTarifaria,
+  type Oportunidad,
+  type Tarifa,
+} from "@/lib/types";
+
+// Los dos estadios cerrados no se eligen a mano: se llega por los botones
+// Ganar y Perder de la ficha, que son los que crean el proyecto o exigen el
+// motivo. Dejarlos en el desplegable seria ofrecer un camino que la base
+// rechaza.
+const ESTADIOS_ABIERTOS = ESTADIOS.filter(
+  (e) => e.estadio !== "Ganado" && e.estadio !== "Perdido"
+);
 
 export default function OportunidadForm({
   action,
   oportunidad,
+  tarifas = [],
 }: {
   action: (formData: FormData) => void;
   oportunidad?: Oportunidad;
+  tarifas?: Tarifa[];
 }) {
+  // La estructura vive en estado porque de ella dependen los casilleros de
+  // monto: elegir "Daily Hire + Mobilization + Demobilization" tiene que hacer
+  // aparecer esos tres en el momento, sin recargar.
+  const [estructura, setEstructura] = useState<EstructuraTarifaria>(
+    oportunidad?.estructura_tarifaria ?? "diaria"
+  );
+  const campos = camposDe(estructura);
+
+  const montoDe = (concepto: Concepto) => {
+    const t = tarifas.find((x) => x.concepto === concepto);
+    return t ? String(t.monto) : "";
+  };
+
   return (
-    <form action={action} className="card" style={{ maxWidth: 760 }}>
+    <form action={action} className="card">
+      <div className="form-section">Oportunidad</div>
       <div className="form-grid">
         <div className="fg">
-          <label>Compania</label>
+          <label>Nro Oportunidad</label>
+          <input
+            name="nro_oportunidad"
+            defaultValue={oportunidad?.nro_oportunidad ?? ""}
+            readOnly={!oportunidad}
+            placeholder={oportunidad ? "" : "se genera solo al guardar"}
+          />
+        </div>
+        <div className="fg">
+          <label>Compania / cliente</label>
           <input name="compania" defaultValue={oportunidad?.compania} required />
         </div>
-        <div className="fg">
-          <label>Nombre Proyecto</label>
-          <input name="nombre_proyecto" defaultValue={oportunidad?.nombre_proyecto} required />
-        </div>
-        <div className="fg">
-          <label>Alcance Oportunidad</label>
-          <input name="alcance_oportunidad" defaultValue={oportunidad?.alcance_oportunidad ?? ""} />
-        </div>
-        <div className="fg">
-          <label>Descripcion Alcance</label>
-          <input name="descripcion_alcance" defaultValue={oportunidad?.descripcion_alcance ?? ""} />
-        </div>
-        <div className="fg">
-          <label>Nro Oportunidad</label>
-          <input name="nro_oportunidad" defaultValue={oportunidad?.nro_oportunidad ?? ""} />
-        </div>
-        <div className="fg">
-          <label>Contacto</label>
-          <input name="contacto" defaultValue={oportunidad?.contacto ?? ""} />
-        </div>
+
         <div className="fg">
           <label>Estadio</label>
           <select name="estadio" defaultValue={oportunidad?.estadio ?? "Investigando"}>
-            {ESTADIOS.map((e) => (
+            {ESTADIOS_ABIERTOS.map((e) => (
               <option key={e.estadio} value={e.estadio}>
                 {e.estadio} ({Math.round(e.probabilidad * 100)}%)
               </option>
@@ -45,25 +70,141 @@ export default function OportunidadForm({
           </select>
         </div>
         <div className="fg">
-          <label>Empresa</label>
-          <select name="empresa" defaultValue={oportunidad?.empresa ?? "Terra Mare"}>
-            {EMPRESAS_PROPIAS.map((e) => (
-              <option key={e} value={e}>
-                {e}
+          <label>Cliente final</label>
+          <input
+            name="cliente_final"
+            defaultValue={oportunidad?.cliente_final ?? ""}
+            placeholder="Para quien es el trabajo"
+          />
+        </div>
+        <div className="fg">
+          <label>Buque que se podria usar</label>
+          <input
+            name="buque"
+            defaultValue={oportunidad?.buque ?? ""}
+            placeholder="Atlantic Dama"
+          />
+        </div>
+      </div>
+
+      <div className="form-section">Contacto</div>
+      <div className="form-grid">
+        <div className="fg">
+          <label>Nombre y apellido</label>
+          <input name="contacto" defaultValue={oportunidad?.contacto ?? ""} />
+        </div>
+        <div className="fg">
+          <label>Mail</label>
+          <input
+            type="email"
+            name="contacto_email"
+            defaultValue={oportunidad?.contacto_email ?? ""}
+            placeholder="nombre@empresa.com"
+          />
+        </div>
+        <div className="fg">
+          <label>Telefono de contacto</label>
+          <input
+            type="tel"
+            name="contacto_telefono"
+            defaultValue={oportunidad?.contacto_telefono ?? ""}
+            placeholder="+54 9 11 ..."
+          />
+        </div>
+        <div className="fg">
+          <label>Linkedin</label>
+          <input
+            name="contacto_linkedin"
+            defaultValue={oportunidad?.contacto_linkedin ?? ""}
+            placeholder="linkedin.com/in/..."
+          />
+        </div>
+      </div>
+
+      <div className="form-section">La tarea</div>
+      <div className="fg mb16">
+        <label>En que consiste</label>
+        <textarea
+          name="descripcion_alcance"
+          defaultValue={oportunidad?.descripcion_alcance ?? ""}
+          rows={4}
+          placeholder="Que hay que hacer, con que alcance y en que condiciones"
+        />
+      </div>
+      <div className="form-grid">
+        <div className="fg">
+          <label>Alcance (categoria)</label>
+          <input
+            name="alcance_oportunidad"
+            defaultValue={oportunidad?.alcance_oportunidad ?? ""}
+            placeholder="Crewing, Supply Chain, Project Management..."
+          />
+        </div>
+        <div className="fg">
+          <label>Inicio estimado del trabajo</label>
+          <input
+            type="date"
+            name="fecha_inicio_estimada"
+            defaultValue={oportunidad?.fecha_inicio_estimada ?? ""}
+          />
+        </div>
+        <div className="fg">
+          <label>Fin estimado del trabajo</label>
+          <input
+            type="date"
+            name="fecha_fin_estimada"
+            defaultValue={oportunidad?.fecha_fin_estimada ?? ""}
+          />
+        </div>
+      </div>
+
+      <div className="form-section">Numeros y seguimiento</div>
+      <div className="form-grid">
+        <div className="fg">
+          <label>Estructura de cotizacion</label>
+          <select
+            name="estructura_tarifaria"
+            value={estructura}
+            onChange={(e) => setEstructura(e.target.value as EstructuraTarifaria)}
+          >
+            {ESTRUCTURAS.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.label}
               </option>
             ))}
           </select>
         </div>
+
+        {/* Los casilleros de monto salen de la estructura elegida: cambiarla
+            cambia que se pide. El concepto y la unidad viajan escondidos
+            porque son lo que se guarda; la persona solo escribe el numero.
+            Los cuatro campos vacios mantienen alineados los arrays que arma
+            el server con getAll(). */}
+        {campos.map((c) => (
+          <div className="fg" key={c.concepto}>
+            <label>{c.label}</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="tarifa_monto"
+              defaultValue={montoDe(c.concepto)}
+              placeholder="0.00"
+            />
+            <input type="hidden" name="tarifa_concepto" value={c.concepto} />
+            <input type="hidden" name="tarifa_unidad" value={c.unidad} />
+            <input type="hidden" name="tarifa_detalle" value="" />
+            <input type="hidden" name="tarifa_cantidad" value="" />
+            <input type="hidden" name="tarifa_horas" value="" />
+          </div>
+        ))}
+
         <div className="fg">
-          <label>Valor</label>
+          <label>Valor total de la propuesta</label>
           <input type="number" step="0.01" name="valor" defaultValue={oportunidad?.valor ?? 0} />
         </div>
         <div className="fg">
-          <label>Costo</label>
-          <input type="number" step="0.01" name="costo" defaultValue={oportunidad?.costo ?? 0} />
-        </div>
-        <div className="fg">
-          <label>Fecha Creacion</label>
+          <label>Fecha de alta</label>
           <input
             type="date"
             name="fecha_creacion"
@@ -71,7 +212,7 @@ export default function OportunidadForm({
           />
         </div>
         <div className="fg">
-          <label>Fecha Esperada de Cierre</label>
+          <label>Fecha esperada de cierre de la venta</label>
           <input
             type="date"
             name="fecha_esperada_cierre"
@@ -79,7 +220,7 @@ export default function OportunidadForm({
           />
         </div>
         <div className="fg">
-          <label>Last interacted on</label>
+          <label>Ultimo contacto</label>
           <input type="date" name="last_interacted_on" defaultValue={oportunidad?.last_interacted_on ?? ""} />
         </div>
       </div>
