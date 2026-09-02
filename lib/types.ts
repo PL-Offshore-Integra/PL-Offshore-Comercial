@@ -36,7 +36,7 @@ export const ESTADIOS: { estadio: Estadio; probabilidad: number }[] = [
 export type EstructuraTarifaria =
   | "diaria"
   | "daily_hire_mob_desmob"
-  | "precio_cerrado"
+  | "lump_sum"
   | "otra";
 
 export type Concepto =
@@ -46,7 +46,7 @@ export type Concepto =
   | "tarifa_diaria"
   | "tarifa_diferencial"
   | "standby"
-  | "precio_cerrado"
+  | "lump_sum"
   | "otro";
 
 export type Unidad = "dia" | "hora" | "viaje" | "global";
@@ -76,9 +76,9 @@ export const ESTRUCTURAS: {
     ],
   },
   {
-    id: "precio_cerrado",
-    label: "Precio cerrado",
-    campos: [{ concepto: "precio_cerrado", label: "Precio cerrado", unidad: "global" }],
+    id: "lump_sum",
+    label: "Lump Sum",
+    campos: [{ concepto: "lump_sum", label: "Lump sum", unidad: "global" }],
   },
   {
     id: "otra",
