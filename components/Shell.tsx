@@ -195,7 +195,8 @@ export default function Shell({
               </div>
               {pathname === "/oportunidades" && (
                 <div className="pagehead-actions">
-                  <Link href="/oportunidades/nueva" className="btn btn-primary">
+                  {/* Amarillo sobre navy, como el CTA principal del sitio. */}
+                  <Link href="/oportunidades/nueva" className="btn btn-amarillo">
                     Nueva oportunidad
                   </Link>
                 </div>
