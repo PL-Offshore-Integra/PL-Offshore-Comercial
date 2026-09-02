@@ -17,30 +17,13 @@ function revalidarTodo() {
   revalidatePath("/oportunidades");
 }
 
-export async function crearEmpresa(formData: FormData) {
-  const nombre = str(formData, "nombre");
-  if (!nombre) throw new Error("La empresa necesita un nombre.");
-
-  const supabase = await createClient();
-
-  // El indice unico de 0009 ya lo impide, pero el mensaje que devuelve
-  // Postgres no le dice nada a nadie.
-  const { data: existente } = await supabase
-    .from("cliente_empresas")
-    .select("id, nombre")
-    .ilike("nombre", nombre)
-    .maybeSingle();
-  if (existente) {
-    throw new Error(`"${existente.nombre}" ya esta cargada.`);
-  }
-
-  const { error } = await supabase
-    .from("cliente_empresas")
-    .insert({ nombre, notas: str(formData, "notas") });
-  if (error) throw new Error(error.message);
-
-  revalidarTodo();
-}
+// No hay un alta de empresa suelta: la empresa se crea desde el alta de
+// contacto (resolverEmpresa, mas abajo) o desde el formulario de la
+// oportunidad. Una empresa sin ningun contacto no le sirve a nadie, y tener
+// dos altas separadas obligaba a hacer dos pasos para cargar un cliente.
+//
+// Renombrarla sigue estando: es la unica forma de arreglar un nombre mal
+// escrito ahora que las oportunidades lo toman de aca.
 
 export async function renombrarEmpresa(id: string, formData: FormData) {
   const nombre = str(formData, "nombre");

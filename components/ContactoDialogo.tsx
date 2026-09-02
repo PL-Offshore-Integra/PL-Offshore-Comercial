@@ -6,11 +6,12 @@ import {
   actualizarContacto,
   borrarContacto,
   crearContacto,
-  crearEmpresa,
 } from "@/app/(app)/clientes/actions";
 
-// Los cuadros de dialogo de la base de clientes: alta de empresa, alta de
-// contacto y edicion de un contacto ya cargado.
+// Los cuadros de dialogo de la base de clientes: alta de contacto y edicion de
+// uno ya cargado. Alta de empresa no tiene el suyo: la empresa se elige —o se
+// crea— adentro del alta de contacto. Con dos altas separadas habia que cargar
+// la empresa primero y volver por el contacto despues.
 //
 // Es <dialog> nativo, igual que el de Perdido: foco atrapado, Escape para
 // cerrar, y adentro un formulario apuntado a la server action.
@@ -33,45 +34,9 @@ function cerrarDespues(
   };
 }
 
-export function NuevaEmpresa({ boton }: { boton?: string }) {
-  const d = useRef<HTMLDialogElement>(null);
-
-  return (
-    <>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={() => d.current?.showModal()}>
-        {boton ?? "+ Nueva empresa"}
-      </button>
-
-      <dialog ref={d} className="modal">
-        <form action={cerrarDespues(crearEmpresa, d, true)}>
-          <div className="modal-titulo">Nueva empresa</div>
-          <div className="fg mb16">
-            <label>Nombre</label>
-            <input name="nombre" required placeholder="Como se llama el cliente" />
-            <span className="hint">
-              Si ya existe con otro uso de mayusculas, la base no la duplica: avisa.
-            </span>
-          </div>
-          <div className="fg mb16">
-            <label>Notas</label>
-            <input name="notas" placeholder="Opcional" />
-          </div>
-          <div className="modal-pie">
-            <button type="button" className="btn btn-ghost" onClick={() => d.current?.close()}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Crear empresa
-            </button>
-          </div>
-        </form>
-      </dialog>
-    </>
-  );
-}
-
 export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
   const d = useRef<HTMLDialogElement>(null);
+
   // Arranca en "nueva" si todavia no hay ninguna empresa cargada: es el unico
   // camino posible y no tiene sentido hacer elegir de una lista vacia.
   const [empresa, setEmpresa] = useState(empresas.length === 0 ? "nueva" : "");
@@ -89,10 +54,11 @@ export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
       <dialog ref={d} className="modal">
         <form action={cerrarDespues(crearContacto, d, true)}>
           <div className="modal-titulo">Nuevo contacto</div>
+
           <div className="fg mb16">
             <label>Empresa</label>
-            {/* La empresa se puede crear desde aca mismo: cargar un cliente
-                nuevo es un solo paso, no dos. */}
+            {/* Las que ya estan, y la ultima opcion crea una nueva sin salir
+                de aca. */}
             <select
               name="empresa_id"
               required
@@ -113,7 +79,9 @@ export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
               <input name="empresa_nueva" placeholder="Nombre de la empresa" required />
             )}
           </div>
+
           <CamposContacto />
+
           <div className="modal-pie">
             <button type="button" className="btn btn-ghost" onClick={() => d.current?.close()}>
               Cancelar
@@ -149,7 +117,9 @@ export function EditarContacto({ fila }: { fila: Cliente }) {
           <div className="modal-titulo">
             {fila.contacto ?? "Contacto"} · {fila.compania}
           </div>
+
           <CamposContacto fila={fila} />
+
           <div className="modal-pie">
             <button type="button" className="btn btn-ghost" onClick={() => d.current?.close()}>
               Cancelar

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EditarContacto, NuevaEmpresa, NuevoContacto } from "@/components/ContactoDialogo";
+import { EditarContacto, NuevoContacto } from "@/components/ContactoDialogo";
 import type { Cliente, ClienteEmpresa } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("es-AR", {
@@ -138,8 +138,10 @@ export default function ClientesTabla({
       </div>
 
       <div className="card">
+        {/* Un solo boton. La empresa se elige (o se crea) adentro del alta de
+            contacto: tener dos altas obligaba a cargar la empresa primero y el
+            contacto despues. */}
         <div className="filter-row" style={{ marginBottom: 8 }}>
-          <NuevaEmpresa />
           <NuevoContacto empresas={empresas} />
         </div>
 
