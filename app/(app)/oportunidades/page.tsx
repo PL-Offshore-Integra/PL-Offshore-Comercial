@@ -1,6 +1,10 @@
 import Link from "next/link";
 import CerrarOportunidad from "@/components/CerrarOportunidad";
-import { marcarGanado, perderOportunidad } from "@/app/(app)/oportunidades/actions";
+import {
+  marcarGanado,
+  perderOportunidad,
+  reabrirOportunidad,
+} from "@/app/(app)/oportunidades/actions";
 import { createClient } from "@/lib/supabase/server";
 import type { Oportunidad } from "@/lib/types";
 
@@ -95,7 +99,15 @@ export default async function OportunidadesPage() {
                       <div className="fila-acciones">
                         {/* Los botones de cierre solo mientras esta abierta.
                             Una ya cerrada no se reabre desde aca. */}
-                        {!CERRADOS.includes(o.estadio) && (
+                        {CERRADOS.includes(o.estadio) ? (
+                          // Un cierre se puede deshacer: vuelve al estadio del
+                          // que venia, que sale del historial.
+                          <form action={reabrirOportunidad.bind(null, o.id)}>
+                            <button type="submit" className="btn btn-ghost btn-sm">
+                              Reabrir
+                            </button>
+                          </form>
+                        ) : (
                           <CerrarOportunidad
                             ganar={marcarGanado.bind(null, o.id)}
                             perder={perderOportunidad.bind(null, o.id)}

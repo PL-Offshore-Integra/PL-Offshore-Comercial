@@ -214,6 +214,58 @@ export async function marcarGanado(id: string) {
   revalidatePath(`/oportunidades/${id}`);
 }
 
+// Volver atras un cierre.
+//
+// El estadio no vuelve a un valor fijo: sale del historial. La ultima entrada
+// guarda de donde venia la oportunidad cuando se cerro, asi que reabrir la
+// devuelve a ese estadio y no a uno inventado. Si no hay historial —una fila
+// cerrada desde la base, por ejemplo— cae en Propuesta Enviada.
+//
+// Al reabrir una perdida se limpian motivo y competidor: quedarian
+// describiendo un cierre que ya no existe. No se pierden, siguen en la nota
+// del historial.
+export async function reabrirOportunidad(id: string) {
+  const supabase = await createClient();
+
+  const { data: opp, error: eOpp } = await supabase
+    .from("oportunidades")
+    .select("estadio, motivo_perdida, competidor")
+    .eq("id", id)
+    .single();
+  if (eOpp) throw new Error(eOpp.message);
+  if (!ESTADIOS_CERRADOS.includes(opp.estadio)) {
+    throw new Error("Esta oportunidad no esta cerrada.");
+  }
+
+  const { data: ultima } = await supabase
+    .from("oportunidad_historial")
+    .select("estadio_anterior")
+    .eq("oportunidad_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const vuelveA =
+    ultima?.estadio_anterior && !ESTADIOS_CERRADOS.includes(ultima.estadio_anterior)
+      ? ultima.estadio_anterior
+      : "Propuesta Enviada";
+
+  const { error } = await supabase
+    .from("oportunidades")
+    .update({ estadio: vuelveA, motivo_perdida: null, competidor: null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  const nota =
+    opp.estadio === "Perdido" && opp.motivo_perdida
+      ? `Reabierta. Estaba perdida por: ${opp.motivo_perdida}`
+      : "Reabierta";
+  await registrarHistorial(supabase, id, opp.estadio, vuelveA, nota);
+
+  revalidatePath("/oportunidades");
+  revalidatePath(`/oportunidades/${id}`);
+}
+
 // El motivo es obligatorio de este lado tambien, no solo en el cuadro de
 // dialogo: el `required` del formulario lo puede saltear cualquiera, la regla
 // opp_perdido_con_motivo de la base no.
