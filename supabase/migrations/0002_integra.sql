@@ -162,8 +162,19 @@ create policy "authenticated_all_historial" on comercial.oportunidad_historial
 
 -- ------------------------------------------------------------
 -- 6) La vista del dashboard toma las columnas nuevas
+--
+-- Se dropea antes de recrear, no alcanza `create or replace`. La
+-- vista es `select o.*, margen, ganancia`: al agregarle columnas a
+-- `oportunidades` el `o.*` se expande mas y `margen` se corre de
+-- posicion, y Postgres no permite renombrar columnas de una vista
+-- por esa via ("cannot change name of view column").
+--
+-- Verificado antes de dropear: nada depende de esta vista, ni en la
+-- base ni en el codigo de la app.
 -- ------------------------------------------------------------
-create or replace view comercial.oportunidades_resumen as
+drop view if exists comercial.oportunidades_resumen;
+
+create view comercial.oportunidades_resumen as
 select
   o.*,
   case when o.valor = 0 then null else (o.valor - o.costo) / o.valor end as margen,
