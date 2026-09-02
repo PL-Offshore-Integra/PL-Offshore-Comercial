@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
-import OportunidadForm, { TarifasEditor } from "@/components/OportunidadForm";
+import OportunidadForm from "@/components/OportunidadForm";
 import { createClient } from "@/lib/supabase/server";
 import {
   borrarAdjunto,
   deleteOportunidad,
   ganarOportunidad,
-  guardarTarifas,
   perderOportunidad,
   subirAdjunto,
   updateOportunidad,
@@ -60,7 +59,6 @@ export default async function EditarOportunidadPage({
 
   const update = updateOportunidad.bind(null, oportunidad.id);
   const remove = deleteOportunidad.bind(null, oportunidad.id);
-  const tarifar = guardarTarifas.bind(null, oportunidad.id);
   const ganar = ganarOportunidad.bind(null, oportunidad.id);
   const perder = perderOportunidad.bind(null, oportunidad.id);
   const subir = subirAdjunto.bind(null, oportunidad.id);
@@ -71,7 +69,8 @@ export default async function EditarOportunidadPage({
     <div>
       <div className="flex-between mb16">
         <span className="tag">
-          {oportunidad.compania} &middot; {oportunidad.nombre_proyecto}
+          {oportunidad.nro_oportunidad ?? "sin nro"} &middot; {oportunidad.compania}
+          {oportunidad.nombre_proyecto && <> &middot; {oportunidad.nombre_proyecto}</>}
         </span>
         <form action={remove}>
           <button type="submit" className="btn btn-danger btn-sm">
@@ -80,7 +79,7 @@ export default async function EditarOportunidadPage({
         </form>
       </div>
 
-      <OportunidadForm action={update} oportunidad={oportunidad} />
+      <OportunidadForm action={update} oportunidad={oportunidad} tarifas={tarifas} />
 
       <div className="card">
         <div className="form-section">Documentacion</div>
@@ -144,12 +143,6 @@ export default async function EditarOportunidadPage({
         </form>
       </div>
 
-      <TarifasEditor
-        action={tarifar}
-        tarifas={tarifas}
-        estructura={oportunidad.estructura_tarifaria ?? "diaria"}
-      />
-
       {cerrada ? (
         <div className="card">
           <div className="form-section">Cierre</div>
@@ -192,7 +185,8 @@ export default async function EditarOportunidadPage({
                 <label>Nombre del proyecto</label>
                 <input
                   name="proyecto_nombre"
-                  defaultValue={oportunidad.nombre_proyecto}
+                  defaultValue={oportunidad.nombre_proyecto ?? ""}
+                  placeholder="Como se va a llamar en Integra"
                   required
                 />
               </div>

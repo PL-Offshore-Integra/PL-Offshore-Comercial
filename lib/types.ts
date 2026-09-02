@@ -30,20 +30,14 @@ export const ESTADIOS: { estadio: Estadio; probabilidad: number }[] = [
   { estadio: "Cancelado", probabilidad: 0 },
 ];
 
-// Cómo se cobra. Determina qué conceptos tiene sentido cargar y cómo se
-// calcula después el ingreso de cada operación.
+// Como se cotiza. No es una etiqueta: define exactamente que casilleros de
+// monto aparecen en el formulario. Elegir "Daily Hire + Mobilization +
+// Demobilization" hace aparecer esos tres y ningun otro.
 export type EstructuraTarifaria =
   | "diaria"
-  | "mov_desmov_garantizado"
+  | "daily_hire_mob_desmob"
   | "precio_cerrado"
   | "otra";
-
-export const ESTRUCTURAS: { id: EstructuraTarifaria; label: string }[] = [
-  { id: "diaria", label: "Tarifa diaria" },
-  { id: "mov_desmov_garantizado", label: "Mov + desmov + dia garantizado" },
-  { id: "precio_cerrado", label: "Precio cerrado" },
-  { id: "otra", label: "Otra" },
-];
 
 export type Concepto =
   | "movilizacion"
@@ -57,41 +51,52 @@ export type Concepto =
 
 export type Unidad = "dia" | "hora" | "viaje" | "global";
 
-export const CONCEPTOS: { id: Concepto; label: string; unidad: Unidad }[] = [
-  { id: "movilizacion", label: "Movilizacion", unidad: "global" },
-  { id: "desmovilizacion", label: "Desmovilizacion", unidad: "global" },
-  { id: "dia_garantizado", label: "Dia garantizado", unidad: "dia" },
-  { id: "tarifa_diaria", label: "Tarifa diaria", unidad: "dia" },
-  { id: "tarifa_diferencial", label: "Tarifa diferencial", unidad: "hora" },
-  { id: "standby", label: "Standby", unidad: "dia" },
-  { id: "precio_cerrado", label: "Precio cerrado", unidad: "global" },
-  { id: "otro", label: "Otro", unidad: "global" },
+// `concepto` y `unidad` son lo que se guarda; `label` es como se lo nombra en
+// pantalla. Daily hire y tarifa diaria son el mismo concepto con dos nombres
+// segun la estructura, asi que comparten el valor guardado.
+export type CampoTarifa = { concepto: Concepto; label: string; unidad: Unidad };
+
+export const ESTRUCTURAS: {
+  id: EstructuraTarifaria;
+  label: string;
+  campos: CampoTarifa[];
+}[] = [
+  {
+    id: "diaria",
+    label: "Tarifa diaria",
+    campos: [{ concepto: "tarifa_diaria", label: "Valor de la tarifa diaria", unidad: "dia" }],
+  },
+  {
+    id: "daily_hire_mob_desmob",
+    label: "Daily Hire + Mobilization + Demobilization",
+    campos: [
+      { concepto: "tarifa_diaria", label: "Daily hire", unidad: "dia" },
+      { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
+      { concepto: "desmovilizacion", label: "Demobilization", unidad: "global" },
+    ],
+  },
+  {
+    id: "precio_cerrado",
+    label: "Precio cerrado",
+    campos: [{ concepto: "precio_cerrado", label: "Precio cerrado", unidad: "global" }],
+  },
+  {
+    id: "otra",
+    label: "Otra",
+    campos: [{ concepto: "otro", label: "Monto", unidad: "global" }],
+  },
 ];
 
-export const UNIDADES: { id: Unidad; label: string }[] = [
-  { id: "dia", label: "por dia" },
-  { id: "hora", label: "por hora" },
-  { id: "viaje", label: "por viaje" },
-  { id: "global", label: "global" },
-];
-
-// Que conceptos precarga cada estructura. Es una sugerencia, no un limite.
-export const PRESET_TARIFAS: Record<EstructuraTarifaria, Concepto[]> = {
-  diaria: ["tarifa_diaria"],
-  mov_desmov_garantizado: [
-    "movilizacion",
-    "dia_garantizado",
-    "tarifa_diferencial",
-    "desmovilizacion",
-  ],
-  precio_cerrado: ["precio_cerrado"],
-  otra: [],
-};
+export function camposDe(estructura: EstructuraTarifaria): CampoTarifa[] {
+  return ESTRUCTURAS.find((e) => e.id === estructura)?.campos ?? [];
+}
 
 export interface Oportunidad {
   id: string;
   compania: string;
-  nombre_proyecto: string;
+  // Deja de pedirse en el formulario (0004). Las filas del tracker original
+  // lo conservan.
+  nombre_proyecto: string | null;
   alcance_oportunidad: string | null;
   descripcion_alcance: string | null;
   nro_oportunidad: string | null;
@@ -125,6 +130,7 @@ export interface Oportunidad {
   // columna propia (en el tracker original venian mezclados en `contacto`).
   contacto_email: string | null;
   contacto_telefono: string | null;
+  contacto_linkedin: string | null;
   // Cuando se haria el trabajo. Distinto de fecha_esperada_cierre, que es
   // cuando se define la venta.
   fecha_inicio_estimada: string | null;
@@ -147,6 +153,7 @@ export interface Cliente {
   contacto: string | null;
   contacto_email: string | null;
   contacto_telefono: string | null;
+  contacto_linkedin: string | null;
   oportunidades: number;
   ganadas: number;
   perdidas: number;

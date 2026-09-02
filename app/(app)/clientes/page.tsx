@@ -99,6 +99,7 @@ export default async function ClientesPage() {
                     <th>Contacto</th>
                     <th>Mail</th>
                     <th>Teléfono</th>
+                    <th>LinkedIn</th>
                     <th>Abiertas</th>
                     <th>Ganadas</th>
                     <th>Perdidas</th>
@@ -119,6 +120,23 @@ export default async function ClientesPage() {
                       <td>
                         {c.contacto_telefono ? (
                           <a href={`tel:${c.contacto_telefono}`}>{c.contacto_telefono}</a>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {c.contacto_linkedin ? (
+                          <a
+                            href={
+                              c.contacto_linkedin.startsWith("http")
+                                ? c.contacto_linkedin
+                                : `https://${c.contacto_linkedin}`
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            perfil
+                          </a>
                         ) : (
                           <span className="text-muted">—</span>
                         )}

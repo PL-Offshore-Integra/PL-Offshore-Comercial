@@ -9,14 +9,17 @@ export default async function DashboardPage() {
   const oportunidades = (data ?? []) as Oportunidad[];
 
   const porEmpresa = new Map<string, number>();
-  const porProyecto = new Map<string, number>();
+  const porCliente = new Map<string, number>();
   let total = 0;
 
+  // Nombre de proyecto dejo de pedirse en el formulario (0004), asi que
+  // agrupar por ahi dejaria casi todo en una fila vacia. El corte pasa a ser
+  // el cliente.
   for (const o of oportunidades) {
     const ganancia = o.valor - o.costo;
     total += ganancia;
     porEmpresa.set(o.empresa, (porEmpresa.get(o.empresa) ?? 0) + ganancia);
-    porProyecto.set(o.nombre_proyecto, (porProyecto.get(o.nombre_proyecto) ?? 0) + ganancia);
+    porCliente.set(o.compania, (porCliente.get(o.compania) ?? 0) + ganancia);
   }
 
   return (
@@ -54,13 +57,13 @@ export default async function DashboardPage() {
         </div>
 
         <div className="card">
-          <div className="card-title">Por proyecto</div>
+          <div className="card-title">Por cliente</div>
           <div className="table-wrap">
             <table>
               <tbody>
-                {[...porProyecto.entries()].map(([proyecto, ganancia]) => (
-                  <tr key={proyecto}>
-                    <td>{proyecto}</td>
+                {[...porCliente.entries()].map(([cliente, ganancia]) => (
+                  <tr key={cliente}>
+                    <td>{cliente}</td>
                     <td className="text-mono" style={{ textAlign: "right" }}>
                       {currency.format(ganancia)}
                     </td>

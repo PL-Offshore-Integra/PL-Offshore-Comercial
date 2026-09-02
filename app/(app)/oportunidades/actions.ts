@@ -27,14 +27,12 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
 function fields(formData: FormData) {
   return {
     compania: str(formData, "compania") ?? "",
-    nombre_proyecto: str(formData, "nombre_proyecto") ?? "",
     alcance_oportunidad: str(formData, "alcance_oportunidad"),
     descripcion_alcance: str(formData, "descripcion_alcance"),
     nro_oportunidad: str(formData, "nro_oportunidad"),
     contacto: str(formData, "contacto"),
     estadio: str(formData, "estadio") ?? "Investigando",
     valor: num(formData, "valor"),
-    costo: num(formData, "costo"),
     fecha_creacion: str(formData, "fecha_creacion") ?? new Date().toISOString().slice(0, 10),
     fecha_esperada_cierre: str(formData, "fecha_esperada_cierre"),
     last_interacted_on: str(formData, "last_interacted_on"),
@@ -50,14 +48,21 @@ function fields(formData: FormData) {
     contacto_telefono: str(formData, "contacto_telefono"),
     fecha_inicio_estimada: str(formData, "fecha_inicio_estimada"),
     fecha_fin_estimada: str(formData, "fecha_fin_estimada"),
+    // 0004
+    contacto_linkedin: str(formData, "contacto_linkedin"),
   };
 }
 
-// `empresa` NO esta en fields() a proposito. El formulario dejo de ofrecerla
-// porque todo lo que se carga de acá en adelante es PL Offshore, y el default
-// de la tabla ya lo resuelve en el insert. Si la mandaramos igual, cada vez
-// que alguien editara una de las 16 filas que hoy son de Terra Mare, Clean Sea
-// o HF Offshore se las pasaria a PL Offshore sin querer.
+// Tres columnas NO estan en fields(), y las tres por el mismo motivo: el
+// formulario dejo de pedirlas, y si las mandaramos igual borrarian lo que ya
+// hay cada vez que alguien edita una fila vieja.
+//
+//   empresa          — se las pasaria a PL Offshore a las 16 filas que hoy son
+//                      de Terra Mare, Clean Sea y HF Offshore. En el alta la
+//                      resuelve el default de la tabla.
+//   nombre_proyecto  — las filas del tracker original lo tienen cargado.
+//   costo            — se saco del formulario; en el alta queda en 0 por
+//                      default.
 
 // El nro de oportunidad lo pone un trigger cuando llega vacio. En un alta el
 // campo va de solo lectura, asi que nunca se manda; en una edicion se respeta
@@ -80,11 +85,15 @@ export async function createOportunidad(formData: FormData) {
     .single();
   if (error) throw new Error(error.message);
 
+  // Los montos vienen en el mismo submit que la oportunidad: la persona
+  // completa los casilleros que le muestra la estructura elegida y guarda una
+  // sola vez.
+  await guardarTarifas(supabase, data.id, formData);
   await registrarHistorial(supabase, data.id, null, datos.estadio, "Alta");
 
   revalidatePath("/oportunidades");
-  // A la ficha, no a la lista: los conceptos tarifarios se cargan ahi y
-  // necesitan que la oportunidad ya exista.
+  // A la ficha, no a la lista: es donde se adjunta la documentacion, que
+  // necesita que la oportunidad ya exista.
   redirect(`/oportunidades/${data.id}`);
 }
 
@@ -107,6 +116,8 @@ export async function updateOportunidad(id: string, formData: FormData) {
 
   const { error } = await supabase.from("oportunidades").update(datos).eq("id", id);
   if (error) throw new Error(error.message);
+
+  await guardarTarifas(supabase, id, formData);
 
   if (previa && previa.estadio !== datos.estadio) {
     await registrarHistorial(supabase, id, previa.estadio, datos.estadio, null);
@@ -131,9 +142,7 @@ export async function deleteOportunidad(id: string) {
 // llevar la cuenta de cual se edito, cual se agrego y cual se saco.
 // ------------------------------------------------------------
 
-export async function guardarTarifas(id: string, formData: FormData) {
-  const supabase = await createClient();
-
+async function guardarTarifas(supabase: Cliente, id: string, formData: FormData) {
   const conceptos = formData.getAll("tarifa_concepto");
   const detalles = formData.getAll("tarifa_detalle");
   const unidades = formData.getAll("tarifa_unidad");
@@ -164,8 +173,6 @@ export async function guardarTarifas(id: string, formData: FormData) {
     const { error } = await supabase.from("oportunidad_tarifas").insert(filas);
     if (error) throw new Error(error.message);
   }
-
-  revalidatePath(`/oportunidades/${id}`);
 }
 
 // ------------------------------------------------------------
