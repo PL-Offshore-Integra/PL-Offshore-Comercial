@@ -62,9 +62,12 @@ export const ESTRUCTURAS: {
   campos: CampoTarifa[];
 }[] = [
   {
+    // El id sigue siendo "diaria" —es lo que hay guardado en la base y lo que
+    // valida el check de 0005—; lo que cambia es como se lo nombra en
+    // pantalla, que es "daily hire", como se dice en la empresa.
     id: "diaria",
-    label: "Tarifa diaria",
-    campos: [{ concepto: "tarifa_diaria", label: "Valor de la tarifa diaria", unidad: "dia" }],
+    label: "Daily Hire",
+    campos: [{ concepto: "tarifa_diaria", label: "Valor del daily hire", unidad: "dia" }],
   },
   {
     id: "daily_hire_mob_desmob",
