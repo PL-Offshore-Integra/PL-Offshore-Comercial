@@ -3,26 +3,35 @@
 import Link from "next/link";
 import { useState } from "react";
 import ClientePicker from "@/components/ClientePicker";
-import type { ClienteContacto, ClienteEmpresa } from "@/lib/types";
 import {
   ADICIONALES,
+  calcularValor,
   camposDe,
-  ESTADIOS,
-  ESTRUCTURAS,
+  CONTRATACIONES,
+  ESTADOS_OPORTUNIDAD,
+  finEstimado,
+  type ClienteContacto,
+  type ClienteEmpresa,
   type Concepto,
   type EstructuraTarifaria,
   type Oportunidad,
   type Tarifa,
 } from "@/lib/types";
 
-// Los dos estadios cerrados no se eligen a mano: se llega por los botones
-// Ganado y Perdido de la lista, y Perdido es el que pide el motivo. Dejarlos
-// en el desplegable seria ofrecer un camino que la base rechaza.
-const ESTADIOS_ABIERTOS = ESTADIOS.filter(
-  (e) => e.estadio !== "Ganado" && e.estadio !== "Perdido"
-);
-
 const HOY = () => new Date().toISOString().slice(0, 10);
+
+const plata = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+});
+
+// Cerrar no se hace desde este formulario: se hace desde la lista, donde el
+// cierre pide el resultado y, si se perdio, el comentario. Aca solo se elige
+// entre los dos estados abiertos.
+const ESTADOS_EDITABLES = ESTADOS_OPORTUNIDAD.filter((e) => e.id !== "cerrado");
+
+export const ID_FORM_OPORTUNIDAD = "form-oportunidad";
 
 export default function OportunidadForm({
   action,
@@ -35,24 +44,26 @@ export default function OportunidadForm({
   action: (formData: FormData) => void;
   oportunidad?: Oportunidad;
   tarifas?: Tarifa[];
-  // El maestro de clientes, para los dos desplegables.
   empresas: ClienteEmpresa[];
   contactos: ClienteContacto[];
-  // Cuantas oportunidades lleva cada anio, para poder mostrar el numero que
-  // sigue antes de guardar. Solo se usa en el alta. null = no se pudo leer.
   contadores?: Record<number, number> | null;
 }) {
-  // La estructura vive en estado porque de ella dependen los casilleros de
-  // monto: elegir "Daily Hire + Mobilization + Demobilization" tiene que hacer
-  // aparecer esos tres en el momento, sin recargar.
-  const [estructura, setEstructura] = useState<EstructuraTarifaria>(
-    oportunidad?.estructura_tarifaria ?? "diaria"
+  const [tipo, setTipo] = useState<EstructuraTarifaria>(
+    oportunidad?.estructura_tarifaria ?? "time_charter"
   );
-  const campos = camposDe(estructura);
 
-  // La fecha de alta esta en estado porque el numero depende de ella: el anio
-  // del numero es el de la fecha que se carga, no el del reloj. Si alguien
-  // pone una fecha del anio pasado, el numero acompana.
+  // Los montos viven en estado porque de ellos sale el valor total, que se
+  // muestra calculado y no se escribe.
+  const [montos, setMontos] = useState<Partial<Record<Concepto, string>>>(() => {
+    const inicial: Partial<Record<Concepto, string>> = {};
+    for (const t of tarifas) inicial[t.concepto] = String(t.monto);
+    return inicial;
+  });
+
+  const [inicio, setInicio] = useState(oportunidad?.fecha_inicio_estimada ?? "");
+  const [dias, setDias] = useState(
+    oportunidad?.duracion_estimada_dias ? String(oportunidad.duracion_estimada_dias) : ""
+  );
   const [fechaAlta, setFechaAlta] = useState(oportunidad?.fecha_creacion ?? HOY());
 
   const anio = Number(fechaAlta.slice(0, 4));
@@ -61,10 +72,21 @@ export default function OportunidadForm({
       ? `PL-${(contadores[anio] ?? 0) + 1}-${anio}`
       : "—";
 
-  const montoDe = (concepto: Concepto) => {
-    const t = tarifas.find((x) => x.concepto === concepto);
-    return t ? String(t.monto) : "";
-  };
+  const campos = [...camposDe(tipo), ...ADICIONALES];
+
+  // El fin estimado no se escribe: sale del inicio mas los dias.
+  const diasNum = Number(dias) || 0;
+  const fin = inicio && diasNum > 0 ? finEstimado(inicio, diasNum) : "";
+
+  const valor = calcularValor(
+    tipo,
+    Object.fromEntries(
+      Object.entries(montos).map(([c, v]) => [c, Number(v) || 0])
+    ) as Partial<Record<Concepto, number>>,
+    diasNum
+  );
+
+  const cerrada = oportunidad?.estado === "cerrado";
 
   return (
     <form action={action} className="card" id={ID_FORM_OPORTUNIDAD}>
@@ -73,26 +95,16 @@ export default function OportunidadForm({
         <div className="fg">
           <label>Nro Oportunidad</label>
           {oportunidad?.nro_oportunidad ? (
-            // Una oportunidad ya numerada tampoco se edita: cambiarle el
-            // numero a mano rompe la correspondencia con lo que se le mando
-            // al cliente. Viaja escondido para no borrarlo en el update.
             <>
               <input value={oportunidad.nro_oportunidad} readOnly />
               <input type="hidden" name="nro_oportunidad" value={oportunidad.nro_oportunidad} />
             </>
           ) : oportunidad ? (
-            // Excepcion: una fila vieja que quedo sin numero. El trigger solo
-            // actua al insertar, asi que el unico modo de completarla es a
-            // mano.
             <>
               <input name="nro_oportunidad" defaultValue="" placeholder="PL-1-2026" />
               <span className="hint">Esta oportunidad quedo sin numero: se puede completar</span>
             </>
           ) : (
-            // En el alta va SIN name: lo que se ve es el numero que sigue,
-            // pero el que queda es el que asigna la base al insertar. Si se
-            // mandara este valor y otra persona guardo primero, entrarian dos
-            // oportunidades con el mismo numero.
             <>
               <input value={nroQueSigue} readOnly />
               <span className="hint">Lo asigna el sistema al guardar</span>
@@ -100,14 +112,21 @@ export default function OportunidadForm({
           )}
         </div>
         <div className="fg">
-          <label>Estadio</label>
-          <select name="estadio" defaultValue={oportunidad?.estadio ?? "Investigando"}>
-            {ESTADIOS_ABIERTOS.map((e) => (
-              <option key={e.estadio} value={e.estadio}>
-                {e.estadio} ({Math.round(e.probabilidad * 100)}%)
-              </option>
-            ))}
-          </select>
+          <label>Estado</label>
+          {cerrada ? (
+            <>
+              <input value="Cerrado" readOnly />
+              <span className="hint">Se reabre desde la lista</span>
+            </>
+          ) : (
+            <select name="estado" defaultValue={oportunidad?.estado ?? "abierto"}>
+              {ESTADOS_EDITABLES.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="fg">
           <label>Cliente final</label>
@@ -121,10 +140,6 @@ export default function OportunidadForm({
 
       <div className="form-section">Cliente y contacto</div>
       <div className="form-grid">
-        {/* Empresa y persona salen del maestro de clientes, con la opcion de
-            crear cualquiera de las dos ahi mismo. Los campos de texto que
-            habia antes (nombre, mail, telefono, linkedin sueltos en la
-            oportunidad) se cargan una vez en el cliente y se reusan. */}
         <ClientePicker
           empresas={empresas}
           contactos={contactos}
@@ -135,7 +150,7 @@ export default function OportunidadForm({
 
       <div className="form-section">La tarea</div>
       <div className="fg mb16">
-        <label>En que consiste</label>
+        <label>Alcance de la tarea</label>
         <textarea
           name="descripcion_alcance"
           defaultValue={oportunidad?.descripcion_alcance ?? ""}
@@ -144,8 +159,6 @@ export default function OportunidadForm({
         />
       </div>
       <div className="form-grid">
-        {/* El buque vive aca y no arriba: es parte de lo que la tarea
-            necesita, no de la identidad de la oportunidad. */}
         <div className="fg">
           <label>Buque que se podria usar</label>
           <input
@@ -155,57 +168,53 @@ export default function OportunidadForm({
           />
         </div>
         <div className="fg">
-          <label>Alcance (categoria)</label>
-          <input
-            name="alcance_oportunidad"
-            defaultValue={oportunidad?.alcance_oportunidad ?? ""}
-            placeholder="Crewing, Supply Chain, Project Management..."
-          />
-        </div>
-        <div className="fg">
           <label>Inicio estimado del trabajo</label>
           <input
             type="date"
             name="fecha_inicio_estimada"
-            defaultValue={oportunidad?.fecha_inicio_estimada ?? ""}
+            value={inicio}
+            onChange={(e) => setInicio(e.target.value)}
           />
         </div>
         <div className="fg">
-          <label>Fin estimado del trabajo</label>
+          <label>Duracion estimada (dias)</label>
           <input
-            type="date"
-            name="fecha_fin_estimada"
-            defaultValue={oportunidad?.fecha_fin_estimada ?? ""}
+            type="number"
+            min="1"
+            step="1"
+            name="duracion_estimada_dias"
+            value={dias}
+            onChange={(e) => setDias(e.target.value)}
+            placeholder="30"
           />
+        </div>
+        <div className="fg">
+          {/* No se escribe: es el inicio mas los dias. Arrancar el 1 y durar
+              10 dias termina el 10, no el 11. */}
+          <label>Fin estimado del trabajo</label>
+          <input type="date" name="fecha_fin_estimada" value={fin} readOnly />
+          <span className="hint">Lo calcula la duracion</span>
         </div>
       </div>
 
-      <div className="form-section">Numeros y seguimiento</div>
+      <div className="form-section">Condiciones comerciales</div>
       <div className="form-grid">
         <div className="fg">
-          <label>Estructura de cotizacion</label>
+          <label>Tipo de contratacion</label>
           <select
             name="estructura_tarifaria"
-            value={estructura}
-            onChange={(e) => setEstructura(e.target.value as EstructuraTarifaria)}
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value as EstructuraTarifaria)}
           >
-            {ESTRUCTURAS.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.label}
+            {CONTRATACIONES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Los casilleros de monto salen de la estructura elegida: cambiarla
-            cambia que se pide. El concepto y la unidad viajan escondidos
-            porque son lo que se guarda; la persona solo escribe el numero.
-            Los cuatro campos vacios mantienen alineados los arrays que arma
-            el server con getAll(). */}
-        {/* Standby y accommodation van despues, fijos: no dependen de la
-            estructura, pueden acompanar a cualquiera. Vacios = no se
-            cotizaron, y entonces no se guarda ninguna fila. */}
-        {[...campos, ...ADICIONALES].map((c) => (
+        {campos.map((c) => (
           <div className="fg" key={c.concepto}>
             <label>{c.label}</label>
             <input
@@ -213,7 +222,10 @@ export default function OportunidadForm({
               step="0.01"
               min="0"
               name="tarifa_monto"
-              defaultValue={montoDe(c.concepto)}
+              value={montos[c.concepto] ?? ""}
+              onChange={(e) =>
+                setMontos((m) => ({ ...m, [c.concepto]: e.target.value }))
+              }
               placeholder="0.00"
             />
             <input type="hidden" name="tarifa_concepto" value={c.concepto} />
@@ -225,9 +237,18 @@ export default function OportunidadForm({
         ))}
 
         <div className="fg">
+          {/* Calculado y de solo lectura. El servidor lo vuelve a calcular al
+              guardar con la misma funcion, asi que lo que se ve es lo que
+              queda. */}
           <label>Valor total de la propuesta</label>
-          <input type="number" step="0.01" name="valor" defaultValue={oportunidad?.valor ?? 0} />
+          <input value={plata.format(valor)} readOnly />
+          <span className="hint">
+            {tipo === "time_charter"
+              ? "Daily hire × dias + mobilization + demobilization"
+              : "Lump sum + mobilization + demobilization"}
+          </span>
         </div>
+
         <div className="fg">
           <label>Fecha de alta</label>
           <input
@@ -237,37 +258,31 @@ export default function OportunidadForm({
             onChange={(e) => setFechaAlta(e.target.value)}
           />
         </div>
-        <div className="fg">
-          <label>Fecha esperada de cierre de la venta</label>
-          <input
-            type="date"
-            name="fecha_esperada_cierre"
-            defaultValue={oportunidad?.fecha_esperada_cierre ?? ""}
-          />
-        </div>
-        <div className="fg">
-          <label>Ultimo contacto</label>
-          <input type="date" name="last_interacted_on" defaultValue={oportunidad?.last_interacted_on ?? ""} />
-        </div>
       </div>
 
       <div className="form-section">Seguimiento</div>
-      <div className="fg mb16">
-        <label>Proximos Pasos</label>
-        <input name="proximos_pasos" defaultValue={oportunidad?.proximos_pasos ?? ""} />
-      </div>
-      <div className="fg mb16">
-        <label>Notas</label>
-        <textarea name="notas" defaultValue={oportunidad?.notas ?? ""} rows={4} />
+      <div className="form-grid">
+        <div className="fg">
+          <label>Ultimo contacto</label>
+          <input
+            type="date"
+            name="last_interacted_on"
+            defaultValue={oportunidad?.last_interacted_on ?? ""}
+          />
+        </div>
       </div>
       <div className="fg">
-        <label>Referencias</label>
-        <input name="referencias" defaultValue={oportunidad?.referencias ?? ""} />
+        {/* Un solo campo: reemplaza a notas, referencias y proximos pasos. Es
+            lo que se ve en la lista. */}
+        <label>Comentarios</label>
+        <textarea
+          name="comentarios"
+          defaultValue={oportunidad?.comentarios ?? ""}
+          rows={4}
+          placeholder="Proximos pasos, referencias, lo que haya que recordar"
+        />
       </div>
 
-      {/* Adjuntar en el alta. En la ficha no va: ahi abajo esta el bloque de
-          Documentacion, que ademas lista lo que ya se subio y permite
-          borrarlo. Aca se puede elegir mas de un archivo de una vez. */}
       {!oportunidad && (
         <>
           <div className="form-section">Documentacion</div>
@@ -281,22 +296,11 @@ export default function OportunidadForm({
         </>
       )}
 
-      {/* En el alta el pie va aca, que ya es el final del formulario. En la
-          ficha no: abajo hay otra tarjeta con la documentacion ya subida, y el
-          pie tiene que quedar debajo de todo. Como no se pueden anidar
-          formularios, ese pie lo dibuja la ficha con <PieDelFormulario />, que
-          apunta a este form por id. */}
       {!oportunidad && <PieDelFormulario />}
     </form>
   );
 }
 
-// El id que une el boton Guardar de la ficha con el formulario, aunque esten
-// en distintos lugares del arbol.
-export const ID_FORM_OPORTUNIDAD = "form-oportunidad";
-
-// Atras es un link y no un boton: dentro del formulario un boton sin type
-// dispara el submit, y este tiene que salir sin guardar.
 export function PieDelFormulario() {
   return (
     <div className="flex-between mt16">

@@ -123,10 +123,6 @@ export default function ClientePicker({
             <input type="tel" name="contacto_nuevo_telefono" placeholder="+54 9 11 ..." />
           </div>
           <div className="fg">
-            <label>Linkedin</label>
-            <input name="contacto_nuevo_linkedin" placeholder="linkedin.com/in/..." />
-          </div>
-          <div className="fg">
             <span className="hint">
               El contacto queda cargado en la base de clientes y despues aparece en
               este desplegable.

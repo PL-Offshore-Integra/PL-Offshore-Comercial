@@ -1,28 +1,27 @@
 import Link from "next/link";
-import CerrarOportunidad from "@/components/CerrarOportunidad";
+import EstadoOportunidadControl from "@/components/CerrarOportunidad";
 import {
-  marcarGanado,
-  perderOportunidad,
+  cambiarEstadoOportunidad,
+  cerrarOportunidad,
   reabrirOportunidad,
 } from "@/app/(app)/oportunidades/actions";
 import { createClient } from "@/lib/supabase/server";
-import type { Oportunidad } from "@/lib/types";
-
-const CERRADOS = ["Ganado", "Perdido", "Cancelado"];
+import { etiquetaEstado, type Oportunidad } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD" });
 
-const ESTADIO_ORDEN: { estadio: string; color: string }[] = [
-  { estadio: "Investigando", color: "b-gray" },
-  { estadio: "Lead", color: "b-blue" },
-  { estadio: "Contacto", color: "b-blue" },
-  { estadio: "Pedido de Cotizacion", color: "b-amber" },
-  { estadio: "Qualified", color: "b-teal" },
-  { estadio: "Propuesta Enviada", color: "b-orange" },
-  { estadio: "Ganado", color: "b-green" },
-  { estadio: "Perdido", color: "b-red" },
-  { estadio: "Cancelado", color: "b-gray" },
-];
+// dd/mm/aaaa, que es como se leen las fechas aca.
+function fecha(iso: string | null) {
+  if (!iso) return "—";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return a && m && d ? `${d}/${m}/${a}` : "—";
+}
+
+function recortar(texto: string | null, largo = 90) {
+  if (!texto) return "—";
+  const limpio = texto.replace(/\s+/g, " ").trim();
+  return limpio.length > largo ? `${limpio.slice(0, largo)}…` : limpio;
+}
 
 export default async function OportunidadesPage() {
   const supabase = await createClient();
@@ -32,11 +31,6 @@ export default async function OportunidadesPage() {
     .order("fecha_creacion", { ascending: false });
 
   const oportunidades = (data ?? []) as Oportunidad[];
-  const grupos = ESTADIO_ORDEN.map(({ estadio, color }) => ({
-    estadio,
-    color,
-    items: oportunidades.filter((o) => o.estadio === estadio),
-  })).filter((g) => g.items.length > 0);
 
   return (
     <div>
@@ -51,81 +45,76 @@ export default async function OportunidadesPage() {
         <div className="empty-state">Todavia no hay oportunidades cargadas.</div>
       )}
 
-      {grupos.map((grupo) => (
-        <div key={grupo.estadio} className="card">
-          <div className="card-title">
-            <span className={`badge ${grupo.color}`}>
-              {grupo.estadio} ({grupo.items.length})
-            </span>
-          </div>
+      {/* Un solo listado continuo, ordenado por fecha de alta. Antes venia
+          partido en una tarjeta por estadio, que con nueve estadios eran nueve
+          tablas. */}
+      {oportunidades.length > 0 && (
+        <div className="card">
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Nro</th>
+                  <th>Estado</th>
                   <th>Compania</th>
                   <th>Tarea</th>
                   <th>Buque</th>
                   <th>Contacto</th>
-                  {/* Sin columna de ganancia: seria valor - costo, y el costo
-                      no se pide, queda en 0. Repetia el valor al lado del
-                      valor. */}
                   <th>Valor</th>
                   <th>Cierre esperado</th>
-                  <th>Proximos pasos</th>
+                  <th>Comentarios</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {grupo.items.map((o) => (
-                  <tr key={o.id} className="click">
-                    <td className="text-mono">{o.nro_oportunidad ?? "-"}</td>
-                    <td>{o.compania}</td>
-                    {/* Nombre de proyecto salio del formulario: para las filas
-                        nuevas lo que identifica el trabajo es en que consiste.
-                        Las del tracker original siguen mostrando el suyo. */}
-                    <td>
-                      {o.descripcion_alcance ??
-                        o.nombre_proyecto ??
-                        o.alcance_oportunidad ??
-                        "-"}
-                    </td>
-                    <td className="text-muted">{o.buque ?? "-"}</td>
-                    <td className="text-muted">{o.contacto ?? o.contacto_email ?? "-"}</td>
-                    <td className="text-mono">{currency.format(o.valor)}</td>
-                    <td className="text-mono">{o.fecha_esperada_cierre ?? "-"}</td>
-                    <td className="text-muted">{o.proximos_pasos ?? "-"}</td>
-                    <td>
-                      <div className="fila-acciones">
-                        {/* Los botones de cierre solo mientras esta abierta.
-                            Una ya cerrada no se reabre desde aca. */}
-                        {CERRADOS.includes(o.estadio) ? (
-                          // Un cierre se puede deshacer: vuelve al estadio del
-                          // que venia, que sale del historial.
-                          <form action={reabrirOportunidad.bind(null, o.id)}>
-                            <button type="submit" className="btn btn-ghost btn-sm">
-                              Reabrir
-                            </button>
-                          </form>
-                        ) : (
-                          <CerrarOportunidad
-                            ganar={marcarGanado.bind(null, o.id)}
-                            perder={perderOportunidad.bind(null, o.id)}
+                {oportunidades.map((o) => {
+                  const etiqueta = etiquetaEstado(o.estado, o.resultado);
+                  return (
+                    <tr key={o.id}>
+                      <td className="text-mono">{o.nro_oportunidad ?? "-"}</td>
+                      <td>
+                        <span className={`badge ${etiqueta.color}`}>{etiqueta.label}</span>
+                      </td>
+                      <td className="cel-compania">{o.compania}</td>
+                      <td>{recortar(o.descripcion_alcance ?? o.nombre_proyecto, 60)}</td>
+                      <td className="text-muted">{o.buque ?? "—"}</td>
+                      <td className="text-muted">{o.contacto ?? o.contacto_email ?? "—"}</td>
+                      <td className="text-mono">{currency.format(o.valor)}</td>
+                      <td className="text-mono">{fecha(o.fecha_esperada_cierre)}</td>
+                      <td className="text-muted">{recortar(o.comentarios)}</td>
+                      <td>
+                        <div className="fila-acciones">
+                          <EstadoOportunidadControl
+                            estado={o.estado}
+                            resultado={o.resultado}
                             etiqueta={`${o.nro_oportunidad ?? "esta oportunidad"} · ${o.compania}`}
+                            comentarios={o.comentarios}
+                            cambiarEstado={cambiarEstadoOportunidad.bind(null, o.id)}
+                            cerrar={cerrarOportunidad.bind(null, o.id)}
+                            reabrir={reabrirOportunidad.bind(null, o.id)}
                           />
-                        )}
-                        <Link href={`/oportunidades/${o.id}`} className="btn btn-ghost btn-sm">
-                          Editar
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {/* Ver abre la ficha de lectura; Editar, el
+                              formulario. Mirar una oportunidad no tiene por
+                              que pasar por la pantalla de edicion. */}
+                          <Link href={`/oportunidades/${o.id}`} className="btn btn-ghost btn-sm">
+                            Ver
+                          </Link>
+                          <Link
+                            href={`/oportunidades/${o.id}/editar`}
+                            className="btn btn-ghost btn-sm"
+                          >
+                            Editar
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }

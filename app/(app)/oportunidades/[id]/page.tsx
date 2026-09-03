@@ -1,35 +1,47 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import OportunidadForm, { PieDelFormulario } from "@/components/OportunidadForm";
-import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 import {
-  borrarAdjunto,
-  deleteOportunidad,
-  subirAdjunto,
-  updateOportunidad,
-} from "@/app/(app)/oportunidades/actions";
-import type { Adjunto, Oportunidad, Tarifa } from "@/lib/types";
+  camposDe,
+  CONTRATACIONES,
+  etiquetaEstado,
+  type Adjunto,
+  type Oportunidad,
+  type Tarifa,
+} from "@/lib/types";
 
-function pesoLegible(bytes: number | null) {
-  if (bytes === null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+// La oportunidad de solo lectura. Es lo que abre el boton Ver de la lista:
+// mirar una oportunidad no tiene por que pasar por la pantalla de edicion,
+// donde cualquier tecla suelta cambia un dato.
+
+const plata = new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD" });
+
+function fecha(iso: string | null) {
+  if (!iso) return "—";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return a && m && d ? `${d}/${m}/${a}` : "—";
 }
 
-export default async function EditarOportunidadPage({
+function Dato({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="fg">
+      <label>{label}</label>
+      <div className="dato">{children}</div>
+    </div>
+  );
+}
+
+export default async function VerOportunidadPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const supabase = await createClient();
+
   const { data } = await supabase.from("oportunidades").select("*").eq("id", id).single();
-
   if (!data) notFound();
-
-  const oportunidad = data as Oportunidad;
+  const o = data as Oportunidad;
 
   const { data: filas } = await supabase
     .from("oportunidad_tarifas")
@@ -45,8 +57,6 @@ export default async function EditarOportunidadPage({
     .order("created_at", { ascending: false });
   const adjuntos = (docs ?? []) as Adjunto[];
 
-  // El bucket es privado: cada archivo se sirve con una URL firmada de corta
-  // duracion, no con un link permanente.
   const firmadas = new Map<string, string>();
   if (adjuntos.length) {
     const { data: urls } = await supabase.storage
@@ -57,64 +67,123 @@ export default async function EditarOportunidadPage({
     }
   }
 
-  const update = updateOportunidad.bind(null, oportunidad.id);
-  const remove = deleteOportunidad.bind(null, oportunidad.id);
-  const subir = subirAdjunto.bind(null, oportunidad.id);
-
-  const { empresas, contactos } = await leerMaestroClientes();
-
-  // Si ya se convirtio en proyecto, la ficha lo linkea; si no, ofrece
-  // convertirla.
   const { data: proy } = await supabase
     .from("proyectos")
     .select("id, nro_proyecto")
-    .eq("oportunidad_id", oportunidad.id)
+    .eq("oportunidad_id", id)
     .maybeSingle();
   const proyecto = proy as { id: string; nro_proyecto: string | null } | null;
 
-  const cerrada = oportunidad.estadio === "Ganado" || oportunidad.estadio === "Perdido";
+  const etiqueta = etiquetaEstado(o.estado, o.resultado);
+  const tipo = CONTRATACIONES.find((c) => c.id === o.estructura_tarifaria);
+  // Los conceptos se muestran en el orden del tipo de contratacion, y despues
+  // lo que haya quedado de otro tipo (por ejemplo si se cambio de Time a
+  // Voyage y habia montos cargados).
+  const orden = camposDe(o.estructura_tarifaria).map((c) => c.concepto);
+  const conMonto = [...tarifas].sort(
+    (a, b) => (orden.indexOf(a.concepto) + 99) % 99 - ((orden.indexOf(b.concepto) + 99) % 99)
+  );
 
   return (
     <div>
       <div className="flex-between mb16">
         <span className="tag">
-          {oportunidad.nro_oportunidad ?? "sin nro"} &middot; {oportunidad.compania}
-          {oportunidad.nombre_proyecto && <> &middot; {oportunidad.nombre_proyecto}</>}
+          {o.nro_oportunidad ?? "sin nro"} &middot; {o.compania}
         </span>
-        <form action={remove}>
-          <button type="submit" className="btn btn-danger btn-sm">
-            Eliminar
-          </button>
-        </form>
+        <span className={`badge ${etiqueta.color}`}>{etiqueta.label}</span>
       </div>
 
-      <OportunidadForm
-        action={update}
-        oportunidad={oportunidad}
-        tarifas={tarifas}
-        empresas={empresas}
-        contactos={contactos}
-      />
-
       <div className="card">
-        <div className="form-section">Documentacion</div>
+        <div className="form-section">La tarea</div>
+        <div className="fg mb16">
+          <label>Alcance de la tarea</label>
+          <div className="dato dato-parrafo">{o.descripcion_alcance ?? "—"}</div>
+        </div>
+        <div className="form-grid">
+          <Dato label="Buque">{o.buque ?? "—"}</Dato>
+          <Dato label="Cliente final">{o.cliente_final ?? "—"}</Dato>
+          <Dato label="Inicio estimado">{fecha(o.fecha_inicio_estimada)}</Dato>
+          <Dato label="Duracion estimada">
+            {o.duracion_estimada_dias ? `${o.duracion_estimada_dias} dias` : "—"}
+          </Dato>
+          <Dato label="Fin estimado">{fecha(o.fecha_fin_estimada)}</Dato>
+        </div>
 
-        {adjuntos.length === 0 ? (
-          <div className="empty-state mb16">Sin documentacion adjunta.</div>
-        ) : (
+        <div className="form-section">Condiciones comerciales</div>
+        <div className="form-grid">
+          <Dato label="Tipo de contratacion">{tipo?.label ?? o.estructura_tarifaria}</Dato>
+          <Dato label="Valor total">
+            <strong>{plata.format(o.valor)}</strong>
+          </Dato>
+        </div>
+
+        {conMonto.length > 0 && (
           <div className="table-wrap mb16">
             <table>
               <thead>
                 <tr>
-                  <th>Archivo</th>
-                  <th>Peso</th>
-                  <th style={{ textAlign: "right" }}>Acciones</th>
+                  <th>Concepto</th>
+                  <th>Unidad</th>
+                  <th style={{ textAlign: "right" }}>Monto</th>
                 </tr>
               </thead>
               <tbody>
+                {conMonto.map((t) => (
+                  <tr key={t.id}>
+                    <td>{etiquetaConcepto(t.concepto)}</td>
+                    <td className="text-muted">{t.unidad === "dia" ? "por dia" : "global"}</td>
+                    <td className="text-mono" style={{ textAlign: "right" }}>
+                      {plata.format(Number(t.monto))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="form-section">Contacto</div>
+        <div className="form-grid">
+          <Dato label="Compania">{o.compania}</Dato>
+          <Dato label="Contacto">{o.contacto ?? "—"}</Dato>
+          <Dato label="Mail">
+            {o.contacto_email ? (
+              <a href={`mailto:${o.contacto_email}`}>{o.contacto_email}</a>
+            ) : (
+              "—"
+            )}
+          </Dato>
+          <Dato label="Telefono">
+            {o.contacto_telefono ? (
+              <a href={`tel:${o.contacto_telefono}`}>{o.contacto_telefono}</a>
+            ) : (
+              "—"
+            )}
+          </Dato>
+        </div>
+
+        <div className="form-section">Seguimiento</div>
+        <div className="form-grid">
+          <Dato label="Fecha de alta">{fecha(o.fecha_creacion)}</Dato>
+          <Dato label="Cierre esperado de la venta">{fecha(o.fecha_esperada_cierre)}</Dato>
+          <Dato label="Ultimo contacto">{fecha(o.last_interacted_on)}</Dato>
+        </div>
+        <div className="fg">
+          <label>Comentarios</label>
+          <div className="dato dato-parrafo">{o.comentarios ?? "—"}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="form-section">Documentacion</div>
+        {adjuntos.length === 0 ? (
+          <div className="empty-state">Sin documentacion adjunta.</div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <tbody>
                 {adjuntos.map((a) => {
                   const url = firmadas.get(a.path);
-                  const quitar = borrarAdjunto.bind(null, oportunidad.id, a.id, a.path);
                   return (
                     <tr key={a.id}>
                       <td>
@@ -126,14 +195,6 @@ export default async function EditarOportunidadPage({
                           a.nombre
                         )}
                       </td>
-                      <td className="text-mono">{pesoLegible(a.tamano_bytes)}</td>
-                      <td style={{ textAlign: "right" }}>
-                        <form action={quitar}>
-                          <button type="submit" className="btn btn-danger btn-sm">
-                            Borrar
-                          </button>
-                        </form>
-                      </td>
                     </tr>
                   );
                 })}
@@ -141,64 +202,48 @@ export default async function EditarOportunidadPage({
             </table>
           </div>
         )}
-
-        <form action={subir}>
-          <div className="form-grid" style={{ alignItems: "end" }}>
-            <div className="fg">
-              <label>Adjuntar archivo (hasta 25 MB)</label>
-              <input type="file" name="archivo" required />
-            </div>
-            <div className="fg">
-              <label>&nbsp;</label>
-              <button type="submit" className="btn btn-ghost">
-                Subir
-              </button>
-            </div>
-          </div>
-        </form>
       </div>
 
-      {/* El pie del formulario va al final de todo, debajo de la
-          documentacion. Guardar apunta al formulario de arriba por id: no se
-          pueden anidar formularios, y la tarjeta de documentacion tiene los
-          suyos. */}
-      <PieDelFormulario />
-
-      {/* Cerrar y reabrir se hace desde los botones de la lista. Aca solo se
-          muestra como quedo, y solo si esta cerrada. */}
-      {cerrada && (
-        <div className="card">
-          <div className="form-section">Cierre</div>
-          {oportunidad.estadio === "Ganado" ? (
-            <div className="info-box accent">
-              {proyecto ? (
-                <>
-                  Ganada y convertida en el proyecto{" "}
-                  <strong>{proyecto.nro_proyecto}</strong>.{" "}
-                  <Link href={`/proyectos/${proyecto.id}`}>
-                    <strong>Abrir el proyecto</strong>
-                  </Link>{" "}
-                  — lo que se cotizo queda aca y no cambia cuando se corrige el
-                  proyecto.
-                </>
-              ) : (
-                <>
-                  Ganada, pero todavia no se convirtio en proyecto.{" "}
-                  <Link href={`/proyectos/nuevo?oportunidad=${oportunidad.id}`}>
-                    <strong>Convertirla ahora</strong>
-                  </Link>
-                  .
-                </>
-              )}
-            </div>
+      {o.estado === "cerrado" && (
+        <div className={`info-box ${o.resultado === "perdido" ? "danger" : "accent"} mb16`}>
+          {o.resultado === "perdido" ? (
+            <>Perdida. {o.comentarios}</>
+          ) : proyecto ? (
+            <>
+              Ganada y convertida en el proyecto{" "}
+              <strong>{proyecto.nro_proyecto}</strong>.{" "}
+              <Link href={`/proyectos/${proyecto.id}`}>
+                <strong>Abrir el proyecto</strong>
+              </Link>
+            </>
           ) : (
-            <div className="info-box danger">
-              Perdida. Motivo: <strong>{oportunidad.motivo_perdida}</strong>
-              {oportunidad.competidor && <> &middot; Competidor: {oportunidad.competidor}</>}
-            </div>
+            <>
+              Ganada, pero todavia no se convirtio en proyecto.{" "}
+              <Link href={`/proyectos/nuevo?oportunidad=${o.id}`}>
+                <strong>Convertirla ahora</strong>
+              </Link>
+            </>
           )}
         </div>
       )}
+
+      <div className="flex-between mt16">
+        <Link href="/oportunidades" className="btn btn-ghost">
+          Atras
+        </Link>
+        <Link href={`/oportunidades/${o.id}/editar`} className="btn btn-primary">
+          Editar
+        </Link>
+      </div>
     </div>
   );
+}
+
+function etiquetaConcepto(concepto: string): string {
+  for (const tipo of CONTRATACIONES) {
+    const campo = tipo.campos.find((c) => c.concepto === concepto);
+    if (campo) return campo.label;
+  }
+  if (concepto === "accommodation") return "Accommodation (por persona/dia)";
+  return concepto;
 }

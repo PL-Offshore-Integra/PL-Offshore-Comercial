@@ -66,11 +66,11 @@ export default async function NuevoProyectoPage({
     );
   }
 
-  if (oportunidad.estadio !== "Ganado") {
+  if (oportunidad.resultado !== "ganado") {
     return (
       <div className="info-box warn">
         La oportunidad <strong>{oportunidad.nro_oportunidad}</strong> esta en{" "}
-        {oportunidad.estadio}. Para convertirla en proyecto hay que marcarla{" "}
+        {oportunidad.estado}. Para convertirla en proyecto hay que marcarla{" "}
         <strong>Ganado</strong> desde la lista.
       </div>
     );

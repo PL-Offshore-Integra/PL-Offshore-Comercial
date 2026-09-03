@@ -40,7 +40,7 @@ export default function ProyectoForm({
   nroQueSigue?: string;
 }) {
   const [estructura, setEstructura] = useState<EstructuraTarifaria>(
-    proyecto?.estructura_tarifaria ?? oportunidad?.estructura_tarifaria ?? "diaria"
+    proyecto?.estructura_tarifaria ?? oportunidad?.estructura_tarifaria ?? "time_charter"
   );
   const campos = camposDe(estructura);
 

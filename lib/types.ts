@@ -7,37 +7,57 @@ export const EMPRESAS_PROPIAS: EmpresaPropia[] = [
   "HF Offshore",
 ];
 
-export type Estadio =
-  | "Investigando"
-  | "Lead"
-  | "Contacto"
-  | "Pedido de Cotizacion"
-  | "Qualified"
-  | "Propuesta Enviada"
-  | "Ganado"
-  | "Perdido"
-  | "Cancelado";
+// ── ESTADO (0013) ─────────────────────────────────────────────────────────
+//
+// Reemplaza a los nueve estadios por tres estados. El resultado —ganado o
+// perdido— solo existe cuando la oportunidad esta cerrada.
+export type EstadoOportunidad = "abierto" | "en_curso" | "cerrado";
+export type ResultadoOportunidad = "ganado" | "perdido";
 
-export const ESTADIOS: { estadio: Estadio; probabilidad: number }[] = [
-  { estadio: "Investigando", probabilidad: 0 },
-  { estadio: "Lead", probabilidad: 0.05 },
-  { estadio: "Contacto", probabilidad: 0.1 },
-  { estadio: "Pedido de Cotizacion", probabilidad: 0.05 },
-  { estadio: "Qualified", probabilidad: 0.25 },
-  { estadio: "Propuesta Enviada", probabilidad: 0.5 },
-  { estadio: "Ganado", probabilidad: 1 },
-  { estadio: "Perdido", probabilidad: 0 },
-  { estadio: "Cancelado", probabilidad: 0 },
+export const ESTADOS_OPORTUNIDAD: {
+  id: EstadoOportunidad;
+  label: string;
+  color: string;
+}[] = [
+  { id: "abierto", label: "Abierto", color: "b-gray" },
+  { id: "en_curso", label: "En curso", color: "b-blue" },
+  { id: "cerrado", label: "Cerrado", color: "b-purple" },
 ];
 
-// Como se cotiza. No es una etiqueta: define exactamente que casilleros de
-// monto aparecen en el formulario. Elegir "Daily Hire + Mobilization +
-// Demobilization" hace aparecer esos tres y ningun otro.
-export type EstructuraTarifaria =
-  | "diaria"
-  | "daily_hire_mob_desmob"
-  | "lump_sum"
-  | "otra";
+export const RESULTADOS: {
+  id: ResultadoOportunidad;
+  label: string;
+  color: string;
+}[] = [
+  { id: "ganado", label: "Ganado", color: "b-green" },
+  { id: "perdido", label: "Perdido", color: "b-red" },
+];
+
+// Como se muestra el estado en pantalla: una cerrada se nombra por su
+// resultado, que es el dato que importa. Cerrada sin resultado es un
+// "Cancelado" del modelo viejo.
+export function etiquetaEstado(
+  estado: EstadoOportunidad,
+  resultado: ResultadoOportunidad | null
+): { label: string; color: string } {
+  if (estado !== "cerrado") {
+    return ESTADOS_OPORTUNIDAD.find((e) => e.id === estado) ?? ESTADOS_OPORTUNIDAD[0];
+  }
+  return (
+    RESULTADOS.find((r) => r.id === resultado) ?? { label: "Cerrado", color: "b-purple" }
+  );
+}
+
+// Tipo de contratacion. No es una etiqueta: define que casilleros de monto
+// aparecen y como se calcula el valor total.
+//
+//   Time Charter   se alquila el buque por tiempo. El total sale del daily
+//                  hire por los dias mas mobilization y demobilization.
+//   Voyage Charter se cierra un precio por el viaje. El total es la suma de
+//                  los conceptos, sin multiplicar por dias.
+//
+// La columna en la base sigue llamandose `estructura_tarifaria`.
+export type EstructuraTarifaria = "time_charter" | "voyage_charter";
 
 export type Concepto =
   | "movilizacion"
@@ -47,16 +67,18 @@ export type Concepto =
   | "tarifa_diferencial"
   | "standby"
   | "accommodation"
+  | "demurrage"
   | "lump_sum"
   | "otro";
 
 export type Unidad = "dia" | "hora" | "viaje" | "global";
 
-// Standby y accommodation no dependen de la estructura elegida: pueden ir con
-// daily hire, con lump sum o con cualquiera. Por eso van como dos casilleros
-// fijos y no como parte de ESTRUCTURAS. Vacios = no se cotizaron.
+// Accommodation no depende del tipo de contratacion: puede ir con Time
+// Charter o con Voyage Charter. Vacio = no se cotizo.
+//
+// Standby dejo de estar aca: en Time Charter es "Stand by hire" y forma parte
+// del tipo, asi que vive en CONTRATACIONES.
 export const ADICIONALES: CampoTarifa[] = [
-  { concepto: "standby", label: "Standby (por dia)", unidad: "dia" },
   { concepto: "accommodation", label: "Accommodation (por persona/dia)", unidad: "dia" },
 ];
 
@@ -65,42 +87,73 @@ export const ADICIONALES: CampoTarifa[] = [
 // segun la estructura, asi que comparten el valor guardado.
 export type CampoTarifa = { concepto: Concepto; label: string; unidad: Unidad };
 
-export const ESTRUCTURAS: {
+export const CONTRATACIONES: {
   id: EstructuraTarifaria;
   label: string;
   campos: CampoTarifa[];
 }[] = [
   {
-    // El id sigue siendo "diaria" —es lo que hay guardado en la base y lo que
-    // valida el check de 0005—; lo que cambia es como se lo nombra en
-    // pantalla, que es "daily hire", como se dice en la empresa.
-    id: "diaria",
-    label: "Daily Hire",
-    campos: [{ concepto: "tarifa_diaria", label: "Valor del daily hire", unidad: "dia" }],
-  },
-  {
-    id: "daily_hire_mob_desmob",
-    label: "Daily Hire + Mobilization + Demobilization",
+    id: "time_charter",
+    label: "Time Charter",
     campos: [
-      { concepto: "tarifa_diaria", label: "Daily hire", unidad: "dia" },
+      { concepto: "tarifa_diaria", label: "Daily hire (por dia)", unidad: "dia" },
       { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
       { concepto: "desmovilizacion", label: "Demobilization", unidad: "global" },
+      { concepto: "standby", label: "Stand by hire (por dia)", unidad: "dia" },
     ],
   },
   {
-    id: "lump_sum",
-    label: "Lump Sum",
-    campos: [{ concepto: "lump_sum", label: "Lump sum", unidad: "global" }],
-  },
-  {
-    id: "otra",
-    label: "Otra",
-    campos: [{ concepto: "otro", label: "Monto", unidad: "global" }],
+    id: "voyage_charter",
+    label: "Voyage Charter",
+    campos: [
+      { concepto: "lump_sum", label: "Lump sum", unidad: "global" },
+      { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
+      { concepto: "desmovilizacion", label: "Demobilization", unidad: "global" },
+      { concepto: "demurrage", label: "Demurrage (por dia)", unidad: "dia" },
+    ],
   },
 ];
 
+// Se deja el nombre viejo como alias: lo usan el formulario del proyecto y
+// cualquier otro lugar que todavia hable de "estructura".
+export const ESTRUCTURAS = CONTRATACIONES;
+
 export function camposDe(estructura: EstructuraTarifaria): CampoTarifa[] {
-  return ESTRUCTURAS.find((e) => e.id === estructura)?.campos ?? [];
+  return CONTRATACIONES.find((e) => e.id === estructura)?.campos ?? [];
+}
+
+// El valor total de la propuesta se calcula, no se escribe. Vive aca para que
+// el formulario y el servidor usen exactamente la misma cuenta: el formulario
+// lo muestra en vivo y el servidor lo recalcula al guardar, que es el que
+// manda.
+//
+//   Time Charter    daily hire × dias + mobilization + demobilization
+//   Voyage Charter  lump sum + mobilization + demobilization
+//
+// Lo que queda AFUERA de las dos cuentas es lo contingente: stand by hire,
+// demurrage y accommodation son montos por dia que solo se cobran si pasan.
+// Sumarlos a un total seria mezclar unidades.
+export function calcularValor(
+  tipo: EstructuraTarifaria,
+  montos: Partial<Record<Concepto, number>>,
+  dias: number | null
+): number {
+  const m = (c: Concepto) => Number(montos[c] ?? 0) || 0;
+
+  if (tipo === "time_charter") {
+    const d = dias && dias > 0 ? dias : 0;
+    return m("tarifa_diaria") * d + m("movilizacion") + m("desmovilizacion");
+  }
+  return m("lump_sum") + m("movilizacion") + m("desmovilizacion");
+}
+
+// Suma los dias a una fecha y devuelve el ultimo dia trabajado: arrancar el 1
+// y durar 10 dias termina el 10, no el 11.
+export function finEstimado(inicio: string, dias: number): string {
+  const d = new Date(`${inicio}T00:00:00`);
+  if (Number.isNaN(d.getTime()) || !dias || dias < 1) return "";
+  d.setDate(d.getDate() + dias - 1);
+  return d.toISOString().slice(0, 10);
 }
 
 export interface Oportunidad {
@@ -113,7 +166,19 @@ export interface Oportunidad {
   descripcion_alcance: string | null;
   nro_oportunidad: string | null;
   contacto: string | null;
-  estadio: Estadio;
+
+  // --- 0013 ---
+  // `estadio` (los nueve viejos) queda en la base con lo que tenia y la app ya
+  // no lo escribe. Manda `estado`, y `resultado` solo cuando esta cerrada.
+  estado: EstadoOportunidad;
+  resultado: ResultadoOportunidad | null;
+  // Un solo campo de texto: reemplaza a notas, referencias y proximos_pasos,
+  // que quedaron en la base con su contenido. Es lo que se ve en la lista, y
+  // es donde va el motivo cuando se pierde.
+  comentarios: string | null;
+  // La persona pone los dias y el fin estimado se calcula.
+  duracion_estimada_dias: number | null;
+
   valor: number;
   costo: number;
   fecha_creacion: string;

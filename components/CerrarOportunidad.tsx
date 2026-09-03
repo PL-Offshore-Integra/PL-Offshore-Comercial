@@ -1,67 +1,111 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
-// Los dos botones de cierre que van en cada fila de la lista.
+// El control de estado de cada fila de la lista.
 //
-// Ganado marca y listo. Perdido abre un cuadro de dialogo y pide la razon,
-// que es el dato que antes se perdia: sin el, "Perdido" no le sirve a nadie.
+// Abierto y En curso se cambian de una. Cerrado no: cerrar obliga a decir con
+// que resultado, y si se perdio, por que. Por eso al elegir "Cerrado" se abre
+// un cuadro de dialogo en lugar de guardar directo.
 //
-// Es <dialog> nativo con showModal(): trae el foco atrapado adentro, el cierre
-// con Escape y el fondo bloqueado sin una linea de JS extra. Adentro va un
-// formulario comun apuntado a la server action, asi que si el navegador no
-// llega a hidratar la pagina el envio igual funciona.
-export default function CerrarOportunidad({
-  ganar,
-  perder,
+// El comentario de la perdida no va a un campo aparte: va a `comentarios`, que
+// es el que se ve en la lista. Cuando alguien mira el listado y ve una
+// perdida, lo primero que quiere saber es por que.
+export default function EstadoOportunidadControl({
+  estado,
+  resultado,
+  cambiarEstado,
+  cerrar,
+  reabrir,
   etiqueta,
+  comentarios,
 }: {
-  ganar: () => void;
-  perder: (formData: FormData) => void;
-  // Que oportunidad se esta cerrando, para que el cuadro de dialogo lo diga.
+  estado: string;
+  resultado: string | null;
+  cambiarEstado: (formData: FormData) => void;
+  cerrar: (formData: FormData) => void;
+  reabrir: () => void;
   etiqueta: string;
+  comentarios: string | null;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const [comoCierra, setComoCierra] = useState<"ganado" | "perdido">("ganado");
+
+  if (estado === "cerrado") {
+    return (
+      <form action={reabrir} style={{ display: "inline" }}>
+        <button type="submit" className="btn btn-ghost btn-sm">
+          Reabrir
+        </button>
+      </form>
+    );
+  }
 
   return (
     <>
-      <form action={ganar} style={{ display: "inline" }}>
-        <button type="submit" className="btn btn-success btn-sm">
-          Ganado
-        </button>
+      <form action={cambiarEstado} style={{ display: "inline" }}>
+        <select
+          name="estado"
+          // La key fuerza a React a rehacer el nodo cuando el estado cambia:
+          // sin ella reusa el <select> y el defaultValue no se vuelve a
+          // aplicar, asi que la fila mostraba el estado viejo despues de
+          // guardar.
+          key={estado}
+          defaultValue={estado}
+          className="filter-select select-estado"
+          onChange={(e) => {
+            if (e.target.value === "cerrado") {
+              // Volver al valor anterior: el cierre lo confirma el cuadro.
+              e.target.value = estado;
+              dialogo.current?.showModal();
+            } else {
+              e.target.form?.requestSubmit();
+            }
+          }}
+        >
+          <option value="abierto">Abierto</option>
+          <option value="en_curso">En curso</option>
+          <option value="cerrado">Cerrado...</option>
+        </select>
       </form>
 
-      <button
-        type="button"
-        className="btn btn-danger btn-sm"
-        onClick={() => dialogo.current?.showModal()}
-      >
-        Perdido
-      </button>
-
       <dialog ref={dialogo} className="modal">
-        <form action={perder}>
-          <div className="modal-titulo">Perdimos {etiqueta}</div>
+        <form action={cerrar}>
+          <div className="modal-titulo">Cerrar {etiqueta}</div>
 
           <div className="fg mb16">
-            <label>Por que se perdio</label>
-            <textarea
-              name="motivo_perdida"
-              rows={3}
-              required
-              placeholder="Precio, disponibilidad de buque, plazo de entrega..."
-            />
-            <span className="hint">Obligatorio</span>
+            <label>Resultado</label>
+            <select
+              name="resultado"
+              value={comoCierra}
+              onChange={(e) => setComoCierra(e.target.value as "ganado" | "perdido")}
+            >
+              <option value="ganado">Ganado</option>
+              <option value="perdido">Perdido</option>
+            </select>
           </div>
 
           <div className="fg mb16">
-            <label>Competidor</label>
-            <input name="competidor" placeholder="Opcional: quien se lo llevo" />
+            <label>{comoCierra === "perdido" ? "Por que se perdio" : "Comentarios"}</label>
+            <textarea
+              name="comentarios"
+              rows={3}
+              defaultValue={comentarios ?? ""}
+              required={comoCierra === "perdido"}
+              placeholder={
+                comoCierra === "perdido"
+                  ? "Precio, disponibilidad de buque, plazo..."
+                  : "Opcional"
+              }
+            />
+            <span className="hint">
+              {comoCierra === "perdido"
+                ? "Obligatorio. Es lo que se ve en el listado."
+                : "Reemplaza los comentarios que tenga cargados."}
+            </span>
           </div>
 
           <div className="modal-pie">
-            {/* type="button" y no submit: cancelar no tiene que pasar por la
-                validacion del motivo. */}
             <button
               type="button"
               className="btn btn-ghost"
@@ -69,8 +113,11 @@ export default function CerrarOportunidad({
             >
               Cancelar
             </button>
-            <button type="submit" className="btn btn-danger">
-              Marcar Perdido
+            <button
+              type="submit"
+              className={comoCierra === "perdido" ? "btn btn-danger" : "btn btn-success"}
+            >
+              Cerrar como {comoCierra === "perdido" ? "perdida" : "ganada"}
             </button>
           </div>
         </form>

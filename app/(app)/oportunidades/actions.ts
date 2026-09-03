@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  calcularValor,
+  finEstimado,
+  type Concepto,
+  type EstructuraTarifaria,
+} from "@/lib/types";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
@@ -112,26 +118,50 @@ async function resolverCliente(supabase: Cliente, formData: FormData) {
   };
 }
 
+// El valor total no se toma del formulario: se recalcula acá con la misma
+// funcion que usa la pantalla para mostrarlo en vivo. Asi lo que se ve y lo
+// que se guarda no pueden separarse, y un valor mandado a mano no entra.
+function valorDeLaPropuesta(formData: FormData): number {
+  const tipo = (str(formData, "estructura_tarifaria") ?? "time_charter") as EstructuraTarifaria;
+  const dias = numOrNull(formData.get("duracion_estimada_dias") ?? undefined);
+
+  const conceptos = formData.getAll("tarifa_concepto");
+  const montos = formData.getAll("tarifa_monto");
+  const mapa: Partial<Record<Concepto, number>> = {};
+  conceptos.forEach((c, i) => {
+    const concepto = String(c ?? "").trim() as Concepto;
+    if (concepto) mapa[concepto] = numOrNull(montos[i]) ?? 0;
+  });
+
+  return calcularValor(tipo, mapa, dias);
+}
+
+// El fin estimado tampoco: sale del inicio mas la duracion.
+function finDelTrabajo(formData: FormData): string | null {
+  const inicio = str(formData, "fecha_inicio_estimada");
+  const dias = numOrNull(formData.get("duracion_estimada_dias") ?? undefined);
+  if (!inicio || !dias || dias < 1) return null;
+  return finEstimado(inicio, dias) || null;
+}
+
 function fields(formData: FormData) {
   return {
-    alcance_oportunidad: str(formData, "alcance_oportunidad"),
     descripcion_alcance: str(formData, "descripcion_alcance"),
     nro_oportunidad: str(formData, "nro_oportunidad"),
-    estadio: str(formData, "estadio") ?? "Investigando",
-    valor: num(formData, "valor"),
+    valor: valorDeLaPropuesta(formData),
     fecha_creacion: str(formData, "fecha_creacion") ?? new Date().toISOString().slice(0, 10),
     fecha_esperada_cierre: str(formData, "fecha_esperada_cierre"),
     last_interacted_on: str(formData, "last_interacted_on"),
-    proximos_pasos: str(formData, "proximos_pasos"),
-    notas: str(formData, "notas"),
-    referencias: str(formData, "referencias"),
     // 0002
     cliente_final: str(formData, "cliente_final"),
     buque: str(formData, "buque"),
-    estructura_tarifaria: str(formData, "estructura_tarifaria") ?? "diaria",
+    estructura_tarifaria: str(formData, "estructura_tarifaria") ?? "time_charter",
     // 0003
     fecha_inicio_estimada: str(formData, "fecha_inicio_estimada"),
-    fecha_fin_estimada: str(formData, "fecha_fin_estimada"),
+    fecha_fin_estimada: finDelTrabajo(formData),
+    // 0013
+    comentarios: str(formData, "comentarios"),
+    duracion_estimada_dias: numOrNull(formData.get("duracion_estimada_dias") ?? undefined),
   };
 }
 
@@ -140,31 +170,39 @@ function fields(formData: FormData) {
 // vienen compania, contacto, contacto_email, contacto_telefono y
 // contacto_linkedin, mas los dos cliente_*_id.
 
-// Tres columnas NO estan en fields(), y las tres por el mismo motivo: el
+// Estas columnas NO estan en fields(), y todas por el mismo motivo: el
 // formulario dejo de pedirlas, y si las mandaramos igual borrarian lo que ya
 // hay cada vez que alguien edita una fila vieja.
 //
-//   empresa          — es la empresa PROPIA, no el cliente. El formulario no
-//                      la pregunta porque todo es de PL Offshore; en el alta
-//                      la resuelve el default de la tabla.
-//   nombre_proyecto  — las filas del tracker original lo tienen cargado.
-//   costo            — se saco del formulario; en el alta queda en 0 por
-//                      default.
+//   empresa              — es la empresa PROPIA, no el cliente. En el alta la
+//                          resuelve el default de la tabla.
+//   nombre_proyecto      — las filas del tracker original lo tienen cargado.
+//   costo                — se saco del formulario; en el alta queda en 0.
+//   alcance_oportunidad  — se saco del formulario (0013).
+//   estadio              — los nueve viejos. Lo reemplazo `estado` (0013) y
+//                          la columna queda con lo que tenia.
+//   notas, referencias,
+//   proximos_pasos       — se unificaron en `comentarios` (0013). La copia ya
+//                          la hizo la migracion; las columnas quedan como
+//                          estaban.
+//   estado, resultado    — no se cambian desde el formulario: pasan por
+//                          cambiarEstadoOportunidad, cerrarOportunidad y
+//                          reabrirOportunidad, que son las que saben pedir el
+//                          resultado y el comentario. En el alta el default de
+//                          la tabla los deja en abierto / sin resultado.
 
 // El nro de oportunidad lo pone un trigger cuando llega vacio. En un alta el
 // campo va de solo lectura, asi que nunca se manda; en una edicion se respeta
 // lo que ya tiene.
 
-// El estadio no se lleva a Ganado ni a Perdido desde el formulario comun:
-// esos dos pasan por sus propias acciones, que son las que crean el proyecto
-// o exigen el motivo. Si el form manda uno de esos valores, se ignora.
-const ESTADIOS_CERRADOS = ["Ganado", "Perdido"];
-
 export async function createOportunidad(formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
-  const datos = { ...fields(formData), ...cliente };
-  if (ESTADIOS_CERRADOS.includes(datos.estadio)) datos.estadio = "Propuesta Enviada";
+
+  // El estado si se toma en el alta: se elige entre abierto y en curso, y
+  // cerrado no esta en el desplegable.
+  const estado = str(formData, "estado") === "en_curso" ? "en_curso" : "abierto";
+  const datos = { ...fields(formData), ...cliente, estado };
 
   const { data, error } = await supabase
     .from("oportunidades")
@@ -188,7 +226,7 @@ export async function createOportunidad(formData: FormData) {
     await guardarAdjunto(supabase, data.id, archivo);
   }
 
-  await registrarHistorial(supabase, data.id, null, datos.estadio, "Alta");
+  await registrarHistorial(supabase, data.id, null, estado, "Alta");
 
   revalidatePath("/oportunidades");
   // A la ficha, no a la lista: es donde se adjunta la documentacion, que
@@ -199,28 +237,31 @@ export async function createOportunidad(formData: FormData) {
 export async function updateOportunidad(id: string, formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
-  const datos = { ...fields(formData), ...cliente };
+  const base = { ...fields(formData), ...cliente };
 
   const { data: previa } = await supabase
     .from("oportunidades")
-    .select("estadio")
+    .select("estado")
     .eq("id", id)
     .single();
 
-  // Una oportunidad ya cerrada no se reabre desde el formulario comun.
-  if (previa && ESTADIOS_CERRADOS.includes(previa.estadio)) {
-    datos.estadio = previa.estadio;
-  } else if (ESTADIOS_CERRADOS.includes(datos.estadio)) {
-    datos.estadio = previa?.estadio ?? "Propuesta Enviada";
-  }
+  // Una cerrada no se reabre desde el formulario: para eso esta Reabrir en la
+  // lista. Y si esta abierta, el estado que llega solo puede ser uno de los
+  // dos abiertos.
+  const pedido = str(formData, "estado");
+  const datos =
+    previa?.estado === "cerrado"
+      ? base
+      : { ...base, estado: pedido === "en_curso" ? "en_curso" : "abierto" };
 
   const { error } = await supabase.from("oportunidades").update(datos).eq("id", id);
   if (error) throw new Error(error.message);
 
   await guardarTarifas(supabase, id, formData);
 
-  if (previa && previa.estadio !== datos.estadio) {
-    await registrarHistorial(supabase, id, previa.estadio, datos.estadio, null);
+  const estadoNuevo = "estado" in datos ? (datos.estado as string) : previa?.estado;
+  if (previa && estadoNuevo && previa.estado !== estadoNuevo) {
+    await registrarHistorial(supabase, id, previa.estado, estadoNuevo, null);
   }
 
   revalidatePath("/oportunidades");
@@ -276,71 +317,122 @@ async function guardarTarifas(supabase: Cliente, id: string, formData: FormData)
 }
 
 // ------------------------------------------------------------
-// Cerrar la oportunidad
+// Estado: cambiar, cerrar y reabrir
+//
+// Abierto y en curso se cambian de una desde el desplegable de la lista.
+// Cerrar es distinto: obliga a decir con que resultado y, si se perdio, por
+// que. Ese porque va a `comentarios`, que es lo que se ve en el listado.
 // ------------------------------------------------------------
 
-// Ganar es solo ganar: marca el estadio y nada mas. NO crea el proyecto en
-// public.proyectos.
-//
-// Antes lo creaba, y esa era la version del circuito Integra: ganar una
-// oportunidad daba de alta el proyecto que despues leen Compras, Viveres,
-// Reparaciones y Finanzas. Se saco por pedido explicito. La funcion que lo
-// hacia —`ganarOportunidad`, con el insert a public.proyectos y el
-// origen: "comercial"— esta en el historial de git; la columna proyecto_id y
-// su foreign key siguen en la tabla, sin usar. Para volver atras hay que
-// recuperar esa funcion y la regla opp_ganado_con_proyecto (ver 0008).
-export async function marcarGanado(id: string) {
+const ESTADOS_ABIERTOS = ["abierto", "en_curso"];
+
+export async function cambiarEstadoOportunidad(id: string, formData: FormData) {
+  const nuevo = str(formData, "estado");
+  if (!nuevo || !ESTADOS_ABIERTOS.includes(nuevo)) {
+    throw new Error("Estado invalido. Para cerrar hay que usar el cuadro de cierre.");
+  }
+
   const supabase = await createClient();
 
   const { data: previa } = await supabase
     .from("oportunidades")
-    .select("estadio")
+    .select("estado")
     .eq("id", id)
     .single();
 
-  if (previa && ESTADIOS_CERRADOS.includes(previa.estadio)) {
+  const { error } = await supabase
+    .from("oportunidades")
+    .update({ estado: nuevo, resultado: null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  if (previa?.estado !== nuevo) {
+    await registrarHistorial(supabase, id, previa?.estado ?? null, nuevo, null);
+  }
+
+  revalidatePath("/oportunidades");
+  revalidatePath(`/oportunidades/${id}`);
+}
+
+// Cerrar. El comentario es obligatorio cuando se pierde: la regla
+// opp_perdida_con_comentario de 0013 lo exige tambien del lado de la base,
+// asi que el required del formulario no es la unica defensa.
+//
+// Ganar NO crea el proyecto en public.proyectos, el maestro de Integra. Eso
+// se saco en 0008 por pedido explicito; lo que hace es abrir la conversion en
+// un proyecto de Comercial (0012).
+export async function cerrarOportunidad(id: string, formData: FormData) {
+  const resultado = str(formData, "resultado");
+  if (resultado !== "ganado" && resultado !== "perdido") {
+    throw new Error("Hay que decir si se gano o se perdio.");
+  }
+
+  const comentarios = str(formData, "comentarios");
+  if (resultado === "perdido" && !comentarios) {
+    throw new Error("Para cerrar como perdida hace falta el comentario.");
+  }
+
+  const supabase = await createClient();
+
+  const { data: previa } = await supabase
+    .from("oportunidades")
+    .select("estado, comentarios")
+    .eq("id", id)
+    .single();
+
+  if (previa?.estado === "cerrado") {
     throw new Error("Esta oportunidad ya esta cerrada.");
   }
 
   const { error } = await supabase
     .from("oportunidades")
-    .update({ estadio: "Ganado" })
+    .update({
+      estado: "cerrado",
+      resultado,
+      // Si el cuadro vino vacio en un cierre ganado, se deja lo que ya habia.
+      comentarios: comentarios ?? previa?.comentarios ?? null,
+    })
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  await registrarHistorial(supabase, id, previa?.estadio ?? null, "Ganado", null);
+  await registrarHistorial(
+    supabase,
+    id,
+    previa?.estado ?? null,
+    `cerrado / ${resultado}`,
+    comentarios
+  );
 
   revalidatePath("/oportunidades");
   revalidatePath(`/oportunidades/${id}`);
 
   // Ganar abre la conversion en proyecto, con todo lo de la oportunidad
-  // precargado y editable. Si la persona no guarda, la oportunidad queda
-  // Ganada sin proyecto y la ficha ofrece convertirla mas tarde.
-  redirect(`/proyectos/nuevo?oportunidad=${id}`);
+  // precargado y editable. Si no se guarda, la oportunidad queda cerrada y
+  // ganada sin proyecto, y su ficha ofrece convertirla mas tarde.
+  if (resultado === "ganado") {
+    redirect(`/proyectos/nuevo?oportunidad=${id}`);
+  }
 }
 
 // Volver atras un cierre.
 //
-// El estadio no vuelve a un valor fijo: sale del historial. La ultima entrada
-// guarda de donde venia la oportunidad cuando se cerro, asi que reabrir la
-// devuelve a ese estadio y no a uno inventado. Si no hay historial —una fila
-// cerrada desde la base, por ejemplo— cae en Propuesta Enviada.
+// El estado no vuelve a un valor fijo: sale del historial. La ultima entrada
+// guarda de donde venia la oportunidad cuando se cerro. Si no hay historial
+// —una fila cerrada desde la base— cae en en_curso.
 //
-// Al reabrir una perdida se limpian motivo y competidor: quedarian
-// describiendo un cierre que ya no existe. No se pierden, siguen en la nota
-// del historial.
+// El comentario NO se borra: si describia por que se perdio, sigue siendo
+// informacion util, y borrarlo dejaria la fila sin explicacion de un cierre
+// que existio.
 export async function reabrirOportunidad(id: string) {
   const supabase = await createClient();
 
   const { data: opp, error: eOpp } = await supabase
     .from("oportunidades")
-    .select("estadio, motivo_perdida, competidor")
+    .select("estado, resultado")
     .eq("id", id)
     .single();
   if (eOpp) throw new Error(eOpp.message);
-  if (!ESTADIOS_CERRADOS.includes(opp.estadio)) {
-    throw new Error("Esta oportunidad no esta cerrada.");
-  }
+  if (opp.estado !== "cerrado") throw new Error("Esta oportunidad no esta cerrada.");
 
   const { data: ultima } = await supabase
     .from("oportunidad_historial")
@@ -351,56 +443,23 @@ export async function reabrirOportunidad(id: string) {
     .maybeSingle();
 
   const vuelveA =
-    ultima?.estadio_anterior && !ESTADIOS_CERRADOS.includes(ultima.estadio_anterior)
+    ultima?.estadio_anterior && ESTADOS_ABIERTOS.includes(ultima.estadio_anterior)
       ? ultima.estadio_anterior
-      : "Propuesta Enviada";
+      : "en_curso";
 
   const { error } = await supabase
     .from("oportunidades")
-    .update({ estadio: vuelveA, motivo_perdida: null, competidor: null })
+    .update({ estado: vuelveA, resultado: null })
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  const nota =
-    opp.estadio === "Perdido" && opp.motivo_perdida
-      ? `Reabierta. Estaba perdida por: ${opp.motivo_perdida}`
-      : "Reabierta";
-  await registrarHistorial(supabase, id, opp.estadio, vuelveA, nota);
-
-  revalidatePath("/oportunidades");
-  revalidatePath(`/oportunidades/${id}`);
-}
-
-// El motivo es obligatorio de este lado tambien, no solo en el cuadro de
-// dialogo: el `required` del formulario lo puede saltear cualquiera, la regla
-// opp_perdido_con_motivo de la base no.
-export async function perderOportunidad(id: string, formData: FormData) {
-  const supabase = await createClient();
-
-  const motivo = str(formData, "motivo_perdida");
-  if (!motivo) throw new Error("Para cerrar como perdida hace falta el motivo.");
-
-  const { data: previa } = await supabase
-    .from("oportunidades")
-    .select("estadio")
-    .eq("id", id)
-    .single();
-
-  if (previa && ESTADIOS_CERRADOS.includes(previa.estadio)) {
-    throw new Error("Esta oportunidad ya esta cerrada.");
-  }
-
-  const { error } = await supabase
-    .from("oportunidades")
-    .update({
-      estadio: "Perdido",
-      motivo_perdida: motivo,
-      competidor: str(formData, "competidor"),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  await registrarHistorial(supabase, id, previa?.estadio ?? null, "Perdido", motivo);
+  await registrarHistorial(
+    supabase,
+    id,
+    `cerrado / ${opp.resultado ?? "sin resultado"}`,
+    vuelveA,
+    "Reabierta"
+  );
 
   revalidatePath("/oportunidades");
   revalidatePath(`/oportunidades/${id}`);

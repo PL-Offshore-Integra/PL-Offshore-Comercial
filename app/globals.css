@@ -271,3 +271,10 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .filter-guion{color:var(--muted2);font-size:12px}
 .filter-row .filter-select{min-width:0;width:158px}
 .filter-fechas{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+/* Dato de solo lectura: mismo lugar que un campo, sin la caja del input. */
+.dato{font-size:14px;color:var(--text);min-height:36px;display:flex;align-items:center}
+.dato-parrafo{display:block;white-space:pre-wrap;min-height:0;line-height:1.55}
+/* El desplegable de estado en la fila de la lista: mas angosto y sin el
+   min-width de los filtros. */
+.select-estado{min-width:0;width:118px;height:28px;font-size:13px;padding:0 8px}
