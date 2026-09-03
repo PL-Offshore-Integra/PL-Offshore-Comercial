@@ -120,6 +120,7 @@ function fields(formData: FormData) {
     estadio: str(formData, "estadio") ?? "Investigando",
     valor: num(formData, "valor"),
     fecha_creacion: str(formData, "fecha_creacion") ?? new Date().toISOString().slice(0, 10),
+    fecha_esperada_cierre: str(formData, "fecha_esperada_cierre"),
     last_interacted_on: str(formData, "last_interacted_on"),
     proximos_pasos: str(formData, "proximos_pasos"),
     notas: str(formData, "notas"),
@@ -139,16 +140,16 @@ function fields(formData: FormData) {
 // vienen compania, contacto, contacto_email, contacto_telefono y
 // contacto_linkedin, mas los dos cliente_*_id.
 
-// Cuatro columnas NO estan en fields(), y las cuatro por el mismo motivo: el
+// Tres columnas NO estan en fields(), y las tres por el mismo motivo: el
 // formulario dejo de pedirlas, y si las mandaramos igual borrarian lo que ya
 // hay cada vez que alguien edita una fila vieja.
 //
-//   empresa                — la resuelve el default de la tabla.
-//   nombre_proyecto        — las filas del tracker original lo tienen cargado.
-//   costo                  — se saco del formulario; en el alta queda en 0.
-//   fecha_esperada_cierre  — se saco del formulario. Las filas que ya la
-//                            tienen la conservan, y la lista la sigue
-//                            mostrando en la columna "Cierre esperado".
+//   empresa          — es la empresa PROPIA, no el cliente. El formulario no
+//                      la pregunta porque todo es de PL Offshore; en el alta
+//                      la resuelve el default de la tabla.
+//   nombre_proyecto  — las filas del tracker original lo tienen cargado.
+//   costo            — se saco del formulario; en el alta queda en 0 por
+//                      default.
 
 // El nro de oportunidad lo pone un trigger cuando llega vacio. En un alta el
 // campo va de solo lectura, asi que nunca se manda; en una edicion se respeta

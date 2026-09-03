@@ -234,6 +234,14 @@ export default function OportunidadForm({
           />
         </div>
         <div className="fg">
+          <label>Fecha esperada de cierre de la venta</label>
+          <input
+            type="date"
+            name="fecha_esperada_cierre"
+            defaultValue={oportunidad?.fecha_esperada_cierre ?? ""}
+          />
+        </div>
+        <div className="fg">
           <label>Ultimo contacto</label>
           <input type="date" name="last_interacted_on" defaultValue={oportunidad?.last_interacted_on ?? ""} />
         </div>
