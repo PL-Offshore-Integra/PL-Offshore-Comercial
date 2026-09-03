@@ -1,10 +1,6 @@
 import Link from "next/link";
 import EstadoOportunidadControl from "@/components/CerrarOportunidad";
-import {
-  cambiarEstadoOportunidad,
-  cerrarOportunidad,
-  reabrirOportunidad,
-} from "@/app/(app)/oportunidades/actions";
+import { cambiarEstadoOportunidad } from "@/app/(app)/oportunidades/actions";
 import { createClient } from "@/lib/supabase/server";
 import { etiquetaEstado, type Oportunidad } from "@/lib/types";
 
@@ -74,7 +70,7 @@ export default async function OportunidadesPage() {
               </thead>
               <tbody>
                 {oportunidades.map((o) => {
-                  const etiqueta = etiquetaEstado(o.estado, o.resultado);
+                  const etiqueta = etiquetaEstado(o.estado);
                   return (
                     <tr key={o.id}>
                       <td className="text-mono cel-nro">{o.nro_oportunidad ?? "-"}</td>
@@ -98,12 +94,9 @@ export default async function OportunidadesPage() {
                         <div className="fila-acciones">
                           <EstadoOportunidadControl
                             estado={o.estado}
-                            resultado={o.resultado}
                             etiqueta={`${o.nro_oportunidad ?? "esta oportunidad"} · ${o.compania}`}
                             comentarios={o.comentarios}
                             cambiarEstado={cambiarEstadoOportunidad.bind(null, o.id)}
-                            cerrar={cerrarOportunidad.bind(null, o.id)}
-                            reabrir={reabrirOportunidad.bind(null, o.id)}
                           />
                           {/* Ver abre la ficha de lectura; Editar, el
                               formulario. Mirar una oportunidad no tiene por

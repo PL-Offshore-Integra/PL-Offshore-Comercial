@@ -60,10 +60,13 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
 function seccionFor(pathname: string) {
   if (SECCIONES[pathname]) return SECCIONES[pathname];
   if (pathname === "/proyectos/nuevo") {
+    // El titulo no distingue los dos caminos —convertir una oportunidad o
+    // cargar de cero— porque eso lo define el query string y este encabezado
+    // se dibuja del lado del cliente. Lo aclara la propia pantalla.
     return {
       grupo: "Comercial",
-      titulo: "Convertir en proyecto",
-      sub: "Lo que viene de la oportunidad se puede corregir antes de guardar.",
+      titulo: "Nuevo proyecto",
+      sub: "Desde una oportunidad ganada, o desde cero si el trabajo no paso por una cotizacion.",
     };
   }
   if (pathname.startsWith("/proyectos/")) {
@@ -176,6 +179,13 @@ export default function Shell({
                   {/* Amarillo sobre navy, como el CTA principal del sitio. */}
                   <Link href="/oportunidades/nueva" className="btn btn-amarillo">
                     Nueva oportunidad
+                  </Link>
+                </div>
+              )}
+              {pathname === "/proyectos" && (
+                <div className="pagehead-actions">
+                  <Link href="/proyectos/nuevo" className="btn btn-amarillo">
+                    Nuevo proyecto
                   </Link>
                 </div>
               )}

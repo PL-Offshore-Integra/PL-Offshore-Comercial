@@ -42,10 +42,13 @@ export default async function ProyectosPage() {
 
       {!error && proyectos.length === 0 && (
         <div className="empty-state">
-          Todavia no hay proyectos. Un proyecto nace de una oportunidad: marcala{" "}
-          <strong>Ganado</strong> en{" "}
-          <Link href="/oportunidades">Oportunidades</Link> y se abre la
-          conversion.
+          Todavia no hay proyectos. Un proyecto puede llegar por dos caminos:
+          marcando una oportunidad como <strong>adjudicada</strong> en{" "}
+          <Link href="/oportunidades">Oportunidades</Link>, o{" "}
+          <Link href="/proyectos/nuevo">
+            <strong>cargandolo desde cero</strong>
+          </Link>{" "}
+          cuando el trabajo no paso por una cotizacion.
         </div>
       )}
 

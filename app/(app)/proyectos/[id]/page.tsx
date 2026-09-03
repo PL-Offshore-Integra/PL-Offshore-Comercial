@@ -7,6 +7,7 @@ import {
   borrarProyecto,
   subirAdjuntoProyecto,
 } from "@/app/(app)/proyectos/actions";
+import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 import type { Proyecto, ProyectoAdjunto, ProyectoTarifa } from "@/lib/types";
 
@@ -57,6 +58,13 @@ export default async function ProyectoPage({
   const contratos = adjuntos.filter((a) => a.clase === "contrato");
   const otros = adjuntos.filter((a) => a.clase !== "contrato");
 
+  // Un proyecto sin oportunidad de origen elige su cliente aca, asi que
+  // necesita el maestro. Uno que vino de una oportunidad lo hereda y lo
+  // muestra de solo lectura: no hay nada que elegir.
+  const { empresas, contactos } = proyecto.oportunidad_id
+    ? { empresas: [], contactos: [] }
+    : await leerMaestroClientes();
+
   const guardar = actualizarProyecto.bind(null, proyecto.id);
   const eliminar = borrarProyecto.bind(null, proyecto.id);
   const subir = subirAdjuntoProyecto.bind(null, proyecto.id);
@@ -74,7 +82,13 @@ export default async function ProyectoPage({
         </form>
       </div>
 
-      <ProyectoForm action={guardar} proyecto={proyecto} tarifas={tarifas} />
+      <ProyectoForm
+        action={guardar}
+        proyecto={proyecto}
+        tarifas={tarifas}
+        empresas={empresas}
+        contactos={contactos}
+      />
 
       <div className="card">
         <div className="form-section">Contrato firmado</div>

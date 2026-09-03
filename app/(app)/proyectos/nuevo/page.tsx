@@ -1,12 +1,20 @@
 import Link from "next/link";
 import ProyectoForm from "@/components/ProyectoForm";
 import { crearProyecto } from "@/app/(app)/proyectos/actions";
+import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
-import type { Oportunidad, Tarifa } from "@/lib/types";
+import { etiquetaEstado, type Oportunidad, type Tarifa } from "@/lib/types";
 
-// Convertir una oportunidad ganada en proyecto. Llega desde el boton Ganado de
-// la lista, o desde la ficha de una oportunidad ganada que todavia no tiene
-// proyecto.
+// Alta de proyecto, por los dos caminos:
+//
+//   con ?oportunidad=<id>   convertir una oportunidad adjudicada. Llega del
+//                           desplegable de la lista, o de la ficha de una
+//                           adjudicada sin proyecto. Todo viene
+//                           precargado de la oportunidad.
+//   sin parametro           un proyecto desde cero, con el cliente elegido
+//                           del maestro. No todo trabajo pasa por el embudo
+//                           comercial: hay clientes de anios, sin contrato
+//                           firmado, donde el trabajo llega y arranca.
 export default async function NuevoProyectoPage({
   searchParams,
 }: {
@@ -53,25 +61,31 @@ export default async function NuevoProyectoPage({
     .maybeSingle();
   const nroQueSigue = `PRY-${(contador?.ultimo ?? 0) + 1}-${new Date().getFullYear()}`;
 
-  if (!oportunidad) {
+  // Se pidio convertir una oportunidad que no existe. Distinto de no pedir
+  // ninguna, que es un proyecto desde cero y es un alta valida.
+  if (oportunidadId && !oportunidad) {
     return (
       <div className="info-box danger">
-        Un proyecto nace de una oportunidad ganada, y no se encontro ninguna con
-        ese id. Volve a{" "}
+        No se encontro ninguna oportunidad con ese id. Podes volver a{" "}
         <Link href="/oportunidades">
           <strong>Oportunidades</strong>
         </Link>{" "}
-        y marca una como Ganado.
+        y marcar una como adjudicada, o{" "}
+        <Link href="/proyectos/nuevo">
+          <strong>cargar el proyecto desde cero</strong>
+        </Link>
+        .
       </div>
     );
   }
 
-  if (oportunidad.resultado !== "ganado") {
+  if (oportunidad && oportunidad.estado !== "adjudicado") {
     return (
       <div className="info-box warn">
         La oportunidad <strong>{oportunidad.nro_oportunidad}</strong> esta en{" "}
-        {oportunidad.estado}. Para convertirla en proyecto hay que marcarla{" "}
-        <strong>Ganado</strong> desde la lista.
+        {etiquetaEstado(oportunidad.estado).label.toLowerCase()}. Para
+        convertirla en proyecto hay que marcarla{" "}
+        <strong>Adjudicado</strong> desde la lista.
       </div>
     );
   }
@@ -79,8 +93,8 @@ export default async function NuevoProyectoPage({
   if (yaConvertida) {
     return (
       <div className="info-box accent">
-        La oportunidad <strong>{oportunidad.nro_oportunidad}</strong> ya tiene un
-        proyecto. Esta en{" "}
+        La oportunidad <strong>{oportunidad?.nro_oportunidad}</strong> ya tiene
+        un proyecto. Esta en{" "}
         <Link href="/proyectos">
           <strong>Proyectos</strong>
         </Link>
@@ -89,13 +103,34 @@ export default async function NuevoProyectoPage({
     );
   }
 
+  // El maestro de clientes solo se lee cuando el cliente se elige aca: en una
+  // conversion viene de la oportunidad y no hay nada que elegir.
+  const { empresas, contactos } = oportunidad
+    ? { empresas: [], contactos: [] }
+    : await leerMaestroClientes();
+
   return (
     <div>
       <div className="info-box accent mb16">
-        Todo lo que sigue viene de la oportunidad{" "}
-        <strong>{oportunidad.nro_oportunidad}</strong> y se puede corregir: lo
-        cotizado casi nunca es exactamente lo que se firma. La oportunidad queda
-        como estaba, con lo que se ofrecio.
+        {oportunidad ? (
+          <>
+            Todo lo que sigue viene de la oportunidad{" "}
+            <strong>{oportunidad.nro_oportunidad}</strong> y se puede corregir:
+            lo cotizado casi nunca es exactamente lo que se firma. La
+            oportunidad queda como estaba, con lo que se ofrecio.
+          </>
+        ) : (
+          <>
+            Proyecto sin oportunidad de origen: se carga entero aca, con el
+            cliente elegido del maestro. Es el caso del cliente de siempre,
+            donde el trabajo llega sin pasar por una cotizacion. Si en cambio
+            este trabajo salio de una propuesta, conviene{" "}
+            <Link href="/oportunidades">
+              <strong>marcar esa oportunidad como adjudicada</strong>
+            </Link>{" "}
+            y convertirla: asi queda registrado lo que se cotizo.
+          </>
+        )}
       </div>
 
       <ProyectoForm
@@ -103,6 +138,8 @@ export default async function NuevoProyectoPage({
         oportunidad={oportunidad}
         tarifas={tarifas}
         nroQueSigue={nroQueSigue}
+        empresas={empresas}
+        contactos={contactos}
       />
     </div>
   );

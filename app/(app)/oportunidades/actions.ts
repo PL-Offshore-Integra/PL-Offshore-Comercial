@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { resolverCliente } from "@/lib/clienteResolver";
 import { createClient } from "@/lib/supabase/server";
 import {
   calcularValor,
@@ -30,94 +31,6 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Resuelve el cliente que eligio el formulario y, si vino nuevo, lo crea.
-//
-// Devuelve lo que hay que guardar en la oportunidad: los dos FK y la foto de
-// texto. La foto no es redundancia por comodidad: es el nombre con el que se
-// cargo esta oportunidad, y si manana la empresa se renombra, las viejas
-// conservan el suyo.
-//
-// Una empresa "nueva" que ya existe con ese nombre no se duplica: se reusa. El
-// indice unico de 0009 es sobre lower(trim(nombre)), asi que "excelerate" y
-// "Excelerate " son la misma.
-async function resolverCliente(supabase: Cliente, formData: FormData) {
-  let empresaId = str(formData, "cliente_empresa_id");
-  let contactoId = str(formData, "cliente_contacto_id");
-
-  if (empresaId === "nueva") {
-    const nombre = str(formData, "empresa_nueva");
-    if (!nombre) throw new Error("La empresa nueva necesita un nombre.");
-
-    const { data: existente } = await supabase
-      .from("cliente_empresas")
-      .select("id")
-      .ilike("nombre", nombre)
-      .maybeSingle();
-
-    if (existente) {
-      empresaId = existente.id;
-    } else {
-      const { data, error } = await supabase
-        .from("cliente_empresas")
-        .insert({ nombre })
-        .select("id")
-        .single();
-      if (error) throw new Error(`No se pudo crear la empresa: ${error.message}`);
-      empresaId = data.id;
-    }
-  }
-
-  if (!empresaId) throw new Error("Hay que elegir la empresa del cliente.");
-
-  if (contactoId === "nuevo") {
-    const nuevo = {
-      empresa_id: empresaId,
-      nombre: str(formData, "contacto_nuevo_nombre"),
-      email: str(formData, "contacto_nuevo_email"),
-      telefono: str(formData, "contacto_nuevo_telefono"),
-      linkedin: str(formData, "contacto_nuevo_linkedin"),
-    };
-    // Sin nombre, ni mail, ni telefono no hay contacto que crear: la base lo
-    // rechaza igual (cliente_contacto_algo_cargado), pero conviene decirlo
-    // antes y no con un error de constraint.
-    if (!nuevo.nombre && !nuevo.email && !nuevo.telefono) {
-      throw new Error("El contacto nuevo necesita al menos nombre, mail o telefono.");
-    }
-
-    const { data, error } = await supabase
-      .from("cliente_contactos")
-      .insert(nuevo)
-      .select("id")
-      .single();
-    if (error) throw new Error(`No se pudo crear el contacto: ${error.message}`);
-    contactoId = data.id;
-  }
-
-  const { data: empresa } = await supabase
-    .from("cliente_empresas")
-    .select("nombre")
-    .eq("id", empresaId)
-    .single();
-
-  const { data: contacto } = contactoId
-    ? await supabase
-        .from("cliente_contactos")
-        .select("nombre, email, telefono, linkedin")
-        .eq("id", contactoId)
-        .single()
-    : { data: null };
-
-  return {
-    cliente_empresa_id: empresaId,
-    cliente_contacto_id: contactoId,
-    compania: empresa?.nombre ?? "",
-    contacto: contacto?.nombre ?? null,
-    contacto_email: contacto?.email ?? null,
-    contacto_telefono: contacto?.telefono ?? null,
-    contacto_linkedin: contacto?.linkedin ?? null,
-  };
-}
-
 // El valor total no se toma del formulario: se recalcula acá con la misma
 // funcion que usa la pantalla para mostrarlo en vivo. Asi lo que se ve y lo
 // que se guarda no pueden separarse, y un valor mandado a mano no entra.
@@ -144,11 +57,12 @@ function finDelTrabajo(formData: FormData): string | null {
   return finEstimado(inicio, dias) || null;
 }
 
-// Cerrado nunca llega por el formulario: pasa por el cuadro de cierre, que es
-// el que pide resultado y comentario. Cualquier otra cosa cae en abierto.
-function estadoDirecto(pedido: string | null): string {
-  return pedido === "en_curso" || pedido === "cancelado" ? pedido : "abierto";
-}
+// El estado ya no se toma del formulario. Con tres estados (0016) los dos que
+// no son "en curso" son finales con consecuencias —adjudicado dispara el alta
+// del proyecto, cancelado pide el motivo— y los dos se marcan desde la lista,
+// que es donde esas consecuencias se pueden mostrar. Una oportunidad nueva
+// nace en_curso por el default de la tabla, y editar el formulario no le
+// cambia el estado a una adjudicada ni a una cancelada.
 
 function fields(formData: FormData) {
   return {
@@ -207,10 +121,8 @@ export async function createOportunidad(formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
 
-  // El estado si se toma en el alta: cualquiera de los directos —abierto, en
-  // curso, cancelado—, porque cerrado no esta en el desplegable.
-  const estado = estadoDirecto(str(formData, "estado"));
-  const datos = { ...fields(formData), ...cliente, estado };
+  // Sin estado: lo pone el default de la tabla, en_curso.
+  const datos = { ...fields(formData), ...cliente };
 
   const { data, error } = await supabase
     .from("oportunidades")
@@ -234,7 +146,7 @@ export async function createOportunidad(formData: FormData) {
     await guardarAdjunto(supabase, data.id, archivo);
   }
 
-  await registrarHistorial(supabase, data.id, null, estado, "Alta");
+  await registrarHistorial(supabase, data.id, null, "en_curso", "Alta");
 
   revalidatePath("/oportunidades");
   // A la ficha, no a la lista: es donde se adjunta la documentacion, que
@@ -245,31 +157,18 @@ export async function createOportunidad(formData: FormData) {
 export async function updateOportunidad(id: string, formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
-  const base = { ...fields(formData), ...cliente };
 
-  const { data: previa } = await supabase
-    .from("oportunidades")
-    .select("estado")
-    .eq("id", id)
-    .single();
-
-  // Una cerrada no se reabre desde el formulario: para eso esta Reabrir en la
-  // lista. En cualquier otro caso el estado que llega solo puede ser uno de
-  // los directos.
-  const datos =
-    previa?.estado === "cerrado"
-      ? base
-      : { ...base, estado: estadoDirecto(str(formData, "estado")) };
+  // Sin estado: el formulario no lo edita. Guardar los datos de una
+  // oportunidad adjudicada no la devuelve a en curso.
+  const datos = { ...fields(formData), ...cliente };
 
   const { error } = await supabase.from("oportunidades").update(datos).eq("id", id);
   if (error) throw new Error(error.message);
 
   await guardarTarifas(supabase, id, formData);
 
-  const estadoNuevo = "estado" in datos ? (datos.estado as string) : previa?.estado;
-  if (previa && estadoNuevo && previa.estado !== estadoNuevo) {
-    await registrarHistorial(supabase, id, previa.estado, estadoNuevo, null);
-  }
+  // No se registra historial: esta accion no cambia el estado. Los cambios de
+  // estado pasan todos por cambiarEstadoOportunidad, que si lo registra.
 
   revalidatePath("/oportunidades");
   redirect("/oportunidades");
@@ -324,29 +223,29 @@ async function guardarTarifas(supabase: Cliente, id: string, formData: FormData)
 }
 
 // ------------------------------------------------------------
-// Estado: cambiar, cerrar y reabrir
+// Estado: un solo camino para los tres
 //
-// Abierto y en curso se cambian de una desde el desplegable de la lista.
-// Cerrar es distinto: obliga a decir con que resultado y, si se perdio, por
-// que. Ese porque va a `comentarios`, que es lo que se ve en el listado.
+// En curso y adjudicado se cambian de una desde el desplegable de la lista.
+// Cancelado pasa por un cuadro que pide el motivo, pero termina en esta misma
+// accion: el motivo va a `comentarios`, que es lo que se ve en el listado.
+//
+// Adjudicar NO crea nada en public.proyectos, el maestro de Integra: eso se
+// saco en 0008 por pedido explicito. Lo que hace es abrir el alta de un
+// proyecto de Comercial (0012) con todo precargado.
 // ------------------------------------------------------------
 
-// Los estados que puede fijar esta accion. Cerrado no esta: pasa por
-// cerrarOportunidad, que ademas pide el resultado.
-const ESTADOS_DIRECTOS = ["abierto", "en_curso", "cancelado"];
-// Y estos son los que cuentan como "todavia viva", para saber a donde vuelve
-// una reapertura.
-const ESTADOS_VIVOS = ["abierto", "en_curso"];
+const ESTADOS_VALIDOS = ["en_curso", "adjudicado", "cancelado"];
 
 export async function cambiarEstadoOportunidad(id: string, formData: FormData) {
   const nuevo = str(formData, "estado");
-  if (!nuevo || !ESTADOS_DIRECTOS.includes(nuevo)) {
-    throw new Error("Estado invalido. Para cerrar hay que usar el cuadro de cierre.");
+  if (!nuevo || !ESTADOS_VALIDOS.includes(nuevo)) {
+    throw new Error("Estado invalido.");
   }
 
   // Cancelar es un final, y un final sin motivo no le sirve a nadie: el cuadro
   // lo pide y aca se exige igual, porque el required del formulario lo saltea
-  // cualquiera.
+  // cualquiera con la consola abierta. La base tambien lo exige
+  // (opp_cancelada_con_comentario, 0016).
   const comentarios = str(formData, "comentarios");
   if (nuevo === "cancelado" && !comentarios) {
     throw new Error("Para cancelar hace falta el comentario.");
@@ -354,141 +253,53 @@ export async function cambiarEstadoOportunidad(id: string, formData: FormData) {
 
   const supabase = await createClient();
 
-  const { data: previa } = await supabase
+  const { data: previa, error: ePrevia } = await supabase
     .from("oportunidades")
     .select("estado, comentarios")
     .eq("id", id)
     .single();
+  if (ePrevia) throw new Error(ePrevia.message);
+
+  // Sacar una oportunidad de adjudicada cuando su proyecto ya existe dejaria
+  // al proyecto colgado de una oportunidad que dice que nunca se gano. Se
+  // avisa en vez de romper la coherencia por lo bajo.
+  if (previa.estado === "adjudicado" && nuevo !== "adjudicado") {
+    const { data: proyecto } = await supabase
+      .from("proyectos")
+      .select("nro_proyecto")
+      .eq("oportunidad_id", id)
+      .maybeSingle();
+    if (proyecto) {
+      throw new Error(
+        `Esta oportunidad ya se convirtio en el proyecto ${proyecto.nro_proyecto ?? "sin nro"}. Para volver atras hay que borrar ese proyecto primero.`
+      );
+    }
+  }
 
   const { error } = await supabase
     .from("oportunidades")
     .update({
       estado: nuevo,
-      resultado: null,
-      // Volver a abierto o a en curso desde el desplegable no manda
-      // comentarios: en ese caso se deja lo que ya habia.
-      comentarios: comentarios ?? previa?.comentarios ?? null,
+      // Volver a en curso desde el desplegable no manda comentarios: en ese
+      // caso se deja lo que ya habia.
+      comentarios: comentarios ?? previa.comentarios ?? null,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  if (previa?.estado !== nuevo) {
-    await registrarHistorial(supabase, id, previa?.estado ?? null, nuevo, comentarios);
+  if (previa.estado !== nuevo) {
+    await registrarHistorial(supabase, id, previa.estado ?? null, nuevo, comentarios);
   }
 
   revalidatePath("/oportunidades");
   revalidatePath(`/oportunidades/${id}`);
-}
 
-// Cerrar. El comentario es obligatorio cuando se pierde: la regla
-// opp_perdida_con_comentario de 0013 lo exige tambien del lado de la base,
-// asi que el required del formulario no es la unica defensa.
-//
-// Ganar NO crea el proyecto en public.proyectos, el maestro de Integra. Eso
-// se saco en 0008 por pedido explicito; lo que hace es abrir la conversion en
-// un proyecto de Comercial (0012).
-export async function cerrarOportunidad(id: string, formData: FormData) {
-  const resultado = str(formData, "resultado");
-  if (resultado !== "ganado" && resultado !== "perdido") {
-    throw new Error("Hay que decir si se gano o se perdio.");
-  }
-
-  const comentarios = str(formData, "comentarios");
-  if (resultado === "perdido" && !comentarios) {
-    throw new Error("Para cerrar como perdida hace falta el comentario.");
-  }
-
-  const supabase = await createClient();
-
-  const { data: previa } = await supabase
-    .from("oportunidades")
-    .select("estado, comentarios")
-    .eq("id", id)
-    .single();
-
-  if (previa?.estado === "cerrado") {
-    throw new Error("Esta oportunidad ya esta cerrada.");
-  }
-
-  const { error } = await supabase
-    .from("oportunidades")
-    .update({
-      estado: "cerrado",
-      resultado,
-      // Si el cuadro vino vacio en un cierre ganado, se deja lo que ya habia.
-      comentarios: comentarios ?? previa?.comentarios ?? null,
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  await registrarHistorial(
-    supabase,
-    id,
-    previa?.estado ?? null,
-    `cerrado / ${resultado}`,
-    comentarios
-  );
-
-  revalidatePath("/oportunidades");
-  revalidatePath(`/oportunidades/${id}`);
-
-  // Ganar abre la conversion en proyecto, con todo lo de la oportunidad
-  // precargado y editable. Si no se guarda, la oportunidad queda cerrada y
-  // ganada sin proyecto, y su ficha ofrece convertirla mas tarde.
-  if (resultado === "ganado") {
+  // Adjudicar abre el alta del proyecto, con lo de la oportunidad precargado y
+  // editable. Si no se guarda, la oportunidad queda adjudicada sin proyecto y
+  // su ficha ofrece convertirla mas tarde.
+  if (nuevo === "adjudicado") {
     redirect(`/proyectos/nuevo?oportunidad=${id}`);
   }
-}
-
-// Volver atras un cierre.
-//
-// El estado no vuelve a un valor fijo: sale del historial. La ultima entrada
-// guarda de donde venia la oportunidad cuando se cerro. Si no hay historial
-// —una fila cerrada desde la base— cae en en_curso.
-//
-// El comentario NO se borra: si describia por que se perdio, sigue siendo
-// informacion util, y borrarlo dejaria la fila sin explicacion de un cierre
-// que existio.
-export async function reabrirOportunidad(id: string) {
-  const supabase = await createClient();
-
-  const { data: opp, error: eOpp } = await supabase
-    .from("oportunidades")
-    .select("estado, resultado")
-    .eq("id", id)
-    .single();
-  if (eOpp) throw new Error(eOpp.message);
-  if (opp.estado !== "cerrado") throw new Error("Esta oportunidad no esta cerrada.");
-
-  const { data: ultima } = await supabase
-    .from("oportunidad_historial")
-    .select("estadio_anterior")
-    .eq("oportunidad_id", id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const vuelveA =
-    ultima?.estadio_anterior && ESTADOS_VIVOS.includes(ultima.estadio_anterior)
-      ? ultima.estadio_anterior
-      : "en_curso";
-
-  const { error } = await supabase
-    .from("oportunidades")
-    .update({ estado: vuelveA, resultado: null })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  await registrarHistorial(
-    supabase,
-    id,
-    `cerrado / ${opp.resultado ?? "sin resultado"}`,
-    vuelveA,
-    "Reabierta"
-  );
-
-  revalidatePath("/oportunidades");
-  revalidatePath(`/oportunidades/${id}`);
 }
 
 // ------------------------------------------------------------

@@ -16,16 +16,16 @@ function fecha(iso: string | null) {
   return a && m && d ? `${d}/${m}/${a}` : "—";
 }
 
-type Situacion = "todas" | "abiertas" | "ganadas" | "perdidas" | "sin-datos";
+type Situacion = "todas" | "en-curso" | "adjudicadas" | "canceladas" | "sin-datos";
 
-// Etiquetas cortas a proposito: con las largas ("Con oportunidades
-// abiertas") el select se estira y la barra de filtros se parte en dos
-// lineas en una pantalla de 1080.
+// Etiquetas cortas a proposito: con las largas ("Con oportunidades en
+// curso") el select se estira y la barra de filtros se parte en dos lineas
+// en una pantalla de 1080.
 const SITUACIONES: { id: Situacion; label: string }[] = [
   { id: "todas", label: "Todas las situaciones" },
-  { id: "abiertas", label: "Con abiertas" },
-  { id: "ganadas", label: "Con ganadas" },
-  { id: "perdidas", label: "Con perdidas" },
+  { id: "en-curso", label: "Con en curso" },
+  { id: "adjudicadas", label: "Con adjudicadas" },
+  { id: "canceladas", label: "Con canceladas" },
   { id: "sin-datos", label: "Sin datos" },
 ];
 
@@ -70,9 +70,9 @@ export default function ClientesTabla({
           if (!donde.includes(texto)) return false;
         }
 
-        if (situacion === "abiertas" && Number(f.abiertas) === 0) return false;
-        if (situacion === "ganadas" && Number(f.ganadas) === 0) return false;
-        if (situacion === "perdidas" && Number(f.perdidas) === 0) return false;
+        if (situacion === "en-curso" && Number(f.en_curso) === 0) return false;
+        if (situacion === "adjudicadas" && Number(f.adjudicadas) === 0) return false;
+        if (situacion === "canceladas" && Number(f.canceladas) === 0) return false;
         if (
           situacion === "sin-datos" &&
           (f.contacto || f.contacto_email || f.contacto_telefono)
@@ -227,9 +227,9 @@ export default function ClientesTabla({
               <th>Mail</th>
               <th>Telefono</th>
               <th>LinkedIn</th>
-              <th>Abiertas</th>
-              <th>Ganadas</th>
-              <th>Perdidas</th>
+              <th>En curso</th>
+              <th>Adjudicadas</th>
+              <th>Canceladas</th>
               <th>Cotizado</th>
               <th>Ultimo contacto</th>
               <th />
@@ -271,9 +271,9 @@ export default function ClientesTabla({
                     <span className="text-muted">—</span>
                   )}
                 </td>
-                <td className="text-mono">{c.abiertas}</td>
-                <td className="text-mono">{c.ganadas}</td>
-                <td className="text-mono">{c.perdidas}</td>
+                <td className="text-mono">{c.en_curso}</td>
+                <td className="text-mono">{c.adjudicadas}</td>
+                <td className="text-mono">{c.canceladas}</td>
                 <td className="text-mono">{currency.format(Number(c.valor_total ?? 0))}</td>
                 <td className="text-mono">{fecha(c.ultimo_contacto)}</td>
                 <td style={{ textAlign: "right" }}>

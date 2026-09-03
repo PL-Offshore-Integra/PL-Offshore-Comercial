@@ -1,53 +1,37 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import { ESTADOS_OPORTUNIDAD } from "@/lib/types";
 
-// El control de estado de cada fila de la lista.
+// El control de estado de cada fila de la lista. Tres estados (0016), y cada
+// uno se comporta distinto porque significan cosas distintas:
 //
-// Abierto y En curso se cambian de una: no hay nada que explicar. Los otros dos
-// abren un cuadro de dialogo, porque los dos son un final y un final sin motivo
-// no le sirve a nadie:
-//
-//   Cerrado    pide el resultado —ganado o perdido— y el comentario.
-//   Cancelado  pide el comentario.
-//
-// El comentario no va a un campo aparte: va a `comentarios`, que es el que se
-// ve en la lista. Cuando alguien mira el listado y ve una perdida o una
-// cancelada, lo primero que quiere saber es por que.
+//   En curso     se cambia de una. No hay nada que explicar.
+//   Adjudicado   se cambia de una y abre el alta del proyecto. No pide
+//                comentario: el detalle del trabajo va en el proyecto.
+//   Cancelado    abre un cuadro y pide el motivo. Un final sin motivo no le
+//                sirve a nadie, y ese texto es el que despues se lee en la
+//                columna Comentarios del listado.
 export default function EstadoOportunidadControl({
   estado,
   cambiarEstado,
-  cerrar,
-  reabrir,
   etiqueta,
   comentarios,
 }: {
   estado: string;
-  resultado: string | null;
   cambiarEstado: (formData: FormData) => void;
-  cerrar: (formData: FormData) => void;
-  reabrir: () => void;
   etiqueta: string;
   comentarios: string | null;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
-  const [modo, setModo] = useState<"cerrar" | "cancelar">("cerrar");
-  const [comoCierra, setComoCierra] = useState<"ganado" | "perdido">("ganado");
 
-  if (estado === "cerrado") {
-    return (
-      <form action={reabrir} style={{ display: "inline" }}>
-        <button type="submit" className="btn btn-ghost btn-sm">
-          Reabrir
-        </button>
-      </form>
-    );
-  }
-
-  const cancelando = modo === "cancelar";
-  // Perdida y cancelada exigen el motivo; una ganada puede no tener nada que
-  // agregar.
-  const motivoObligatorio = cancelando || comoCierra === "perdido";
+  // El <dialog> no se cierra solo cuando el submit va a una accion de
+  // servidor: la fila se actualiza detras y el cuadro queda tapando la
+  // pantalla. Se envuelve la accion para cerrarlo cuando termina.
+  const cerrarDespues = async (formData: FormData) => {
+    await cambiarEstado(formData);
+    dialogo.current?.close();
+  };
 
   return (
     <>
@@ -62,74 +46,41 @@ export default function EstadoOportunidadControl({
           defaultValue={estado}
           className="filter-select select-estado"
           onChange={(e) => {
-            const elegido = e.target.value;
-            if (elegido === "cerrado" || elegido === "cancelado") {
+            if (e.target.value === "cancelado") {
               // Vuelve al valor anterior: lo confirma el cuadro, no el
               // desplegable.
               e.target.value = estado;
-              setModo(elegido === "cancelado" ? "cancelar" : "cerrar");
               dialogo.current?.showModal();
             } else {
               e.target.form?.requestSubmit();
             }
           }}
         >
-          <option value="abierto">Abierto</option>
-          <option value="en_curso">En curso</option>
-          <option value="cancelado">Cancelado...</option>
-          <option value="cerrado">Cerrado...</option>
+          {ESTADOS_OPORTUNIDAD.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.id === "cancelado" ? `${e.label}...` : e.label}
+            </option>
+          ))}
         </select>
       </form>
 
       <dialog ref={dialogo} className="modal">
-        {/* Un solo cuadro para los dos finales: cambia el titulo, si pide
-            resultado y a que accion apunta. */}
-        <form action={cancelando ? cambiarEstado : cerrar}>
-          <div className="modal-titulo">
-            {cancelando ? "Cancelar" : "Cerrar"} {etiqueta}
-          </div>
-
-          {cancelando ? (
-            <input type="hidden" name="estado" value="cancelado" />
-          ) : (
-            <div className="fg mb16">
-              <label>Resultado</label>
-              <select
-                name="resultado"
-                value={comoCierra}
-                onChange={(e) => setComoCierra(e.target.value as "ganado" | "perdido")}
-              >
-                <option value="ganado">Ganado</option>
-                <option value="perdido">Perdido</option>
-              </select>
-            </div>
-          )}
+        <form action={cerrarDespues}>
+          <input type="hidden" name="estado" value="cancelado" />
+          <div className="modal-titulo">Cancelar {etiqueta}</div>
 
           <div className="fg mb16">
-            <label>
-              {cancelando
-                ? "Por que se cancela"
-                : comoCierra === "perdido"
-                  ? "Por que se perdio"
-                  : "Comentarios"}
-            </label>
+            <label>Por que se cancela</label>
             <textarea
               name="comentarios"
               rows={3}
               defaultValue={comentarios ?? ""}
-              required={motivoObligatorio}
-              placeholder={
-                cancelando
-                  ? "El cliente suspendio el proyecto, se cayo la licitacion..."
-                  : comoCierra === "perdido"
-                    ? "Precio, disponibilidad de buque, plazo..."
-                    : "Opcional"
-              }
+              required
+              placeholder="Se la dieron a otro, se cayo la licitacion, el cliente suspendio el trabajo..."
             />
             <span className="hint">
-              {motivoObligatorio
-                ? "Obligatorio. Es lo que se ve en el listado."
-                : "Reemplaza los comentarios que tenga cargados."}
+              Obligatorio. Es lo que se ve en el listado, y lo unico que queda
+              para saber que paso.
             </span>
           </div>
 
@@ -141,15 +92,8 @@ export default function EstadoOportunidadControl({
             >
               Volver
             </button>
-            <button
-              type="submit"
-              className={
-                cancelando || comoCierra === "perdido" ? "btn btn-danger" : "btn btn-success"
-              }
-            >
-              {cancelando
-                ? "Cancelar la oportunidad"
-                : `Cerrar como ${comoCierra === "perdido" ? "perdida" : "ganada"}`}
+            <button type="submit" className="btn btn-danger">
+              Cancelar la oportunidad
             </button>
           </div>
         </form>

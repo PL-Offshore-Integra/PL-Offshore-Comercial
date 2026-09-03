@@ -72,7 +72,8 @@ export default async function EditarOportunidadPage({
     .maybeSingle();
   const proyecto = proy as { id: string; nro_proyecto: string | null } | null;
 
-  const cerrada = oportunidad.estado === "cerrado";
+  // Los dos finales: adjudicada o cancelada. Se muestran, no se cambian.
+  const cerrada = oportunidad.estado !== "en_curso";
 
   return (
     <div>
@@ -164,16 +165,16 @@ export default async function EditarOportunidadPage({
           suyos. */}
       <PieDelFormulario />
 
-      {/* Cerrar y reabrir se hace desde los botones de la lista. Aca solo se
-          muestra como quedo, y solo si esta cerrada. */}
+      {/* El estado se cambia desde el desplegable de la lista. Aca solo se
+          muestra como quedo, y solo si ya llego a un final. */}
       {cerrada && (
         <div className="card">
-          <div className="form-section">Cierre</div>
-          {oportunidad.resultado === "ganado" ? (
+          <div className="form-section">Como termino</div>
+          {oportunidad.estado === "adjudicado" ? (
             <div className="info-box accent">
               {proyecto ? (
                 <>
-                  Ganada y convertida en el proyecto{" "}
+                  Adjudicada y convertida en el proyecto{" "}
                   <strong>{proyecto.nro_proyecto}</strong>.{" "}
                   <Link href={`/proyectos/${proyecto.id}`}>
                     <strong>Abrir el proyecto</strong>
@@ -183,7 +184,7 @@ export default async function EditarOportunidadPage({
                 </>
               ) : (
                 <>
-                  Ganada, pero todavia no se convirtio en proyecto.{" "}
+                  Adjudicada, pero todavia no se convirtio en proyecto.{" "}
                   <Link href={`/proyectos/nuevo?oportunidad=${oportunidad.id}`}>
                     <strong>Convertirla ahora</strong>
                   </Link>
@@ -193,7 +194,7 @@ export default async function EditarOportunidadPage({
             </div>
           ) : (
             <div className="info-box danger">
-              Perdida. <strong>{oportunidad.comentarios}</strong>
+              Cancelada. <strong>{oportunidad.comentarios}</strong>
             </div>
           )}
         </div>

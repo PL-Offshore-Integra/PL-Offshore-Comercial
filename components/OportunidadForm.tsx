@@ -8,7 +8,7 @@ import {
   calcularValor,
   camposDe,
   CONTRATACIONES,
-  ESTADOS_OPORTUNIDAD,
+  etiquetaEstado,
   MONEDAS,
   finEstimado,
   type ClienteContacto,
@@ -30,10 +30,11 @@ const plata = (moneda: Moneda, valor: number) =>
     minimumFractionDigits: 2,
   }).format(valor);
 
-// Cerrar no se hace desde este formulario: se hace desde la lista, donde el
-// cierre pide el resultado y, si se perdio, el comentario. Aca solo se elige
-// entre los dos estados abiertos.
-const ESTADOS_EDITABLES = ESTADOS_OPORTUNIDAD.filter((e) => e.id !== "cerrado");
+// El estado no se cambia desde este formulario. De los tres, dos son finales
+// con consecuencias que viven en el listado: adjudicado abre el alta del
+// proyecto y cancelado pide el motivo. Un desplegable en el medio de un
+// formulario largo no es lugar para ninguna de las dos. Una oportunidad nueva
+// nace en curso.
 
 export const ID_FORM_OPORTUNIDAD = "form-oportunidad";
 
@@ -91,8 +92,6 @@ export default function OportunidadForm({
     diasNum
   );
 
-  const cerrada = oportunidad?.estado === "cerrado";
-
   return (
     <form action={action} className="card" id={ID_FORM_OPORTUNIDAD}>
       <div className="form-section">Oportunidad</div>
@@ -118,20 +117,10 @@ export default function OportunidadForm({
         </div>
         <div className="fg">
           <label>Estado</label>
-          {cerrada ? (
-            <>
-              <input value="Cerrado" readOnly />
-              <span className="hint">Se reabre desde la lista</span>
-            </>
-          ) : (
-            <select name="estado" defaultValue={oportunidad?.estado ?? "abierto"}>
-              {ESTADOS_EDITABLES.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.label}
-                </option>
-              ))}
-            </select>
-          )}
+          <input value={etiquetaEstado(oportunidad?.estado ?? "en_curso").label} readOnly />
+          <span className="hint">
+            {oportunidad ? "Se cambia desde el listado" : "Una oportunidad nueva nace en curso"}
+          </span>
         </div>
         <div className="fg">
           <label>Cliente final</label>

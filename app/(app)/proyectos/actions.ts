@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { resolverCliente } from "@/lib/clienteResolver";
 import { createClient } from "@/lib/supabase/server";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
@@ -26,9 +27,10 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
 
 // Lo que el formulario del proyecto puede escribir.
 //
-// El cliente NO esta aca: viene de la oportunidad y en el proyecto se muestra
-// pero no se cambia. Cambiarle el cliente a un trabajo ya ganado no es una
-// edicion, es otro trabajo.
+// El cliente NO esta aca, y sale de dos lugares distintos segun el origen del
+// proyecto: si vino de una oportunidad se copia de ella y despues no se
+// cambia, y si se cargo desde cero lo resuelve `resolverCliente()` con lo que
+// eligio el desplegable. Ver `clienteDelProyecto()`.
 function fields(formData: FormData) {
   return {
     nombre: str(formData, "nombre") ?? "",
@@ -51,8 +53,71 @@ function fields(formData: FormData) {
   };
 }
 
+// De donde sale el cliente del proyecto, segun su origen.
+//
+//   Con oportunidad  se copia de ella, leida de la base y no del formulario:
+//                    es el origen del proyecto y no algo que se pueda tipear.
+//                    Ademas se valida que este ganada y que no tenga ya un
+//                    proyecto.
+//   Sin oportunidad  lo resuelve el maestro de clientes, igual que en una
+//                    oportunidad nueva: la empresa puede ser una existente o
+//                    una que se crea en el momento.
+//
+// El segundo caso existe porque no todo trabajo pasa por el embudo comercial.
+// Hay clientes con los que se viene trabajando desde hace anios y sin contrato
+// firmado: cuando llega el trabajo no hay ninguna oportunidad que ganar, hay
+// un proyecto que arranca.
+async function clienteDelProyecto(
+  supabase: Cliente,
+  oportunidadId: string | null,
+  formData: FormData
+) {
+  if (!oportunidadId) {
+    const c = await resolverCliente(supabase, formData);
+    // La tabla de proyectos guarda solo la compania y el nombre del contacto;
+    // el mail y el telefono viven en el maestro de clientes.
+    return {
+      oportunidad_id: null,
+      cliente_empresa_id: c.cliente_empresa_id,
+      cliente_contacto_id: c.cliente_contacto_id,
+      compania: c.compania,
+      contacto: c.contacto,
+    };
+  }
+
+  const { data: opp, error } = await supabase
+    .from("oportunidades")
+    .select("cliente_empresa_id, cliente_contacto_id, compania, contacto, estado")
+    .eq("id", oportunidadId)
+    .single();
+  if (error) throw new Error(error.message);
+
+  // Se valida contra `estado` y no contra `estadio`: los nueve estadios
+  // quedaron atras en 0013 y la app no los escribe mas, asi que la version
+  // vieja de este chequeo rechazaba toda oportunidad ganada. Desde 0016 el
+  // valor es 'adjudicado'.
+  if (opp.estado !== "adjudicado") {
+    throw new Error("Solo una oportunidad adjudicada se convierte en proyecto.");
+  }
+
+  const { data: yaHay } = await supabase
+    .from("proyectos")
+    .select("id")
+    .eq("oportunidad_id", oportunidadId)
+    .maybeSingle();
+  if (yaHay) throw new Error("Esta oportunidad ya tiene un proyecto.");
+
+  return {
+    oportunidad_id: oportunidadId,
+    cliente_empresa_id: opp.cliente_empresa_id,
+    cliente_contacto_id: opp.cliente_contacto_id,
+    compania: opp.compania,
+    contacto: opp.contacto,
+  };
+}
+
 // ------------------------------------------------------------
-// Alta: convertir una oportunidad ganada en proyecto
+// Alta: desde una oportunidad ganada, o desde cero
 // ------------------------------------------------------------
 export async function crearProyecto(formData: FormData) {
   const supabase = await createClient();
@@ -61,35 +126,7 @@ export async function crearProyecto(formData: FormData) {
   const datos = fields(formData);
   if (!datos.nombre) throw new Error("El proyecto necesita un nombre.");
 
-  // El cliente y el numero de la oportunidad se leen de la base, no del
-  // formulario: son el origen del proyecto y no algo que se pueda tipear.
-  let cliente = {};
-  if (oportunidadId) {
-    const { data: opp, error } = await supabase
-      .from("oportunidades")
-      .select("cliente_empresa_id, cliente_contacto_id, compania, contacto, estadio")
-      .eq("id", oportunidadId)
-      .single();
-    if (error) throw new Error(error.message);
-    if (opp.estadio !== "Ganado") {
-      throw new Error("Solo una oportunidad ganada se convierte en proyecto.");
-    }
-
-    const { data: yaHay } = await supabase
-      .from("proyectos")
-      .select("id")
-      .eq("oportunidad_id", oportunidadId)
-      .maybeSingle();
-    if (yaHay) throw new Error("Esta oportunidad ya tiene un proyecto.");
-
-    cliente = {
-      oportunidad_id: oportunidadId,
-      cliente_empresa_id: opp.cliente_empresa_id,
-      cliente_contacto_id: opp.cliente_contacto_id,
-      compania: opp.compania,
-      contacto: opp.contacto,
-    };
-  }
+  const cliente = await clienteDelProyecto(supabase, oportunidadId, formData);
 
   const { data, error } = await supabase
     .from("proyectos")
@@ -110,9 +147,27 @@ export async function actualizarProyecto(id: string, formData: FormData) {
   const datos = fields(formData);
   if (!datos.nombre) throw new Error("El proyecto necesita un nombre.");
 
+  // El cliente solo se toca en un proyecto sin oportunidad de origen. Si hay
+  // origen, el cliente se corrige en la oportunidad y de ahi baja; editarlo
+  // aca dejaria las dos pantallas diciendo cosas distintas.
+  //
+  // El origen se lee de la base y no del formulario, que es lo que hace que
+  // esto sea una regla y no una sugerencia: un POST armado a mano no puede
+  // cambiarle el cliente a un proyecto que vino de una oportunidad.
+  const { data: actual, error: eLeer } = await supabase
+    .from("proyectos")
+    .select("oportunidad_id")
+    .eq("id", id)
+    .single();
+  if (eLeer) throw new Error(eLeer.message);
+
+  const cliente = actual.oportunidad_id
+    ? {}
+    : await clienteDelProyecto(supabase, null, formData);
+
   const { error } = await supabase
     .from("proyectos")
-    .update({ ...datos, updated_at: new Date().toISOString() })
+    .update({ ...datos, ...cliente, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(error.message);
 

@@ -78,7 +78,7 @@ export default async function VerOportunidadPage({
     .maybeSingle();
   const proyecto = proy as { id: string; nro_proyecto: string | null } | null;
 
-  const etiqueta = etiquetaEstado(o.estado, o.resultado);
+  const etiqueta = etiquetaEstado(o.estado);
   const tipo = CONTRATACIONES.find((c) => c.id === o.estructura_tarifaria);
   // Los conceptos se muestran en el orden del tipo de contratacion, y despues
   // lo que haya quedado de otro tipo (por ejemplo si se cambio de Time a
@@ -208,13 +208,15 @@ export default async function VerOportunidadPage({
         )}
       </div>
 
-      {o.estado === "cerrado" && (
-        <div className={`info-box ${o.resultado === "perdido" ? "danger" : "accent"} mb16`}>
-          {o.resultado === "perdido" ? (
-            <>Perdida. {o.comentarios}</>
-          ) : proyecto ? (
+      {o.estado === "cancelado" && (
+        <div className="info-box danger mb16">Cancelada. {o.comentarios}</div>
+      )}
+
+      {o.estado === "adjudicado" && (
+        <div className="info-box accent mb16">
+          {proyecto ? (
             <>
-              Ganada y convertida en el proyecto{" "}
+              Adjudicada y convertida en el proyecto{" "}
               <strong>{proyecto.nro_proyecto}</strong>.{" "}
               <Link href={`/proyectos/${proyecto.id}`}>
                 <strong>Abrir el proyecto</strong>
@@ -222,7 +224,7 @@ export default async function VerOportunidadPage({
             </>
           ) : (
             <>
-              Ganada, pero todavia no se convirtio en proyecto.{" "}
+              Adjudicada, pero todavia no se convirtio en proyecto.{" "}
               <Link href={`/proyectos/nuevo?oportunidad=${o.id}`}>
                 <strong>Convertirla ahora</strong>
               </Link>

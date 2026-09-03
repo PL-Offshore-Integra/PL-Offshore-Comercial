@@ -7,11 +7,23 @@ export const EMPRESAS_PROPIAS: EmpresaPropia[] = [
   "HF Offshore",
 ];
 
-// ── ESTADO (0013) ─────────────────────────────────────────────────────────
+// ── ESTADO (0016) ─────────────────────────────────────────────────────────
 //
-// Reemplaza a los nueve estadios por tres estados. El resultado —ganado o
-// perdido— solo existe cuando la oportunidad esta cerrada.
-export type EstadoOportunidad = "abierto" | "en_curso" | "cerrado" | "cancelado";
+// Un solo campo con tres valores. Antes eran dos —estado mas resultado— para
+// decir una sola cosa.
+//
+//   en_curso     esta viva
+//   adjudicado   nos la dieron. Dispara la creacion del proyecto.
+//   cancelado    no va. Pide comentario, y ese comentario es el que se lee
+//                en el listado.
+//
+// Adjudicado y cancelado son finales. Cancelado absorbio a lo que antes era
+// "perdido": la diferencia entre que se la den a otro y que el trabajo no se
+// haga queda escrita en el comentario, no en una columna.
+export type EstadoOportunidad = "en_curso" | "adjudicado" | "cancelado";
+
+// El resultado del modelo viejo. La columna sigue en la base con lo que
+// tenia, pero la app no la escribe ni la lee mas.
 export type ResultadoOportunidad = "ganado" | "perdido";
 
 export const ESTADOS_OPORTUNIDAD: {
@@ -19,36 +31,20 @@ export const ESTADOS_OPORTUNIDAD: {
   label: string;
   color: string;
 }[] = [
-  { id: "abierto", label: "Abierto", color: "b-gray" },
   { id: "en_curso", label: "En curso", color: "b-blue" },
-  { id: "cerrado", label: "Cerrado", color: "b-purple" },
-  // Cancelado es estado y no resultado: una oportunidad que se cae antes de
-  // definirse no se gano ni se perdio. Por eso no pide resultado ni
-  // comentario, y se elige directo del desplegable.
-  { id: "cancelado", label: "Cancelado", color: "b-amber" },
+  { id: "adjudicado", label: "Adjudicado", color: "b-green" },
+  { id: "cancelado", label: "Cancelado", color: "b-red" },
 ];
 
-export const RESULTADOS: {
-  id: ResultadoOportunidad;
-  label: string;
-  color: string;
-}[] = [
-  { id: "ganado", label: "Ganado", color: "b-green" },
-  { id: "perdido", label: "Perdido", color: "b-red" },
-];
-
-// Como se muestra el estado en pantalla: una cerrada se nombra por su
-// resultado, que es el dato que importa. Cerrada sin resultado es un
-// "Cancelado" del modelo viejo.
-export function etiquetaEstado(
-  estado: EstadoOportunidad,
-  resultado: ResultadoOportunidad | null
-): { label: string; color: string } {
-  if (estado !== "cerrado") {
-    return ESTADOS_OPORTUNIDAD.find((e) => e.id === estado) ?? ESTADOS_OPORTUNIDAD[0];
-  }
+// El estado alcanza para nombrarse solo. Se conserva la funcion porque la
+// usan las tres pantallas, y porque devolver algo razonable ante un valor
+// viejo en la base es mejor que no pintar nada.
+export function etiquetaEstado(estado: string): { label: string; color: string } {
   return (
-    RESULTADOS.find((r) => r.id === resultado) ?? { label: "Cerrado", color: "b-purple" }
+    ESTADOS_OPORTUNIDAD.find((e) => e.id === estado) ?? {
+      label: estado.replace(/_/g, " "),
+      color: "b-gray",
+    }
   );
 }
 
@@ -171,14 +167,15 @@ export interface Oportunidad {
   nro_oportunidad: string | null;
   contacto: string | null;
 
-  // --- 0013 ---
-  // `estadio` (los nueve viejos) queda en la base con lo que tenia y la app ya
-  // no lo escribe. Manda `estado`, y `resultado` solo cuando esta cerrada.
+  // --- 0013 / 0016 ---
+  // Manda `estado`, con sus tres valores. Las dos columnas que lo precedieron
+  // quedan en la base con lo que tenian y la app no las escribe: `estadio`
+  // (los nueve viejos, 0013) y `resultado` (ganado / perdido, 0016).
   estado: EstadoOportunidad;
   resultado: ResultadoOportunidad | null;
   // Un solo campo de texto: reemplaza a notas, referencias y proximos_pasos,
   // que quedaron en la base con su contenido. Es lo que se ve en la lista, y
-  // es donde va el motivo cuando se pierde.
+  // es donde va el motivo cuando se cancela.
   comentarios: string | null;
   // La persona pone los dias y el fin estimado se calcula.
   duracion_estimada_dias: number | null;
@@ -273,9 +270,10 @@ export interface Cliente {
   contacto_linkedin: string | null;
   contacto_cargo: string | null;
   oportunidades: number;
-  ganadas: number;
-  perdidas: number;
-  abiertas: number;
+  // Los tres contadores de la vista, uno por estado (0016).
+  en_curso: number;
+  adjudicadas: number;
+  canceladas: number;
   valor_total: number | null;
   ultimo_contacto: string | null;
   ultima_oportunidad: string | null;

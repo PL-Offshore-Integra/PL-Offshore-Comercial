@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import ClientePicker from "@/components/ClientePicker";
 import {
   ADICIONALES,
   camposDe,
@@ -9,6 +10,8 @@ import {
   ESTRUCTURAS,
   IVAS,
   MONEDAS,
+  type ClienteContacto,
+  type ClienteEmpresa,
   type Concepto,
   type EstructuraTarifaria,
   type Oportunidad,
@@ -19,25 +22,36 @@ import {
 
 export const ID_FORM_PROYECTO = "form-proyecto";
 
-// El formulario del proyecto sirve para las dos cosas: convertir una
-// oportunidad ganada (llega `oportunidad` y `tarifas` de ella) y editar un
-// proyecto ya creado (llega `proyecto`).
+// El formulario del proyecto sirve para tres cosas: convertir una oportunidad
+// ganada (llega `oportunidad` y sus `tarifas`), cargar un proyecto desde cero
+// (no llega ninguna de las dos) y editar uno ya creado (llega `proyecto`).
 //
 // Lo que viene de la oportunidad se puede editar: es lo que se cotizo, y lo
-// que se firma casi nunca es igual. Lo unico que no se toca es el cliente:
-// cambiarle el cliente a un trabajo ganado no es una edicion, es otro trabajo.
+// que se firma casi nunca es igual.
+//
+// El cliente es la excepcion, y depende del origen. Si el proyecto salio de
+// una oportunidad, el cliente se muestra y no se toca: cambiarselo a un
+// trabajo ganado no es una edicion, es otro trabajo, y ademas dejaria la
+// oportunidad diciendo otra cosa. Si el proyecto nacio sin oportunidad no hay
+// ningun origen que contradecir, asi que se elige aca —del mismo maestro de
+// clientes que usa la oportunidad— y se puede corregir despues.
 export default function ProyectoForm({
   action,
   proyecto,
   oportunidad,
   tarifas = [],
   nroQueSigue,
+  empresas = [],
+  contactos = [],
 }: {
   action: (formData: FormData) => void;
   proyecto?: Proyecto;
   oportunidad?: Oportunidad;
   tarifas?: (Tarifa | ProyectoTarifa)[];
   nroQueSigue?: string;
+  // El maestro de clientes: solo hace falta cuando el cliente se elige aca.
+  empresas?: ClienteEmpresa[];
+  contactos?: ClienteContacto[];
 }) {
   const [estructura, setEstructura] = useState<EstructuraTarifaria>(
     proyecto?.estructura_tarifaria ?? oportunidad?.estructura_tarifaria ?? "time_charter"
@@ -53,6 +67,11 @@ export default function ProyectoForm({
   // la oportunidad que se esta convirtiendo.
   const compania = proyecto?.compania ?? oportunidad?.compania ?? "—";
   const contacto = proyecto?.contacto ?? oportunidad?.contacto ?? null;
+
+  // El origen manda sobre el cliente. Un proyecto que salio de una oportunidad
+  // lo hereda; uno cargado desde cero lo elige. `oportunidad_id` es el dato
+  // duro: si esta, hay origen.
+  const conOrigen = Boolean(oportunidad ?? proyecto?.oportunidad_id);
   // Editando un proyecto manda el valor del proyecto; convirtiendo una
   // oportunidad, el de la oportunidad. Siempre devuelve string: los <input> no
   // aceptan null.
@@ -100,16 +119,28 @@ export default function ProyectoForm({
             ))}
           </select>
         </div>
-        <div className="fg">
-          <label>Cliente</label>
-          {/* Del cliente para abajo no se edita: sale de la oportunidad. */}
-          <input value={contacto ? `${compania} · ${contacto}` : compania} readOnly />
-          <span className="hint">
-            {oportunidad?.nro_oportunidad
-              ? `Viene de la oportunidad ${oportunidad.nro_oportunidad}`
-              : "Se corrige en la oportunidad de origen"}
-          </span>
-        </div>
+        {conOrigen ? (
+          <div className="fg">
+            <label>Cliente</label>
+            {/* Con oportunidad de origen el cliente se muestra y no se toca. */}
+            <input value={contacto ? `${compania} · ${contacto}` : compania} readOnly />
+            <span className="hint">
+              {oportunidad?.nro_oportunidad
+                ? `Viene de la oportunidad ${oportunidad.nro_oportunidad}`
+                : "Se corrige en la oportunidad de origen"}
+            </span>
+          </div>
+        ) : (
+          // Sin oportunidad de origen el cliente se elige aca, del mismo
+          // maestro y con la misma posibilidad de crearlo sin salir del
+          // formulario.
+          <ClientePicker
+            empresas={empresas}
+            contactos={contactos}
+            empresaId={proyecto?.cliente_empresa_id}
+            contactoId={proyecto?.cliente_contacto_id}
+          />
+        )}
       </div>
 
       <div className="form-section">El trabajo</div>
