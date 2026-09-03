@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { BotonGuardar } from "@/components/BotonGuardar";
 import type { Cliente, ClienteEmpresa } from "@/lib/types";
 import {
   actualizarContacto,
@@ -82,9 +83,7 @@ export function NuevoContacto({ empresas }: { empresas: ClienteEmpresa[] }) {
             <button type="button" className="btn btn-ghost" onClick={() => d.current?.close()}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
-              Crear contacto
-            </button>
+            <BotonGuardar enviando="Creando...">Crear contacto</BotonGuardar>
           </div>
         </form>
       </dialog>
@@ -120,9 +119,7 @@ export function EditarContacto({ fila }: { fila: Cliente }) {
             <button type="button" className="btn btn-ghost" onClick={() => d.current?.close()}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
-              Guardar
-            </button>
+            <BotonGuardar>Guardar</BotonGuardar>
           </div>
         </form>
 

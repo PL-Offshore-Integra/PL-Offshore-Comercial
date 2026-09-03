@@ -7,6 +7,7 @@ import {
   borrarProyecto,
   subirAdjuntoProyecto,
 } from "@/app/(app)/proyectos/actions";
+import { BotonGuardar } from "@/components/BotonGuardar";
 import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
 import type { Proyecto, ProyectoAdjunto, ProyectoTarifa } from "@/lib/types";
@@ -138,9 +139,9 @@ export default async function ProyectoPage({
             </div>
             <div className="fg">
               <label>&nbsp;</label>
-              <button type="submit" className="btn btn-ghost">
+              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
                 Subir contrato
-              </button>
+              </BotonGuardar>
             </div>
           </div>
         </form>
@@ -193,9 +194,9 @@ export default async function ProyectoPage({
             </div>
             <div className="fg">
               <label>&nbsp;</label>
-              <button type="submit" className="btn btn-ghost">
+              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
                 Subir
-              </button>
+              </BotonGuardar>
             </div>
           </div>
         </form>

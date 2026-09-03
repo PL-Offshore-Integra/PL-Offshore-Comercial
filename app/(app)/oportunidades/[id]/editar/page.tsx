@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import OportunidadForm, { PieDelFormulario } from "@/components/OportunidadForm";
 import { leerMaestroClientes } from "@/lib/clientes";
+import { BotonGuardar } from "@/components/BotonGuardar";
 import { createClient } from "@/lib/supabase/server";
 import {
   borrarAdjunto,
@@ -151,9 +152,9 @@ export default async function EditarOportunidadPage({
             </div>
             <div className="fg">
               <label>&nbsp;</label>
-              <button type="submit" className="btn btn-ghost">
+              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
                 Subir
-              </button>
+              </BotonGuardar>
             </div>
           </div>
         </form>

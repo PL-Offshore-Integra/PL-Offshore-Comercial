@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { BotonGuardar } from "@/components/BotonGuardar";
 import { ESTADOS_OPORTUNIDAD } from "@/lib/types";
 
 // El control de estado de cada fila de la lista. Tres estados (0016), y cada
@@ -92,9 +93,9 @@ export default function EstadoOportunidadControl({
             >
               Volver
             </button>
-            <button type="submit" className="btn btn-danger">
+            <BotonGuardar className="btn btn-danger" enviando="Cancelando...">
               Cancelar la oportunidad
-            </button>
+            </BotonGuardar>
           </div>
         </form>
       </dialog>

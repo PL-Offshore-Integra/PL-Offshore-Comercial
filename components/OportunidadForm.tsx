@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BotonGuardar } from "@/components/BotonGuardar";
 import ClientePicker from "@/components/ClientePicker";
 import {
   ADICIONALES,
@@ -318,9 +319,7 @@ export function PieDelFormulario() {
       <Link href="/oportunidades" className="btn btn-ghost">
         Atras
       </Link>
-      <button type="submit" form={ID_FORM_OPORTUNIDAD} className="btn btn-primary">
-        Guardar
-      </button>
+      <BotonGuardar form={ID_FORM_OPORTUNIDAD} />
     </div>
   );
 }

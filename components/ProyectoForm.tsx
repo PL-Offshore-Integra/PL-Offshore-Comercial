@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BotonGuardar } from "@/components/BotonGuardar";
 import ClientePicker from "@/components/ClientePicker";
 import {
   ADICIONALES,
@@ -314,9 +315,7 @@ export function PieDelProyecto({ volverA = "/proyectos" }: { volverA?: string })
       <Link href={volverA} className="btn btn-ghost">
         Atras
       </Link>
-      <button type="submit" form={ID_FORM_PROYECTO} className="btn btn-primary">
-        Guardar
-      </button>
+      <BotonGuardar form={ID_FORM_PROYECTO} />
     </div>
   );
 }
