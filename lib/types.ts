@@ -11,7 +11,7 @@ export const EMPRESAS_PROPIAS: EmpresaPropia[] = [
 //
 // Reemplaza a los nueve estadios por tres estados. El resultado —ganado o
 // perdido— solo existe cuando la oportunidad esta cerrada.
-export type EstadoOportunidad = "abierto" | "en_curso" | "cerrado";
+export type EstadoOportunidad = "abierto" | "en_curso" | "cerrado" | "cancelado";
 export type ResultadoOportunidad = "ganado" | "perdido";
 
 export const ESTADOS_OPORTUNIDAD: {
@@ -22,6 +22,10 @@ export const ESTADOS_OPORTUNIDAD: {
   { id: "abierto", label: "Abierto", color: "b-gray" },
   { id: "en_curso", label: "En curso", color: "b-blue" },
   { id: "cerrado", label: "Cerrado", color: "b-purple" },
+  // Cancelado es estado y no resultado: una oportunidad que se cae antes de
+  // definirse no se gano ni se perdio. Por eso no pide resultado ni
+  // comentario, y se elige directo del desplegable.
+  { id: "cancelado", label: "Cancelado", color: "b-amber" },
 ];
 
 export const RESULTADOS: {

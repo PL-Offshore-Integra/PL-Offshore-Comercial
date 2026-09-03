@@ -144,6 +144,12 @@ function finDelTrabajo(formData: FormData): string | null {
   return finEstimado(inicio, dias) || null;
 }
 
+// Cerrado nunca llega por el formulario: pasa por el cuadro de cierre, que es
+// el que pide resultado y comentario. Cualquier otra cosa cae en abierto.
+function estadoDirecto(pedido: string | null): string {
+  return pedido === "en_curso" || pedido === "cancelado" ? pedido : "abierto";
+}
+
 function fields(formData: FormData) {
   return {
     descripcion_alcance: str(formData, "descripcion_alcance"),
@@ -199,9 +205,9 @@ export async function createOportunidad(formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
 
-  // El estado si se toma en el alta: se elige entre abierto y en curso, y
-  // cerrado no esta en el desplegable.
-  const estado = str(formData, "estado") === "en_curso" ? "en_curso" : "abierto";
+  // El estado si se toma en el alta: cualquiera de los directos —abierto, en
+  // curso, cancelado—, porque cerrado no esta en el desplegable.
+  const estado = estadoDirecto(str(formData, "estado"));
   const datos = { ...fields(formData), ...cliente, estado };
 
   const { data, error } = await supabase
@@ -246,13 +252,12 @@ export async function updateOportunidad(id: string, formData: FormData) {
     .single();
 
   // Una cerrada no se reabre desde el formulario: para eso esta Reabrir en la
-  // lista. Y si esta abierta, el estado que llega solo puede ser uno de los
-  // dos abiertos.
-  const pedido = str(formData, "estado");
+  // lista. En cualquier otro caso el estado que llega solo puede ser uno de
+  // los directos.
   const datos =
     previa?.estado === "cerrado"
       ? base
-      : { ...base, estado: pedido === "en_curso" ? "en_curso" : "abierto" };
+      : { ...base, estado: estadoDirecto(str(formData, "estado")) };
 
   const { error } = await supabase.from("oportunidades").update(datos).eq("id", id);
   if (error) throw new Error(error.message);
@@ -324,11 +329,16 @@ async function guardarTarifas(supabase: Cliente, id: string, formData: FormData)
 // que. Ese porque va a `comentarios`, que es lo que se ve en el listado.
 // ------------------------------------------------------------
 
-const ESTADOS_ABIERTOS = ["abierto", "en_curso"];
+// Los estados que se eligen directo del desplegable, sin cuadro de cierre.
+// Cancelado esta aca: no pide resultado ni comentario.
+const ESTADOS_DIRECTOS = ["abierto", "en_curso", "cancelado"];
+// Y estos son los que cuentan como "todavia viva", para saber a donde vuelve
+// una reapertura.
+const ESTADOS_VIVOS = ["abierto", "en_curso"];
 
 export async function cambiarEstadoOportunidad(id: string, formData: FormData) {
   const nuevo = str(formData, "estado");
-  if (!nuevo || !ESTADOS_ABIERTOS.includes(nuevo)) {
+  if (!nuevo || !ESTADOS_DIRECTOS.includes(nuevo)) {
     throw new Error("Estado invalido. Para cerrar hay que usar el cuadro de cierre.");
   }
 
@@ -443,7 +453,7 @@ export async function reabrirOportunidad(id: string) {
     .maybeSingle();
 
   const vuelveA =
-    ultima?.estadio_anterior && ESTADOS_ABIERTOS.includes(ultima.estadio_anterior)
+    ultima?.estadio_anterior && ESTADOS_VIVOS.includes(ultima.estadio_anterior)
       ? ultima.estadio_anterior
       : "en_curso";
 

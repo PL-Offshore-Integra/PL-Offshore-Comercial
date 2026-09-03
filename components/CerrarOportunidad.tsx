@@ -65,6 +65,7 @@ export default function EstadoOportunidadControl({
         >
           <option value="abierto">Abierto</option>
           <option value="en_curso">En curso</option>
+          <option value="cancelado">Cancelado</option>
           <option value="cerrado">Cerrado...</option>
         </select>
       </form>
