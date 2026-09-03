@@ -57,7 +57,7 @@ export default function OportunidadForm({
   const anio = Number(fechaAlta.slice(0, 4));
   const nroQueSigue =
     contadores && Number.isInteger(anio) && anio > 1900
-      ? `Ploffshore-${(contadores[anio] ?? 0) + 1}-${anio}`
+      ? `PL-${(contadores[anio] ?? 0) + 1}-${anio}`
       : "—";
 
   const montoDe = (concepto: Concepto) => {
@@ -84,7 +84,7 @@ export default function OportunidadForm({
             // actua al insertar, asi que el unico modo de completarla es a
             // mano.
             <>
-              <input name="nro_oportunidad" defaultValue="" placeholder="Ploffshore-1-2026" />
+              <input name="nro_oportunidad" defaultValue="" placeholder="PL-1-2026" />
               <span className="hint">Esta oportunidad quedo sin numero: se puede completar</span>
             </>
           ) : (
