@@ -60,7 +60,7 @@ export default async function ProyectosPage() {
             </span>
           </div>
           <div className="table-wrap">
-            <table>
+            <table className="tabla-lista">
               <thead>
                 <tr>
                   <th>Nro</th>
@@ -77,9 +77,18 @@ export default async function ProyectosPage() {
               <tbody>
                 {grupo.items.map((p) => (
                   <tr key={p.id}>
-                    <td className="text-mono">{p.nro_proyecto ?? "-"}</td>
+                    <td className="text-mono cel-nro">{p.nro_proyecto ?? "-"}</td>
                     <td className="cel-compania">{p.nombre}</td>
-                    <td>{p.compania ?? "-"}</td>
+                    {/* Los dos clientes en una celda: quien contrata arriba y
+                        para quien es el trabajo debajo. Una columna aparte
+                        sumaria ancho para un dato que casi siempre se lee
+                        junto al otro. */}
+                    <td>
+                      {p.compania ?? "-"}
+                      {p.cliente_final && (
+                        <div className="text-muted cel-sub">para {p.cliente_final}</div>
+                      )}
+                    </td>
                     <td className="text-muted">{p.buque ?? "-"}</td>
                     {/* Se muestra la fecha real si existe, y si no la
                         estimada: lo que paso le gana a lo que se estimaba. */}
@@ -95,7 +104,7 @@ export default async function ProyectosPage() {
                         <span className="text-muted"> est.</span>
                       )}
                     </td>
-                    <td className="text-mono">{plata(p.valor, p.moneda)}</td>
+                    <td className="text-mono cel-valor">{plata(p.valor, p.moneda)}</td>
                     <td className="text-mono">{p.iva === "21" ? "21%" : "Exento"}</td>
                     <td style={{ textAlign: "right" }}>
                       <Link href={`/proyectos/${p.id}`} className="btn btn-ghost btn-sm">

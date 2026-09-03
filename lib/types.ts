@@ -350,10 +350,14 @@ export interface Proyecto {
   nombre: string;
   oportunidad_id: string | null;
 
+  // Dos clientes distintos: `compania` es quien contrata y paga, y
+  // `cliente_final` para quien es el trabajo. Service Management contrata el
+  // buque, pero el trabajo es para Raizen (0017).
   cliente_empresa_id: string | null;
   cliente_contacto_id: string | null;
   compania: string | null;
   contacto: string | null;
+  cliente_final: string | null;
 
   buque: string | null;
   descripcion: string | null;

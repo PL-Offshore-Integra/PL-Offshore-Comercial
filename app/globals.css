@@ -311,3 +311,6 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
   .tabla-lista th,.tabla-lista td{padding:8px 4px}
   .cel-texto{max-width:120px}
 }
+/* Segunda linea dentro de una celda: un dato que acompania al de arriba y no
+   compite con el. Se usa para el cliente final debajo de quien contrata. */
+.cel-sub{font-size:12px;line-height:1.35;margin-top:2px}

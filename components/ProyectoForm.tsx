@@ -141,6 +141,19 @@ export default function ProyectoForm({
             contactoId={proyecto?.cliente_contacto_id}
           />
         )}
+        <div className="fg">
+          {/* El otro cliente. Quien contrata no siempre es para quien es el
+              trabajo: Service Management contrata el buque y el trabajo es
+              para Raizen. Se edita siempre, incluso viniendo de una
+              oportunidad: el cliente final se termina de saber al firmar. */}
+          <label>Cliente final</label>
+          <input
+            name="cliente_final"
+            defaultValue={desde(proyecto?.cliente_final, oportunidad?.cliente_final)}
+            placeholder="Para quien es el trabajo"
+          />
+          <span className="hint">Si es distinto de quien contrata</span>
+        </div>
       </div>
 
       <div className="form-section">El trabajo</div>

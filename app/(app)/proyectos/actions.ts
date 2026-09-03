@@ -27,13 +27,18 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
 
 // Lo que el formulario del proyecto puede escribir.
 //
-// El cliente NO esta aca, y sale de dos lugares distintos segun el origen del
-// proyecto: si vino de una oportunidad se copia de ella y despues no se
-// cambia, y si se cargo desde cero lo resuelve `resolverCliente()` con lo que
-// eligio el desplegable. Ver `clienteDelProyecto()`.
+// La empresa que contrata NO esta aca, y sale de dos lugares distintos segun
+// el origen del proyecto: si vino de una oportunidad se copia de ella y
+// despues no se cambia, y si se cargo desde cero lo resuelve
+// `resolverCliente()` con lo que eligio el desplegable. Ver
+// `clienteDelProyecto()`.
 function fields(formData: FormData) {
   return {
     nombre: str(formData, "nombre") ?? "",
+    // El cliente final si esta aca, a diferencia de la empresa que contrata:
+    // no es la identidad del cliente, es un dato del trabajo, y se termina de
+    // saber al firmar.
+    cliente_final: str(formData, "cliente_final"),
     buque: str(formData, "buque"),
     descripcion: str(formData, "descripcion"),
     alcance: str(formData, "alcance"),
