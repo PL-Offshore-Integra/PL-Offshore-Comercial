@@ -67,6 +67,8 @@ function fields(formData: FormData) {
     cliente_final: str(formData, "cliente_final"),
     zona: str(formData, "zona"),
     buque_madre: str(formData, "buque_madre"),
+    // El tercer buque del STS: el que recibe (0021).
+    alijador: str(formData, "alijador"),
 
     fecha_inicio: inicio,
     fecha_fin: fin,

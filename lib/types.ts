@@ -487,7 +487,10 @@ export interface Operacion {
   buque: string | null;
   cliente_final: string | null;
   zona: string | null;
+  // Los tres buques de un STS: el nuestro es `buque` (el supply), el que
+  // descarga es `buque_madre` y el que recibe es `alijador` (0021).
   buque_madre: string | null;
+  alijador: string | null;
 
   // timestamptz, no date: el calculo es por dia fraccionado y las horas
   // deciden cuanto se cobra.
@@ -600,4 +603,60 @@ export interface PlantillaTarifa {
   monto: number;
   orden: number;
   created_at: string;
+}
+
+// ── EL DESGLOSE DEL VALOR ─────────────────────────────────────────────────
+//
+// El total solo no sirve para controlar. La planilla que se le manda al
+// cliente muestra los renglones que lo forman, y con esos nombres:
+//
+//   TOTAL 1 DIAS               18.537,75
+//   TOTAL OPERATIVO             3.522,18
+//   TOTAL MOB/DEMOB            37.075,50
+//   TOTAL                      59.135,43
+//
+// Esta funcion los devuelve para que la pantalla los muestre igual. Se apoya
+// en los mismos montos que `calcularValor`, asi que la suma de los renglones
+// es el total por construccion y no por coincidencia.
+export type LineaDeCalculo = {
+  label: string;
+  // Los dias que se estan cobrando en ese renglon, cuando aplica.
+  dias?: number;
+  monto: number;
+  // El renglon de cierre se muestra distinto.
+  esTotal?: boolean;
+};
+
+export function desgloseValor(
+  tipo: EstructuraTarifaria,
+  montos: Partial<Record<Concepto, number>>,
+  dias: number | null
+): LineaDeCalculo[] {
+  const m = (c: Concepto) => Number(montos[c] ?? 0) || 0;
+  const d = dias && dias > 0 ? dias : 0;
+  const mobDesmob = m("movilizacion") + m("desmovilizacion");
+  const lineas: LineaDeCalculo[] = [];
+
+  if (tipo === "dia_garantizado") {
+    lineas.push({ label: "Total 1 dias", dias: 1, monto: m("dia_garantizado") });
+    const extra = Math.max(d - 1, 0);
+    lineas.push({
+      label: "Total operativo",
+      dias: extra,
+      monto: extra * m("tarifa_diferencial"),
+    });
+  } else if (tipo === "time_charter") {
+    lineas.push({ label: "Daily hire", dias: d, monto: m("tarifa_diaria") * d });
+  } else {
+    lineas.push({ label: "Lump sum", monto: m("lump_sum") });
+  }
+
+  lineas.push({ label: "Total mob/demob", monto: mobDesmob });
+  lineas.push({
+    label: "Total",
+    monto: calcularValor(tipo, montos, dias),
+    esTotal: true,
+  });
+
+  return lineas;
 }

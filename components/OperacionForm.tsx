@@ -9,6 +9,7 @@ import {
   calcularValor,
   camposDe,
   CONTRATACIONES,
+  desgloseValor,
   diasDeOperacion,
   ESTADOS_OPERACION,
   IVAS,
@@ -16,8 +17,8 @@ import {
   type Concepto,
   type EstructuraTarifaria,
   type Moneda,
-  type Operacion,
   type MontoDeTarifa,
+  type Operacion,
   type Proyecto,
 } from "@/lib/types";
 
@@ -30,16 +31,44 @@ const plata = (moneda: Moneda, valor: number) =>
     minimumFractionDigits: 2,
   }).format(valor);
 
-// La salida concreta: fechas con hora, buque, cliente final y su tarifa.
+const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+// El nombre de la salida se arma solo, con la convencion que ya usan para las
+// carpetas: cliente + mes/anio + buque madre. La de agosto se llama "RAIZEN
+// AGO2026 SEAWAYS BALBOA", y sale entera de tres campos que igual hay que
+// llenar. Se puede pisar a mano.
+function nombreSugerido(cliente: string, desde: string, buqueMadre: string): string {
+  const partes: string[] = [];
+  if (cliente) partes.push(cliente.toUpperCase());
+  if (desde.length >= 7) {
+    const mes = MESES[Number(desde.slice(5, 7)) - 1];
+    if (mes) partes.push(`${mes}${desde.slice(0, 4)}`);
+  }
+  if (buqueMadre) partes.push(buqueMadre.toUpperCase());
+  return partes.join(" ");
+}
+
+// Los dias, con los decimales justos y sin ceros de relleno: 1,2292, no
+// 1,229167 ni 1,23. Es el numero que se controla contra la planilla, asi que
+// va con coma decimal como el resto de los numeros de la pantalla.
+const diasLegibles = (d: number) =>
+  d.toFixed(4).replace(/0+$/, "").replace(/\.$/, "").replace(".", ",");
+
+// La salida concreta.
 //
-// Las fechas llevan hora y no es un adorno. En estos trabajos se cobra por dia
-// fraccionado: la operacion del Golondrina de agosto fue del 20/08 07:00 al
-// 21/08 12:30, y las 0.23 jornadas que pasaron de las 24 h se cobraron pro
-// rata. Con fechas sin hora esa cuenta no existe.
+// El formulario esta ordenado como la planilla que se llena en Excel, y a
+// proposito: los mismos casilleros, en el mismo orden y con los mismos
+// nombres —ZONA, BUQUE MADRE, CLIENTE, ALIJADORES, SUPPLY, FECHA desde, FECHA
+// hasta—. Eso es lo unico que cambia de una salida a otra.
 //
-// Lo que no se elige aca se hereda del proyecto —buque, cliente final, moneda,
-// IVA, tipo de contratacion— porque es lo habitual, y se puede cambiar porque
-// entre una salida y otra cambia.
+// Todo lo demas es constante y vive en el proyecto: la empresa que contrata
+// (Service Management), el servicio (Ship to Ship), las tarifas, la moneda, el
+// IVA y el tipo de contratacion. Baja precargado y queda al final, donde no
+// compite con los siete de arriba.
+//
+// Las fechas llevan hora y no es un adorno: se cobra por dia fraccionado. La
+// operacion de agosto fue del 20/08 07:00 al 21/08 12:30, y las 0,23 jornadas
+// que pasaron de las 24 h se cobraron pro rata.
 export default function OperacionForm({
   action,
   proyecto,
@@ -62,6 +91,16 @@ export default function OperacionForm({
   const [inicio, setInicio] = useState(aInputLocal(operacion?.fecha_inicio));
   const [fin, setFin] = useState(aInputLocal(operacion?.fecha_fin));
 
+  // El cliente y el buque madre viven en estado porque de ellos sale el nombre
+  // sugerido.
+  const [cliente, setCliente] = useState(
+    operacion?.cliente_final ?? proyecto.cliente_final ?? ""
+  );
+  const [buqueMadre, setBuqueMadre] = useState(operacion?.buque_madre ?? "");
+  const [nombre, setNombre] = useState(operacion?.nombre ?? "");
+  // Una vez que alguien lo escribe a mano, deja de sugerirse.
+  const [nombreAMano, setNombreAMano] = useState(Boolean(operacion));
+
   const [montos, setMontos] = useState<Partial<Record<Concepto, string>>>(() => {
     const inicial: Partial<Record<Concepto, string>> = {};
     for (const t of tarifas) inicial[t.concepto] = String(t.monto);
@@ -70,25 +109,127 @@ export default function OperacionForm({
 
   const campos = [...camposDe(tipo), ...ADICIONALES];
 
-  // Los dias salen de las dos fechas, con sus horas. No se escriben.
-  const dias = diasDeOperacion(
-    inicio ? `${inicio}:00` : null,
-    fin ? `${fin}:00` : null
-  );
+  const dias = diasDeOperacion(inicio ? `${inicio}:00` : null, fin ? `${fin}:00` : null);
 
-  const valor = calcularValor(
-    tipo,
-    Object.fromEntries(
-      Object.entries(montos).map(([c, v]) => [c, Number(v) || 0])
-    ) as Partial<Record<Concepto, number>>,
-    dias
-  );
+  const montosNumericos = Object.fromEntries(
+    Object.entries(montos).map(([c, v]) => [c, Number(v) || 0])
+  ) as Partial<Record<Concepto, number>>;
+
+  const valor = calcularValor(tipo, montosNumericos, dias);
+  const desglose = desgloseValor(tipo, montosNumericos, dias);
+
+  const sugerido = nombreSugerido(cliente, inicio, buqueMadre);
+  const nombreFinal = nombreAMano || !sugerido ? nombre : sugerido;
 
   return (
     <form action={action} className="card" id={ID_FORM_OPERACION}>
       <input type="hidden" name="proyecto_id" value={proyecto.id} />
 
-      <div className="form-section">La salida</div>
+      {/* Los siete casilleros de la planilla, en su orden. */}
+      <div className="form-section">Operacion</div>
+      <div className="form-grid">
+        <div className="fg">
+          <label>Zona</label>
+          <input name="zona" defaultValue={operacion?.zona ?? ""} placeholder="Alfa" />
+        </div>
+        <div className="fg">
+          <label>Buque madre</label>
+          <input
+            name="buque_madre"
+            value={buqueMadre}
+            onChange={(e) => setBuqueMadre(e.target.value)}
+            placeholder="Seaways Balboa"
+          />
+        </div>
+        <div className="fg">
+          <label>Cliente</label>
+          <input
+            name="cliente_final"
+            value={cliente}
+            onChange={(e) => setCliente(e.target.value)}
+            placeholder="Raizen"
+          />
+          <span className="hint">Para quien es esta salida</span>
+        </div>
+        <div className="fg">
+          <label>Alijadores</label>
+          <input
+            name="alijador"
+            defaultValue={operacion?.alijador ?? ""}
+            placeholder="Palena Star"
+          />
+        </div>
+        <div className="fg">
+          <label>Supply</label>
+          <input
+            name="buque"
+            defaultValue={operacion?.buque ?? proyecto.buque ?? ""}
+            placeholder="Golondrina de Mar"
+          />
+          <span className="hint">El buque nuestro</span>
+        </div>
+        <div className="fg">
+          <label>Fecha desde</label>
+          <input
+            type="datetime-local"
+            name="fecha_inicio"
+            value={inicio}
+            onChange={(e) => setInicio(e.target.value)}
+            required
+          />
+        </div>
+        <div className="fg">
+          <label>Fecha hasta</label>
+          <input
+            type="datetime-local"
+            name="fecha_fin"
+            value={fin}
+            onChange={(e) => setFin(e.target.value)}
+            required
+          />
+        </div>
+        <div className="fg">
+          <label>Duracion</label>
+          <div className="dato">
+            {dias === null ? (
+              <span className="text-muted">Faltan las fechas</span>
+            ) : (
+              <strong>{diasLegibles(dias)} dias</strong>
+            )}
+          </div>
+          <span className="hint">Sale de las dos fechas, con sus horas</span>
+        </div>
+      </div>
+
+      {/* El desglose, con los mismos renglones que la planilla, para poder
+          controlar uno contra el otro. */}
+      <div className="form-section">El calculo</div>
+      <div className="table-wrap mb16">
+        <table className="tabla-calculo">
+          <tbody>
+            {desglose.map((l) => (
+              <tr key={l.label} className={l.esTotal ? "fila-total" : undefined}>
+                <td>{l.label}</td>
+                <td className="text-mono text-muted">
+                  {l.dias === undefined ? "" : `${diasLegibles(l.dias)} dias`}
+                </td>
+                <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
+                  {plata(moneda, l.monto)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="fg mb16">
+        <span className="hint">
+          Las tarifas vienen del proyecto y se pueden corregir mas abajo. El
+          total no se escribe: lo recalcula el servidor al guardar, con esta
+          misma cuenta.
+        </span>
+      </div>
+
+      <div className="form-section">Como se la nombra</div>
       <div className="form-grid">
         <div className="fg">
           <label>Nro Operacion</label>
@@ -102,15 +243,22 @@ export default function OperacionForm({
           )}
         </div>
         <div className="fg">
-          <label>Nombre de la operacion</label>
+          <label>Nombre de la salida</label>
           <input
             name="nombre"
-            defaultValue={operacion?.nombre ?? ""}
+            value={nombreFinal}
+            onChange={(e) => {
+              setNombreAMano(true);
+              setNombre(e.target.value);
+            }}
             placeholder="RAIZEN AGO2026 SEAWAYS BALBOA"
             required
-            autoFocus={!operacion}
           />
-          <span className="hint">Como se la nombra entre ustedes</span>
+          <span className="hint">
+            {nombreAMano
+              ? "Escrito a mano"
+              : "Se arma con cliente + mes + buque madre; se puede pisar"}
+          </span>
         </div>
         <div className="fg">
           <label>Estado</label>
@@ -128,74 +276,16 @@ export default function OperacionForm({
           <input value={`${proyecto.nro_proyecto ?? ""} · ${proyecto.nombre}`} readOnly />
           <span className="hint">{proyecto.compania ?? "sin cliente"}</span>
         </div>
-        <div className="fg">
-          <label>Buque</label>
-          <input
-            name="buque"
-            defaultValue={operacion?.buque ?? proyecto.buque ?? ""}
-            placeholder="Golondrina de Mar"
-          />
-          <span className="hint">El que salio de verdad</span>
-        </div>
-        <div className="fg">
-          <label>Cliente final</label>
-          <input
-            name="cliente_final"
-            defaultValue={operacion?.cliente_final ?? proyecto.cliente_final ?? ""}
-            placeholder="Raizen"
-          />
-          <span className="hint">Para quien fue esta salida</span>
-        </div>
-        <div className="fg">
-          <label>Zona</label>
-          <input name="zona" defaultValue={operacion?.zona ?? ""} placeholder="Alfa" />
-        </div>
-        <div className="fg">
-          <label>Buque madre</label>
-          <input
-            name="buque_madre"
-            defaultValue={operacion?.buque_madre ?? ""}
-            placeholder="Seaways Balboa"
-          />
-          <span className="hint">Si es un STS</span>
-        </div>
       </div>
 
-      <div className="form-section">Cuando</div>
-      <div className="form-grid">
-        {/* Con hora, porque de la hora sale la fraccion de dia que se cobra. */}
-        <div className="fg">
-          <label>Desde</label>
-          <input
-            type="datetime-local"
-            name="fecha_inicio"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-          />
-        </div>
-        <div className="fg">
-          <label>Hasta</label>
-          <input
-            type="datetime-local"
-            name="fecha_fin"
-            value={fin}
-            onChange={(e) => setFin(e.target.value)}
-          />
-        </div>
-        <div className="fg">
-          <label>Duracion</label>
-          <div className="dato">
-            {dias === null ? (
-              <span className="text-muted">Falta alguna de las dos fechas</span>
-            ) : (
-              <strong>{dias.toFixed(2)} dias</strong>
-            )}
-          </div>
-          <span className="hint">Sale de las dos fechas, con sus horas</span>
-        </div>
+      {/* Lo constante, que baja del proyecto. Al final para que no compita con
+          los siete casilleros de arriba. */}
+      <div className="form-section">Tarifas y condiciones</div>
+      <div className="fg mb16">
+        <span className="hint">
+          Heredadas del proyecto. Cambiarlas aca vale solo para esta salida.
+        </span>
       </div>
-
-      <div className="form-section">Tarifa de esta salida</div>
       <div className="form-grid">
         <div className="fg">
           <label>Tipo de contratacion</label>
@@ -245,9 +335,7 @@ export default function OperacionForm({
               min="0"
               name="tarifa_monto"
               value={montos[c.concepto] ?? ""}
-              onChange={(e) =>
-                setMontos((m) => ({ ...m, [c.concepto]: e.target.value }))
-              }
+              onChange={(e) => setMontos((m) => ({ ...m, [c.concepto]: e.target.value }))}
               placeholder="0.00"
             />
             <input type="hidden" name="tarifa_concepto" value={c.concepto} />
@@ -257,19 +345,10 @@ export default function OperacionForm({
         ))}
 
         <div className="fg">
-          {/* No se escribe: es la misma cuenta que hace el servidor al
-              guardar. */}
           <label>Valor de la salida</label>
           <div className="dato">
             <strong>{plata(moneda, valor)}</strong>
           </div>
-          <span className="hint">
-            {tipo === "time_charter"
-              ? "Daily hire x dias + mobilization + demobilization"
-              : tipo === "dia_garantizado"
-                ? "Dia garantizado + lo que pasa de las 24 h pro rata + mob + demob"
-                : "Lump sum + mobilization + demobilization"}
-          </span>
         </div>
       </div>
 
@@ -295,4 +374,3 @@ export function PieDeLaOperacion({ proyectoId }: { proyectoId: string }) {
     </div>
   );
 }
-
