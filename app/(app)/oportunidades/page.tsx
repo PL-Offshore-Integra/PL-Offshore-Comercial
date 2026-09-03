@@ -71,7 +71,9 @@ export default async function OportunidadesPage() {
                       no se pide, queda en 0. Repetia el valor al lado del
                       valor. */}
                   <th>Valor</th>
-                  <th>Cierre esperado</th>
+                  {/* Sin columna de cierre esperado: el dato salio del
+                      formulario, asi que las filas nuevas no lo tienen. La
+                      columna sigue en la base para las que ya lo traen. */}
                   <th>Proximos pasos</th>
                   <th />
                 </tr>
@@ -93,7 +95,6 @@ export default async function OportunidadesPage() {
                     <td className="text-muted">{o.buque ?? "-"}</td>
                     <td className="text-muted">{o.contacto ?? o.contacto_email ?? "-"}</td>
                     <td className="text-mono">{currency.format(o.valor)}</td>
-                    <td className="text-mono">{o.fecha_esperada_cierre ?? "-"}</td>
                     <td className="text-muted">{o.proximos_pasos ?? "-"}</td>
                     <td>
                       <div className="fila-acciones">
