@@ -91,3 +91,25 @@ export function fechaLegible(iso: string | null | undefined): string {
   if (!p) return "—";
   return `${p.day}/${p.month}/${p.year}`;
 }
+
+// Los dias de una salida, con los decimales justos y sin ceros de relleno:
+// 1,2292, no 1,229167 ni 1,23. Es el numero que se controla renglon por
+// renglon contra la planilla, asi que redondearlo a dos decimales lo vuelve
+// incontrolable: 1,23 dias por 15.369,50 no da lo que dice la planilla.
+//
+// Con coma decimal, como el resto de los numeros de la pantalla.
+export function diasLegibles(dias: number): string {
+  return dias.toFixed(4).replace(/0+$/, "").replace(/\.$/, "").replace(".", ",");
+}
+
+// Una fecha con su hora si la tiene, y solo la fecha si es un `date` pelado.
+//
+// Sirve para las columnas donde el dato puede venir de dos lados: en el
+// listado de proyectos, Inicio y Fin salen de la primera y la ultima salida
+// —que son timestamptz y llevan hora, y la hora es la que define el precio— o
+// de las fechas estimadas del proyecto, que son `date` y no tienen hora que
+// mostrar.
+export function fechaConHoraSiTiene(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return SOLO_FECHA.test(iso) ? fechaLegible(iso) : fechaHoraLegible(iso);
+}

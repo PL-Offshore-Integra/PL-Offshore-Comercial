@@ -10,7 +10,7 @@ import {
 import { BotonGuardar } from "@/components/BotonGuardar";
 import { plantillaDesdeProyecto } from "@/app/(app)/plantillas/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
-import { fechaHoraLegible } from "@/lib/fechas";
+import { diasLegibles, fechaHoraLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
   diasDeOperacion,
@@ -189,7 +189,7 @@ export default async function ProyectoPage({
                       <td className="text-muted">{o.cliente_final ?? "—"}</td>
                       <td className="text-mono">{fechaHoraLegible(o.fecha_inicio)}</td>
                       <td className="text-mono">{fechaHoraLegible(o.fecha_fin)}</td>
-                      <td className="text-mono">{dias === null ? "—" : dias.toFixed(2)}</td>
+                      <td className="text-mono">{dias === null ? "—" : diasLegibles(dias)}</td>
                       <td className="text-mono cel-valor">{plata(o.valor, o.moneda)}</td>
                       <td style={{ textAlign: "right" }}>
                         <Link

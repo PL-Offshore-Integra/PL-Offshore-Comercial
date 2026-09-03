@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fechaLegible } from "@/lib/fechas";
+import { fechaConHoraSiTiene } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import { ESTADOS_PROYECTO, type ProyectoConOperaciones } from "@/lib/types";
 
@@ -103,13 +103,13 @@ export default async function ProyectosPage() {
                         {salidas === 0 ? <span className="text-muted">—</span> : salidas}
                       </td>
                       <td className="text-mono">
-                        {fechaLegible(inicio)}
+                        {fechaConHoraSiTiene(inicio)}
                         {!p.arranco && p.fecha_inicio_estimada && (
                           <span className="text-muted"> est.</span>
                         )}
                       </td>
                       <td className="text-mono">
-                        {fechaLegible(fin)}
+                        {fechaConHoraSiTiene(fin)}
                         {!p.termino && p.fecha_fin_estimada && (
                           <span className="text-muted"> est.</span>
                         )}

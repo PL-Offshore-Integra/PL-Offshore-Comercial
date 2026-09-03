@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
-import { aInputLocal } from "@/lib/fechas";
+import { aInputLocal, diasLegibles } from "@/lib/fechas";
 import {
   ADICIONALES,
   calcularValor,
@@ -47,12 +47,6 @@ function nombreSugerido(cliente: string, desde: string, buqueMadre: string): str
   if (buqueMadre) partes.push(buqueMadre.toUpperCase());
   return partes.join(" ");
 }
-
-// Los dias, con los decimales justos y sin ceros de relleno: 1,2292, no
-// 1,229167 ni 1,23. Es el numero que se controla contra la planilla, asi que
-// va con coma decimal como el resto de los numeros de la pantalla.
-const diasLegibles = (d: number) =>
-  d.toFixed(4).replace(/0+$/, "").replace(/\.$/, "").replace(".", ",");
 
 // La salida concreta.
 //
