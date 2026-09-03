@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { resolverCliente } from "@/lib/clienteResolver";
 import { createClient } from "@/lib/supabase/server";
+import { estructuraValida } from "@/lib/types";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
@@ -45,12 +46,10 @@ function fields(formData: FormData) {
 
     fecha_inicio_estimada: str(formData, "fecha_inicio_estimada"),
     fecha_fin_estimada: str(formData, "fecha_fin_estimada"),
-    fecha_inicio_real: str(formData, "fecha_inicio_real"),
-    fecha_fin_real: str(formData, "fecha_fin_real"),
 
     moneda: str(formData, "moneda") ?? "USD",
     iva: str(formData, "iva") ?? "21",
-    estructura_tarifaria: str(formData, "estructura_tarifaria") ?? "diaria",
+    estructura_tarifaria: estructuraValida(str(formData, "estructura_tarifaria")),
     valor: num(formData, "valor"),
 
     estado: str(formData, "estado") ?? "por_arrancar",

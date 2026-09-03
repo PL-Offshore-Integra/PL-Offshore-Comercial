@@ -38,7 +38,7 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
   "/proyectos": {
     grupo: "Comercial",
     titulo: "Proyectos",
-    sub: "Los trabajos ganados: lo firmado, las fechas reales y el contrato.",
+    sub: "Los trabajos ganados, con sus salidas: lo firmado, lo ejecutado y el contrato.",
   },
   "/clientes": {
     grupo: "Maestros",
@@ -69,11 +69,27 @@ function seccionFor(pathname: string) {
       sub: "Desde una oportunidad ganada, o desde cero si el trabajo no paso por una cotizacion.",
     };
   }
+  // Las salidas viven dentro del proyecto:
+  // /proyectos/<id>/operaciones/nueva y /proyectos/<id>/operaciones/<opId>.
+  if (pathname.endsWith("/operaciones/nueva")) {
+    return {
+      grupo: "Comercial",
+      titulo: "Nueva salida",
+      sub: "El trabajo concreto, con sus fechas, su buque y su tarifa.",
+    };
+  }
+  if (pathname.includes("/operaciones/")) {
+    return { grupo: "Comercial", titulo: "Salida", sub: "" };
+  }
   if (pathname.startsWith("/proyectos/")) {
     return { grupo: "Comercial", titulo: "Proyecto", sub: "" };
   }
   if (pathname === "/oportunidades/nueva") {
-    return { grupo: "Comercial", titulo: "Nueva oportunidad", sub: "Se agrega con estadio inicial Investigando." };
+    return {
+      grupo: "Comercial",
+      titulo: "Nueva oportunidad",
+      sub: "Nace en curso; se marca adjudicada o cancelada desde el listado.",
+    };
   }
   if (pathname.startsWith("/oportunidades/")) {
     return { grupo: "Comercial", titulo: "Editar oportunidad", sub: "" };

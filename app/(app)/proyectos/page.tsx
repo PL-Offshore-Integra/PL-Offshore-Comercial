@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { fechaLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
-import { ESTADOS_PROYECTO, type Proyecto } from "@/lib/types";
+import { ESTADOS_PROYECTO, type ProyectoConOperaciones } from "@/lib/types";
 
 function plata(valor: number, moneda: string) {
   return new Intl.NumberFormat("es-AR", {
@@ -9,20 +10,18 @@ function plata(valor: number, moneda: string) {
   }).format(valor);
 }
 
-function fecha(iso: string | null) {
-  if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
-  return a && m && d ? `${d}/${m}/${a}` : "—";
-}
 
 export default async function ProyectosPage() {
   const supabase = await createClient();
+  // Se lee la vista y no la tabla: trae de una lo que dicen las operaciones de
+  // cada proyecto —cuantas, cuando arranco la primera, cuando termino la
+  // ultima y cuanto suma lo ejecutado— sin una consulta por fila.
   const { data, error } = await supabase
-    .from("proyectos")
+    .from("proyectos_con_operaciones")
     .select("*")
     .order("created_at", { ascending: false });
 
-  const proyectos = (data ?? []) as Proyecto[];
+  const proyectos = (data ?? []) as ProyectoConOperaciones[];
 
   // Agrupados por estado, en el orden en que avanza un trabajo.
   const grupos = ESTADOS_PROYECTO.map((e) => ({
@@ -36,7 +35,7 @@ export default async function ProyectosPage() {
         <div className="info-box danger mb16">
           No se pudieron leer los proyectos: {error.message}. Si dice que la
           relacion no existe, falta correr{" "}
-          <span className="text-mono">supabase/migrations/0012_proyectos.sql</span>.
+          <span className="text-mono">supabase/migrations/0018_operaciones.sql</span>.
         </div>
       )}
 
@@ -67,6 +66,7 @@ export default async function ProyectosPage() {
                   <th>Proyecto</th>
                   <th>Cliente</th>
                   <th>Buque</th>
+                  <th>Salidas</th>
                   <th>Inicio</th>
                   <th>Fin</th>
                   <th>Valor</th>
@@ -75,44 +75,65 @@ export default async function ProyectosPage() {
                 </tr>
               </thead>
               <tbody>
-                {grupo.items.map((p) => (
-                  <tr key={p.id}>
-                    <td className="text-mono cel-nro">{p.nro_proyecto ?? "-"}</td>
-                    <td className="cel-compania">{p.nombre}</td>
-                    {/* Los dos clientes en una celda: quien contrata arriba y
-                        para quien es el trabajo debajo. Una columna aparte
-                        sumaria ancho para un dato que casi siempre se lee
-                        junto al otro. */}
-                    <td>
-                      {p.compania ?? "-"}
-                      {p.cliente_final && (
-                        <div className="text-muted cel-sub">para {p.cliente_final}</div>
-                      )}
-                    </td>
-                    <td className="text-muted">{p.buque ?? "-"}</td>
-                    {/* Se muestra la fecha real si existe, y si no la
-                        estimada: lo que paso le gana a lo que se estimaba. */}
-                    <td className="text-mono">
-                      {fecha(p.fecha_inicio_real ?? p.fecha_inicio_estimada)}
-                      {!p.fecha_inicio_real && p.fecha_inicio_estimada && (
-                        <span className="text-muted"> est.</span>
-                      )}
-                    </td>
-                    <td className="text-mono">
-                      {fecha(p.fecha_fin_real ?? p.fecha_fin_estimada)}
-                      {!p.fecha_fin_real && p.fecha_fin_estimada && (
-                        <span className="text-muted"> est.</span>
-                      )}
-                    </td>
-                    <td className="text-mono cel-valor">{plata(p.valor, p.moneda)}</td>
-                    <td className="text-mono">{p.iva === "21" ? "21%" : "Exento"}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <Link href={`/proyectos/${p.id}`} className="btn btn-ghost btn-sm">
-                        Abrir
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {grupo.items.map((p) => {
+                  // Lo que paso le gana a lo que se estimaba: si hay
+                  // operaciones cargadas, las fechas salen de la primera y de
+                  // la ultima salida. Si no, de la estimacion, marcada como
+                  // tal.
+                  const inicio = p.arranco ?? p.fecha_inicio_estimada;
+                  const fin = p.termino ?? p.fecha_fin_estimada;
+                  const salidas = Number(p.operaciones ?? 0);
+                  const ejecutado = Number(p.valor_ejecutado ?? 0);
+                  return (
+                    <tr key={p.id}>
+                      <td className="text-mono cel-nro">{p.nro_proyecto ?? "-"}</td>
+                      <td className="cel-compania">{p.nombre}</td>
+                      {/* Los dos clientes en una celda: quien contrata arriba y
+                          para quien es el trabajo debajo. Una columna aparte
+                          sumaria ancho para un dato que casi siempre se lee
+                          junto al otro. */}
+                      <td>
+                        {p.compania ?? "-"}
+                        {p.cliente_final && (
+                          <div className="text-muted cel-sub">para {p.cliente_final}</div>
+                        )}
+                      </td>
+                      <td className="text-muted">{p.buque ?? "-"}</td>
+                      <td className="text-mono">
+                        {salidas === 0 ? <span className="text-muted">—</span> : salidas}
+                      </td>
+                      <td className="text-mono">
+                        {fechaLegible(inicio)}
+                        {!p.arranco && p.fecha_inicio_estimada && (
+                          <span className="text-muted"> est.</span>
+                        )}
+                      </td>
+                      <td className="text-mono">
+                        {fechaLegible(fin)}
+                        {!p.termino && p.fecha_fin_estimada && (
+                          <span className="text-muted"> est.</span>
+                        )}
+                      </td>
+                      {/* Arriba lo acordado, debajo lo que suman las salidas.
+                          Son dos numeros distintos y los dos importan: uno es
+                          el trato, el otro lo que se hizo. */}
+                      <td className="text-mono cel-valor">
+                        {plata(p.valor, p.moneda)}
+                        {salidas > 0 && (
+                          <div className="text-muted cel-sub">
+                            {plata(ejecutado, p.moneda)} hecho
+                          </div>
+                        )}
+                      </td>
+                      <td className="text-mono">{p.iva === "21" ? "21%" : "Exento"}</td>
+                      <td style={{ textAlign: "right" }}>
+                        <Link href={`/proyectos/${p.id}`} className="btn btn-ghost btn-sm">
+                          Abrir
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

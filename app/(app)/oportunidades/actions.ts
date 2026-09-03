@@ -6,9 +6,9 @@ import { resolverCliente } from "@/lib/clienteResolver";
 import { createClient } from "@/lib/supabase/server";
 import {
   calcularValor,
+  estructuraValida,
   finEstimado,
   type Concepto,
-  type EstructuraTarifaria,
 } from "@/lib/types";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
@@ -35,7 +35,7 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
 // funcion que usa la pantalla para mostrarlo en vivo. Asi lo que se ve y lo
 // que se guarda no pueden separarse, y un valor mandado a mano no entra.
 function valorDeLaPropuesta(formData: FormData): number {
-  const tipo = (str(formData, "estructura_tarifaria") ?? "time_charter") as EstructuraTarifaria;
+  const tipo = estructuraValida(str(formData, "estructura_tarifaria"));
   const dias = numOrNull(formData.get("duracion_estimada_dias") ?? undefined);
 
   const conceptos = formData.getAll("tarifa_concepto");
@@ -75,7 +75,7 @@ function fields(formData: FormData) {
     // 0002
     cliente_final: str(formData, "cliente_final"),
     buque: str(formData, "buque"),
-    estructura_tarifaria: str(formData, "estructura_tarifaria") ?? "time_charter",
+    estructura_tarifaria: estructuraValida(str(formData, "estructura_tarifaria")),
     // 0003
     fecha_inicio_estimada: str(formData, "fecha_inicio_estimada"),
     fecha_fin_estimada: finDelTrabajo(formData),

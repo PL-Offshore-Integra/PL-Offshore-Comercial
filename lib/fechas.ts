@@ -1,0 +1,93 @@
+// Las horas de una operacion, sin que se corran tres horas en el camino.
+//
+// El problema que esto resuelve: el <input type="datetime-local"> entrega
+// "2026-08-20T07:00" sin zona. Si eso se guarda tal cual en un timestamptz,
+// Postgres lo interpreta en la zona de la base —UTC— y despues el navegador lo
+// vuelve a convertir a hora local, asi que 07:00 se mostraba como 04:00.
+// Medido, no supuesto: la primera carga de RAIZEN AGO2026 entro a las 07:00 y
+// el listado mostraba 04:00.
+//
+// Tres horas de corrimiento no son un detalle cosmetico: de la hora sale la
+// fraccion de dia que se cobra, y una salida que arranca a las 04:00 en vez de
+// las 07:00 tiene otra duracion y otro precio.
+//
+// La solucion es fijar la zona en un solo lugar. Las operaciones son en el
+// Atlantico Sur y se registran en hora argentina, que no tiene horario de
+// verano: el offset es -03:00 siempre. Guardar y mostrar pasan siempre por
+// aca, asi que la hora que se escribe es la que se lee, en cualquier maquina.
+
+export const ZONA = "America/Argentina/Buenos_Aires";
+const OFFSET = "-03:00";
+
+// De lo que manda el formulario ("2026-08-20T07:00") a lo que se guarda
+// ("2026-08-20T07:00:00-03:00"). Sin el offset, Postgres asumiria UTC.
+export function aTimestamp(local: string | null): string | null {
+  if (!local) return null;
+  const conSegundos = local.length === 16 ? `${local}:00` : local;
+  // Si ya trae zona —una +, o una - despues de la T— se respeta.
+  if (/[+-]\d{2}:\d{2}$/.test(conSegundos) || conSegundos.endsWith("Z")) {
+    return conSegundos;
+  }
+  return `${conSegundos}${OFFSET}`;
+}
+
+// Una fecha sola —"2026-08-20", como las estimadas del proyecto, que son
+// `date` y no `timestamptz`— no es un instante y no hay que convertirla. Si se
+// la pasa por una zona, `new Date("2026-08-20")` da medianoche UTC y en hora
+// argentina eso es el 19 a las 21:00: un dia menos. Se detecta y se lee tal
+// cual.
+const SOLO_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+// Las partes de un instante, leidas en hora argentina y no en la del que mira.
+function partes(iso: string): Record<string, string> | null {
+  const sola = SOLO_FECHA.exec(iso);
+  if (sola) {
+    return {
+      year: sola[1],
+      month: sola[2],
+      day: sola[3],
+      hour: "00",
+      minute: "00",
+    };
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const out: Record<string, string> = {};
+  for (const p of fmt.formatToParts(d)) out[p.type] = p.value;
+  // A las 24:00 las devuelve algun motor en vez de 00:00.
+  if (out.hour === "24") out.hour = "00";
+  return out;
+}
+
+// De lo guardado al valor que quiere el <input type="datetime-local">.
+export function aInputLocal(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const p = partes(iso);
+  if (!p) return "";
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+// Para mostrar: dd/mm/aaaa hh:mm, en hora argentina.
+export function fechaHoraLegible(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const p = partes(iso);
+  if (!p) return "—";
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+}
+
+// Para mostrar solo el dia.
+export function fechaLegible(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const p = partes(iso);
+  if (!p) return "—";
+  return `${p.day}/${p.month}/${p.year}`;
+}

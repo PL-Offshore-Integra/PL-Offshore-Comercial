@@ -211,24 +211,9 @@ export default function ProyectoForm({
             )}
           />
         </div>
-        <div className="fg">
-          <label>Inicio real</label>
-          <input
-            type="date"
-            name="fecha_inicio_real"
-            defaultValue={proyecto?.fecha_inicio_real ?? ""}
-          />
-          <span className="hint">Cuando arranco de verdad</span>
-        </div>
-        <div className="fg">
-          <label>Fin real</label>
-          <input
-            type="date"
-            name="fecha_fin_real"
-            defaultValue={proyecto?.fecha_fin_real ?? ""}
-          />
-          <span className="hint">Cuando termino de verdad</span>
-        </div>
+        {/* Las fechas reales no se cargan aca desde 0018: son la primera y la
+            ultima operacion del proyecto. Se muestran en la ficha, calculadas
+            de las salidas. */}
       </div>
 
       <div className="form-section">Plata</div>
