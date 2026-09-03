@@ -4,74 +4,25 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-type NavItem = { href: string; label: string; icon: keyof typeof ICONS };
+type NavItem = { href: string; label: string };
 type NavGroup = { titulo: string; items: NavItem[] };
-
-const Ico = ({ d, size = 18 }: { d: React.ReactNode; size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    {d}
-  </svg>
-);
-
-const ICONS = {
-  chart: (
-    <>
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-    </>
-  ),
-  calendar: (
-    <>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 10h18M8 3v4M16 3v4" />
-    </>
-  ),
-  dashboard: (
-    <>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M3 10h18M9 10v10" />
-    </>
-  ),
-  back: (
-    <>
-      <path d="M19 12H5" />
-      <path d="M11 6l-6 6 6 6" />
-    </>
-  ),
-  clientes: (
-    <>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    </>
-  ),
-};
 
 const NAV: NavGroup[] = [
   {
     titulo: "Comercial",
-    items: [{ href: "/oportunidades", label: "Oportunidades", icon: "chart" }],
+    items: [{ href: "/oportunidades", label: "Oportunidades"  }],
   },
   {
     titulo: "Maestros",
-    items: [{ href: "/clientes", label: "Base de datos clientes", icon: "clientes" }],
+    items: [{ href: "/clientes", label: "Base de datos clientes"  }],
   },
   {
     titulo: "Eventos",
-    items: [{ href: "/calendario", label: "Calendario de Ferias", icon: "calendar" }],
+    items: [{ href: "/calendario", label: "Calendario de Ferias"  }],
   },
   {
     titulo: "Resumen",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: "dashboard" }],
+    items: [{ href: "/dashboard", label: "Dashboard"  }],
   },
 ];
 
@@ -154,17 +105,26 @@ export default function Shell({
             </div>
           </div>
 
+          {/* Numeros en Saira 900 en lugar de iconos. El design system no
+              define iconografia y la ausencia es deliberada: la marca
+              sustituye iconos por numeracion, tipografia y color. La
+              alternativa que contempla —Lucide con stroke 1.5— la tiene que
+              aprobar Marketing Corporativo, asi que no se usa.
+
+              La numeracion corre sobre todo el menu y no por grupo: es un
+              indice de secciones, y reiniciar en 01 en cada grupo daria
+              cuatro "01" distintos. */}
           <div className="sidebar-nav">
-            {NAV.map((grupo) => (
+            {NAV.map((grupo, iGrupo) => (
               <div key={grupo.titulo} style={{ marginBottom: 8 }}>
                 <div className="nav-section">{grupo.titulo}</div>
-                {grupo.items.map((item) => {
+                {grupo.items.map((item, iItem) => {
                   const active = pathname.startsWith(item.href);
+                  const nro =
+                    NAV.slice(0, iGrupo).reduce((a, g) => a + g.items.length, 0) + iItem + 1;
                   return (
                     <Link key={item.href} href={item.href} className={`ni ${active ? "active" : ""}`}>
-                      <span className="ni-ico">
-                        <Ico d={ICONS[item.icon]} />
-                      </span>
+                      <span className="ni-num">{String(nro).padStart(2, "0")}</span>
                       <span className="ni-label">{item.label}</span>
                     </Link>
                   );

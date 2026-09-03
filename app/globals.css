@@ -1,19 +1,27 @@
-/* Saira para titulos, botones y etiquetas; Archivo para el texto. Son las dos
-   familias de ploffshore.com, medidas sobre el sitio: h1 en Saira 800, botones
-   en Saira 700 mayuscula con 1.4px de tracking, cuerpo en Archivo 400. */
-@import url('https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800&family=Archivo:wght@400;500;600&display=swap');
+/* Tipografia y paleta del PL Offshore Design System (Claude Design), que es
+   normativo: cuando el sistema y una convencion generica de diseno difieren,
+   gana el sistema.
+
+   Saira para titulos, numeros, marca y labels; Archivo para el cuerpo. Escala
+   del sistema: Display 44/900 · H1 30/800 mayusculas · H2 20/600 · H3 15/600 ·
+   Lead 16/500 · Body 13/400 · Small 11 · Eyebrow 11 tracking .18em · Caption 9
+   tracking .12em · KPI 38/900 con label 10 tracking .1em. */
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800;900&family=Archivo:wght@400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── TOKENS · paleta y tipografia de ploffshore.com ────────────────────── */
-/* Colores tomados del sitio: navy #002247 (barra superior y botones), navy
-   profundo #001327 (pie), amarillo #FBBC05 (el acento de los CTA), gris
-   #F4F6F8 (fondo de seccion) y texto #0B0F14. */
+/* ── TOKENS · paleta del design system ────────────────────────────────── */
+/* Navy corporativo #002247 dominante (~70%), blanco (~20%) y amarillo #FBBC05
+   de acento puntual (~10%). Gris tecnico #5B6671 para texto secundario y
+   datos, negro institucional #0B0F14 para el cuerpo. */
 :root{
   --navy:#002247;--navy-deep:#001327;--navy-mid:#001A38;
-  --blue:#002247;--mid:#4A5560;--light:#C9D0D6;
+  --blue:#002247;--mid:#5B6671;--light:#D8DEE4;
   --bg:#FAFBFC;--surface:#FFFFFF;--surface2:#F4F6F8;--surface3:#E4E8EC;
-  --border:#E4E8EC;--border2:#C9D0D6;
-  --text:#0B0F14;--muted:#4A5560;--muted2:#7A8792;
+  /* Un solo color de borde, 1px, como manda el design system. */
+  --border:#D8DEE4;--border2:#D8DEE4;
+  /* Gris tecnico oficial para texto secundario y datos; negro institucional
+     para el cuerpo. --muted2 no es oficial: es un derivado de utilidad. */
+  --text:#0B0F14;--muted:#5B6671;--muted2:#8A939C;
   --amarillo:#FBBC05;--amarillo-press:#E0A800;
   --accent:#002247;--accent2:#0E7A5F;--warn:#8F5A0B;--danger:#B3261E;
   /* --mono ya no es monoespaciada: es la Saira en mayuscula del sitio, que es
@@ -30,24 +38,30 @@
 [data-instance="pl-offshore"]{--nav:#002247;--action:#002247;--blue:#002247;--accent:#002247}
 
 html,body{height:100%}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;min-height:100vh;overflow-x:hidden}
-*:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+/* Body 13/1.55 de la escala del sistema. Los campos de formulario se dejan en
+   14px: el sistema es documental y no define controles, y a 13 el tipeo se
+   vuelve incomodo. */
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.55;min-height:100vh;overflow-x:hidden}
+/* Focus amarillo con 2px de offset, y hover de enlaces navy -> amarillo. Los
+   .btn quedan afuera del hover: tienen el suyo. */
+*:focus-visible{outline:2px solid var(--amarillo);outline-offset:2px}
 a{color:inherit;text-decoration:none}
+a:not(.btn):hover{color:var(--amarillo)}
 
 /* ── PANELES ──────────────────────────────────────────────────────────── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:16px}
-.card-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 
 /* ── KPIs ─────────────────────────────────────────────────────────────── */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
-.stat-label{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase}
-.stat-value{font-family:var(--display);font-size:30px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase}
+.stat-value{font-family:var(--display);font-size:38px;font-weight:900;line-height:1.05;color:var(--navy);font-variant-numeric:tabular-nums}
 
 /* ── TABLAS ───────────────────────────────────────────────────────────── */
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:2px solid var(--navy);white-space:nowrap;background:var(--surface)}
+th{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:2px solid var(--navy);white-space:nowrap;background:var(--surface)}
 td{padding:12px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr.click:hover td{background:var(--surface2);cursor:pointer}
@@ -56,10 +70,10 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
 .filter-input,.filter-select{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--sans);font-size:14px;height:36px;padding:0 10px;outline:none;min-width:150px;transition:var(--tr)}
 .filter-select{cursor:pointer}
-.filter-input:focus,.filter-select:focus{border-width:2px;border-color:var(--action);padding:0 9px}
+.filter-input:focus,.filter-select:focus{border-color:var(--navy);outline:2px solid var(--amarillo);outline-offset:2px}
 
 /* ── BADGES ───────────────────────────────────────────────────────────── */
-.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:3px;white-space:nowrap;letter-spacing:.06em;text-transform:uppercase}
+.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:3px;white-space:nowrap;letter-spacing:.12em;text-transform:uppercase}
 .b-amber{background:#FBF1E3;color:#8F5A0B;border:0}
 .b-blue{background:#E6F1F2;color:#056D76;border:0}
 .b-teal{background:#E8F3EF;color:#0E7A5F;border:0}
@@ -85,18 +99,17 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 
 /* ── FORMULARIOS ──────────────────────────────────────────────────────── */
 .fg{display:flex;flex-direction:column;gap:6px}
-.fg label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.fg label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;font-weight:600}
 .fg input,.fg select,.fg textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--sans);font-size:14px;height:36px;padding:0 12px;outline:none;transition:var(--tr)}
 .fg textarea{resize:vertical;min-height:72px;height:auto;padding:10px 12px}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-width:2px;border-color:var(--action);padding:0 11px}
-.fg textarea:focus{padding:9px 11px}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--navy);outline:2px solid var(--amarillo);outline-offset:2px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 /* Los campos que se muestran pero no se escriben: el nro de oportunidad
  * en un alta lo pone la base, no la persona. */
 .fg input[readonly]{background:var(--surface2);color:var(--muted);cursor:default}
-.fg input[readonly]:focus{border-width:1px;border-color:var(--border2);padding:0 12px}
+.fg input[readonly]:focus{border-color:var(--border2);outline:none}
 .fg .hint{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted2)}
-.form-section{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.form-section{position:relative;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 
 /* ── AVISOS ───────────────────────────────────────────────────────────── */
 .info-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:14px}
@@ -116,7 +129,7 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .tab{font-size:14px;font-weight:500;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:var(--tr);text-transform:none;letter-spacing:0;margin-bottom:-1px;white-space:nowrap}
 .tab:hover{color:var(--navy)}
 .tab.active{color:var(--action);border-bottom-color:var(--action)}
-.tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
 
 /* ══ ARMAZÓN · shell ═══════════════════════════════════════════════════
    Navegación blanca con borde derecho; el navy es la barra superior.
@@ -137,19 +150,20 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .sidebar-header{border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:12px;min-height:69px}
 .sidebar-logo-img{width:32px;height:32px;object-fit:contain;border:0;border-radius:0;background:none;flex:0 0 auto}
 .sidebar-logo-main{font:600 15px/1.3 var(--sans);color:var(--navy);letter-spacing:0;text-transform:none}
-.sidebar-logo-sub{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.sidebar-logo-sub{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
-.nav-section{padding:14px 16px 8px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;text-align:left}
+.nav-section{padding:14px 16px 8px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;text-align:left}
 .ni{display:flex;align-items:center;gap:12px;width:100%;padding:9px 16px 9px 13px;background:transparent;border:0;border-left:3px solid transparent;cursor:pointer;text-align:left;font:400 14px/1.3 var(--sans);color:var(--muted);transition:var(--tr);min-height:38px}
 .ni:hover{background:var(--surface2);color:var(--navy)}
 .ni.active{background:var(--surface2);border-left-color:var(--amarillo);color:var(--navy);font-weight:500}
-.ni-ico{display:block;flex:0 0 auto;color:var(--muted2)}
-.ni.active .ni-ico{color:var(--action)}
+/* El numero de seccion, en Saira 900, ocupa el lugar que tenia el icono. */
+.ni-num{display:block;flex:0 0 auto;width:20px;font-family:var(--display);font-size:12px;font-weight:900;letter-spacing:.06em;color:var(--muted2);font-variant-numeric:tabular-nums}
+.ni.active .ni-num{color:var(--amarillo)}
 .ni-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-foot{border-top:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
 .sidebar-foot-btn{display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;background:none;border:0;border-radius:var(--r);cursor:pointer;font:500 13px/1.2 var(--sans);color:var(--muted);transition:var(--tr)}
 .sidebar-foot-btn:hover{background:var(--surface2);color:var(--navy)}
-.sidebar-foot-meta{padding:8px 10px 0;font-family:var(--mono);font-size:11px;font-weight:600;line-height:1.6;letter-spacing:.06em;color:var(--muted2)}
+.sidebar-foot-meta{padding:8px 10px 0;font-family:var(--mono);font-size:11px;font-weight:600;line-height:1.6;letter-spacing:.12em;color:var(--muted2)}
 
 .main{display:flex;flex-direction:column;min-width:0}
 .content{flex:1;padding:24px;background:var(--bg)}
@@ -161,7 +175,7 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .crumb button:hover,.crumb a:hover{text-decoration:underline;color:var(--navy)}
 .crumb-current{color:var(--text)}
 .pagehead-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-top:10px}
-.pagehead h1{font:800 26px/1.2 var(--display);letter-spacing:-.01em;color:var(--navy);margin:0}
+.pagehead h1{font:800 30px/1.05 var(--display);letter-spacing:-.01em;text-transform:uppercase;color:var(--navy);margin:0}
 .pagehead p{font:400 13px/1.45 var(--sans);color:var(--muted);margin:6px 0 0;max-width:70ch}
 .pagehead-actions{display:flex;gap:8px;flex:0 0 auto}
 
@@ -172,7 +186,9 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
   .appbar-instance{display:none}
   .pagehead{padding:14px 16px}
   .pagehead-row{flex-direction:column;align-items:stretch;gap:12px}
-  .pagehead-actions .btn{flex:1}
+  /* En pantalla chica los botones se estiran, menos el amarillo: el sistema
+     no admite el amarillo como fondo de un bloque grande. */
+  .pagehead-actions .btn:not(.btn-amarillo){flex:1}
   .content{padding:16px}
   .card{padding:16px;margin-bottom:12px}
   .stats{grid-template-columns:1fr 1fr;gap:12px}
@@ -198,19 +214,19 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .login-left-sub{font:400 15px/1.55 var(--sans);color:rgba(255,255,255,.82);max-width:420px;font-style:normal}
 .login-right{width:auto;display:flex;align-items:center;justify-content:center;padding:56px 64px;background:#FFFFFF}
 .login-card{width:100%;max-width:420px;background:transparent;border:0;border-radius:0;padding:0;text-align:left}
-.login-card-eyebrow{font:500 11px/1.2 var(--mono);letter-spacing:.08em;color:#4A5560;text-transform:uppercase;margin-bottom:12px}
+.login-card-eyebrow{font:500 11px/1.2 var(--mono);letter-spacing:.18em;color:#4A5560;text-transform:uppercase;margin-bottom:12px}
 .login-card-title{font:600 24px/1.25 var(--sans);color:#082F4E;margin-bottom:8px}
 .login-card-sub{font:400 15px/1.55 var(--sans);color:#4A5560;letter-spacing:0;margin-bottom:28px;text-transform:none}
 .login-fg{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-.login-fg label{font:500 11px/1.2 var(--mono);color:#4A5560;letter-spacing:.08em;text-transform:uppercase}
+.login-fg label{font:500 11px/1.2 var(--mono);color:#4A5560;letter-spacing:.18em;text-transform:uppercase}
 .login-fg input{width:100%;border:1px solid #C9D0D6;border-radius:4px;height:40px;padding:0 12px;font:400 14px/1.2 var(--sans);color:#0F1419;background:#FFFFFF;outline:none;transition:border-color 120ms cubic-bezier(.2,0,.38,.9)}
 .login-fg input::placeholder{color:#7A8792}
-.login-fg input:focus{border-width:2px;border-color:#002247;padding:0 11px}
+.login-fg input:focus{border-color:#002247;outline:2px solid var(--amarillo);outline-offset:2px}
 .login-btn{width:100%;height:44px;padding:0 16px;margin-top:24px;background:#F8BC05;color:#002247;border:none;border-radius:4px;font:600 15px/1.2 var(--sans);cursor:pointer;transition:background-color 120ms cubic-bezier(.2,0,.38,.9);letter-spacing:0}
 .login-btn:hover{background:#DCA704}
 .login-btn:disabled{background:#E4E8EC;color:#7A8792;cursor:not-allowed}
 .login-error{background:#FFFFFF;color:#0F1419;border:1px solid #E4E8EC;border-left:3px solid #B3261E;border-radius:4px;padding:12px 16px;font:400 13px/1.45 var(--sans);margin-bottom:16px}
-.login-footer{text-align:left;font:500 11px/1.2 var(--mono);color:#4A5560;margin-top:32px;letter-spacing:.06em}
+.login-footer{text-align:left;font:500 11px/1.2 var(--mono);color:#4A5560;margin-top:32px;letter-spacing:.12em}
 .login-back{text-align:left;margin-top:12px;font:500 14px/1.2 var(--sans);color:#002247;cursor:pointer;background:none;border:0;padding:0}
 .login-back:hover{text-decoration:underline}
 @media(max-width:900px){
@@ -223,28 +239,27 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 
 /* ── CUADRO DE DIALOGO ─────────────────────────────────────────────────── */
 /* <dialog> nativo: el ::backdrop es del navegador, no un div propio. */
-.modal{border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);padding:24px;width:min(480px,calc(100vw - 32px));box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.modal{border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);padding:24px;width:min(480px,calc(100vw - 32px))}
 .modal::backdrop{background:rgba(15,20,25,.45)}
-.modal-titulo{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.modal-titulo{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .modal-pie{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
 
 /* Los botones de la ultima columna de la lista, en una sola linea. */
 .fila-acciones{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
 
 /* ── ACENTO AMARILLO ──────────────────────────────────────────────────── */
-/* El sitio antepone una raya amarilla corta a cada eyebrow ("— OFFSHORE
-   SUPPORT SERVICES"). Es el gesto que mas identifica la marca. */
-/* Solo en form-section: en card-title adentro va el badge del estadio y la raya
-   quedaria metida dentro de la pastilla de color. */
-.form-section::before{content:"";display:inline-block;width:14px;height:2px;background:var(--amarillo);vertical-align:middle;margin-right:8px}
+/* La regla de 64x3px debajo del titulo de seccion, como la define el design
+   system de PL Offshore. */
+.form-section::after{content:"";position:absolute;left:0;bottom:-2px;width:64px;height:3px;background:var(--amarillo)}
 
-/* El CTA amarillo del sitio: fondo #FBBC05 con texto navy. */
+/* El CTA amarillo: fondo #FBBC05 con texto navy. Nunca a ancho completo, que
+   seria el amarillo como fondo de un bloque grande. */
 .btn-amarillo{background:var(--amarillo);color:var(--navy)}
 .btn-amarillo:hover{background:var(--amarillo-press)}
 .btn-amarillo:active{background:#C99700}
 
 /* Etiquetas y contador dentro de la barra de filtros. */
-.filter-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.filter-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
 .filter-cuenta{text-align:right;font-size:12px;color:var(--muted2);letter-spacing:.04em;margin:-8px 0 12px}
 /* La compania es lo que se busca primero: se lee antes que el resto. */
 .cel-compania{font-weight:600;color:var(--navy);white-space:nowrap}
