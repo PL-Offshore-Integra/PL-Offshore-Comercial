@@ -46,10 +46,19 @@ export type Concepto =
   | "tarifa_diaria"
   | "tarifa_diferencial"
   | "standby"
+  | "accommodation"
   | "lump_sum"
   | "otro";
 
 export type Unidad = "dia" | "hora" | "viaje" | "global";
+
+// Standby y accommodation no dependen de la estructura elegida: pueden ir con
+// daily hire, con lump sum o con cualquiera. Por eso van como dos casilleros
+// fijos y no como parte de ESTRUCTURAS. Vacios = no se cotizaron.
+export const ADICIONALES: CampoTarifa[] = [
+  { concepto: "standby", label: "Standby (por dia)", unidad: "dia" },
+  { concepto: "accommodation", label: "Accommodation (por persona/dia)", unidad: "dia" },
+];
 
 // `concepto` y `unidad` son lo que se guarda; `label` es como se lo nombra en
 // pantalla. Daily hire y tarifa diaria son el mismo concepto con dos nombres
@@ -234,5 +243,90 @@ export interface Minuta {
   oportunidades_relacionadas: string | null;
   contenido: string | null;
   acciones: string | null;
+  created_at: string;
+}
+
+// ── PROYECTOS (0012) ──────────────────────────────────────────────────────
+//
+// OJO: `comercial.proyectos` NO es `public.proyectos`, el maestro de Integra
+// que leen Finanzas, Compras, Viveres y Reparaciones. Son dos cosas distintas
+// y hoy no se tocan entre si.
+
+export type Moneda = "USD" | "ARS";
+export type Iva = "21" | "exento";
+export type EstadoProyecto = "por_arrancar" | "en_curso" | "finalizado" | "cancelado";
+
+export const MONEDAS: { id: Moneda; label: string }[] = [
+  { id: "USD", label: "Dolares (USD)" },
+  { id: "ARS", label: "Pesos argentinos (ARS)" },
+];
+
+export const IVAS: { id: Iva; label: string }[] = [
+  { id: "21", label: "21%" },
+  { id: "exento", label: "Exento" },
+];
+
+export const ESTADOS_PROYECTO: { id: EstadoProyecto; label: string; color: string }[] = [
+  { id: "por_arrancar", label: "Por arrancar", color: "b-amber" },
+  { id: "en_curso", label: "En curso", color: "b-blue" },
+  { id: "finalizado", label: "Finalizado", color: "b-green" },
+  { id: "cancelado", label: "Cancelado", color: "b-gray" },
+];
+
+export interface Proyecto {
+  id: string;
+  nro_proyecto: string | null;
+  nombre: string;
+  oportunidad_id: string | null;
+
+  cliente_empresa_id: string | null;
+  cliente_contacto_id: string | null;
+  compania: string | null;
+  contacto: string | null;
+
+  buque: string | null;
+  descripcion: string | null;
+  alcance: string | null;
+
+  // Las estimadas vienen de la oportunidad; las reales se cargan cuando pasan.
+  fecha_inicio_estimada: string | null;
+  fecha_fin_estimada: string | null;
+  fecha_inicio_real: string | null;
+  fecha_fin_real: string | null;
+
+  moneda: Moneda;
+  iva: Iva;
+  estructura_tarifaria: EstructuraTarifaria;
+  valor: number;
+
+  estado: EstadoProyecto;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProyectoTarifa {
+  id: string;
+  proyecto_id: string;
+  concepto: Concepto;
+  detalle: string | null;
+  unidad: Unidad;
+  monto: number;
+  cantidad: number | null;
+  aplica_desde_horas: number | null;
+  orden: number;
+  created_at: string;
+}
+
+export interface ProyectoAdjunto {
+  id: string;
+  proyecto_id: string;
+  // El contrato firmado se guarda aparte del resto: es el documento que se
+  // busca, no uno mas de la pila.
+  clase: "contrato" | "otro";
+  nombre: string;
+  path: string;
+  tipo: string | null;
+  tamano_bytes: number | null;
   created_at: string;
 }

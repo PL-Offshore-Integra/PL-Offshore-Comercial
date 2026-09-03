@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import OportunidadForm, { PieDelFormulario } from "@/components/OportunidadForm";
 import { leerMaestroClientes } from "@/lib/clientes";
@@ -61,6 +62,15 @@ export default async function EditarOportunidadPage({
   const subir = subirAdjunto.bind(null, oportunidad.id);
 
   const { empresas, contactos } = await leerMaestroClientes();
+
+  // Si ya se convirtio en proyecto, la ficha lo linkea; si no, ofrece
+  // convertirla.
+  const { data: proy } = await supabase
+    .from("proyectos")
+    .select("id, nro_proyecto")
+    .eq("oportunidad_id", oportunidad.id)
+    .maybeSingle();
+  const proyecto = proy as { id: string; nro_proyecto: string | null } | null;
 
   const cerrada = oportunidad.estadio === "Ganado" || oportunidad.estadio === "Perdido";
 
@@ -161,17 +171,23 @@ export default async function EditarOportunidadPage({
           <div className="form-section">Cierre</div>
           {oportunidad.estadio === "Ganado" ? (
             <div className="info-box accent">
-              Ganada.{" "}
-              {oportunidad.proyecto_id ? (
+              {proyecto ? (
                 <>
-                  El proyecto existe en el maestro de Integra (
-                  <span className="text-mono">{oportunidad.proyecto_id}</span>). Falta
-                  que <strong>Finanzas le asigne el centro de costo y lo publique</strong>.
+                  Ganada y convertida en el proyecto{" "}
+                  <strong>{proyecto.nro_proyecto}</strong>.{" "}
+                  <Link href={`/proyectos/${proyecto.id}`}>
+                    <strong>Abrir el proyecto</strong>
+                  </Link>{" "}
+                  — lo que se cotizo queda aca y no cambia cuando se corrige el
+                  proyecto.
                 </>
               ) : (
                 <>
-                  No se creo ningun proyecto en Integra: ganar solo marca la
-                  oportunidad. El alta del proyecto la hace Finanzas.
+                  Ganada, pero todavia no se convirtio en proyecto.{" "}
+                  <Link href={`/proyectos/nuevo?oportunidad=${oportunidad.id}`}>
+                    <strong>Convertirla ahora</strong>
+                  </Link>
+                  .
                 </>
               )}
             </div>

@@ -10,7 +10,10 @@ type NavGroup = { titulo: string; items: NavItem[] };
 const NAV: NavGroup[] = [
   {
     titulo: "Comercial",
-    items: [{ href: "/oportunidades", label: "Oportunidades"  }],
+    items: [
+      { href: "/oportunidades", label: "Oportunidades" },
+      { href: "/proyectos", label: "Proyectos" },
+    ],
   },
   {
     titulo: "Maestros",
@@ -32,6 +35,11 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     titulo: "Oportunidades",
     sub: "Oportunidades comerciales de PL Offshore.",
   },
+  "/proyectos": {
+    grupo: "Comercial",
+    titulo: "Proyectos",
+    sub: "Los trabajos ganados: lo firmado, las fechas reales y el contrato.",
+  },
   "/clientes": {
     grupo: "Maestros",
     titulo: "Base de datos clientes",
@@ -51,6 +59,16 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
 
 function seccionFor(pathname: string) {
   if (SECCIONES[pathname]) return SECCIONES[pathname];
+  if (pathname === "/proyectos/nuevo") {
+    return {
+      grupo: "Comercial",
+      titulo: "Convertir en proyecto",
+      sub: "Lo que viene de la oportunidad se puede corregir antes de guardar.",
+    };
+  }
+  if (pathname.startsWith("/proyectos/")) {
+    return { grupo: "Comercial", titulo: "Proyecto", sub: "" };
+  }
   if (pathname === "/oportunidades/nueva") {
     return { grupo: "Comercial", titulo: "Nueva oportunidad", sub: "Se agrega con estadio inicial Investigando." };
   }

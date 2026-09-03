@@ -312,6 +312,11 @@ export async function marcarGanado(id: string) {
 
   revalidatePath("/oportunidades");
   revalidatePath(`/oportunidades/${id}`);
+
+  // Ganar abre la conversion en proyecto, con todo lo de la oportunidad
+  // precargado y editable. Si la persona no guarda, la oportunidad queda
+  // Ganada sin proyecto y la ficha ofrece convertirla mas tarde.
+  redirect(`/proyectos/nuevo?oportunidad=${id}`);
 }
 
 // Volver atras un cierre.

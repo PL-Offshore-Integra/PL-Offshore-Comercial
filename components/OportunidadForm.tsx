@@ -5,6 +5,7 @@ import { useState } from "react";
 import ClientePicker from "@/components/ClientePicker";
 import type { ClienteContacto, ClienteEmpresa } from "@/lib/types";
 import {
+  ADICIONALES,
   camposDe,
   ESTADIOS,
   ESTRUCTURAS,
@@ -201,7 +202,10 @@ export default function OportunidadForm({
             porque son lo que se guarda; la persona solo escribe el numero.
             Los cuatro campos vacios mantienen alineados los arrays que arma
             el server con getAll(). */}
-        {campos.map((c) => (
+        {/* Standby y accommodation van despues, fijos: no dependen de la
+            estructura, pueden acompanar a cualquiera. Vacios = no se
+            cotizaron, y entonces no se guarda ninguna fila. */}
+        {[...campos, ...ADICIONALES].map((c) => (
           <div className="fg" key={c.concepto}>
             <label>{c.label}</label>
             <input
