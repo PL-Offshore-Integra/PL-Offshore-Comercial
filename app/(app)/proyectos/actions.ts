@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { resolverCliente } from "@/lib/clienteResolver";
+import { aTimestamp } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import { estructuraValida } from "@/lib/types";
 
@@ -44,8 +45,10 @@ function fields(formData: FormData) {
     descripcion: str(formData, "descripcion"),
     alcance: str(formData, "alcance"),
 
-    fecha_inicio_estimada: str(formData, "fecha_inicio_estimada"),
-    fecha_fin_estimada: str(formData, "fecha_fin_estimada"),
+    // Con hora desde 0022. Sin zona explicita Postgres las tomaria como UTC
+    // y se correrian tres horas, igual que pasaba con las salidas.
+    fecha_inicio_estimada: aTimestamp(str(formData, "fecha_inicio_estimada")),
+    fecha_fin_estimada: aTimestamp(str(formData, "fecha_fin_estimada")),
 
     moneda: str(formData, "moneda") ?? "USD",
     iva: str(formData, "iva") ?? "21",

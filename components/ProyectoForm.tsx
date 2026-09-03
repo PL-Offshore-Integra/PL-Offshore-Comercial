@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import ClientePicker from "@/components/ClientePicker";
+import { aInputLocal } from "@/lib/fechas";
 import {
   ADICIONALES,
   camposDe,
@@ -210,28 +211,30 @@ export default function ProyectoForm({
 
       <div className="form-section">Fechas</div>
       <div className="form-grid">
-        {/* Cuatro fechas: las dos estimadas vienen de la cotizacion y quedan
-            como registro de lo que se prometio; las reales se cargan cuando
-            pasan, que casi nunca es lo mismo. */}
+        {/* Las dos estimadas: lo que se prometio al cotizar. Lo que paso de
+            verdad son las salidas, y de ellas sale el periodo real.
+
+            Con hora (0022), porque en estos trabajos la hora define el
+            precio y no tiene sentido que en la misma pantalla una fecha la
+            diga y la otra no. `aInputLocal` tolera que del lado de la
+            oportunidad venga una fecha sin hora: la muestra a las 00:00. */}
         <div className="fg">
           <label>Inicio estimado</label>
           <input
-            type="date"
+            type="datetime-local"
             name="fecha_inicio_estimada"
-            defaultValue={desde(
-              proyecto?.fecha_inicio_estimada,
-              oportunidad?.fecha_inicio_estimada
+            defaultValue={aInputLocal(
+              desde(proyecto?.fecha_inicio_estimada, oportunidad?.fecha_inicio_estimada)
             )}
           />
         </div>
         <div className="fg">
           <label>Fin estimado</label>
           <input
-            type="date"
+            type="datetime-local"
             name="fecha_fin_estimada"
-            defaultValue={desde(
-              proyecto?.fecha_fin_estimada,
-              oportunidad?.fecha_fin_estimada
+            defaultValue={aInputLocal(
+              desde(proyecto?.fecha_fin_estimada, oportunidad?.fecha_fin_estimada)
             )}
           />
         </div>
