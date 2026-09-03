@@ -57,7 +57,7 @@ export default async function OportunidadesPage() {
       {oportunidades.length > 0 && (
         <div className="card">
           <div className="table-wrap">
-            <table>
+            <table className="tabla-lista">
               <thead>
                 <tr>
                   <th>Nro</th>
@@ -77,17 +77,23 @@ export default async function OportunidadesPage() {
                   const etiqueta = etiquetaEstado(o.estado, o.resultado);
                   return (
                     <tr key={o.id}>
-                      <td className="text-mono">{o.nro_oportunidad ?? "-"}</td>
+                      <td className="text-mono cel-nro">{o.nro_oportunidad ?? "-"}</td>
                       <td>
                         <span className={`badge ${etiqueta.color}`}>{etiqueta.label}</span>
                       </td>
                       <td className="cel-compania">{o.compania}</td>
-                      <td>{recortar(o.descripcion_alcance ?? o.nombre_proyecto, 60)}</td>
+                      <td>
+                        <span className="cel-texto">
+                          {recortar(o.descripcion_alcance ?? o.nombre_proyecto, 60)}
+                        </span>
+                      </td>
                       <td className="text-muted">{o.buque ?? "—"}</td>
                       <td className="text-muted">{o.contacto ?? o.contacto_email ?? "—"}</td>
-                      <td className="text-mono">{plata(o.moneda, o.valor)}</td>
+                      <td className="text-mono cel-valor">{plata(o.moneda, o.valor)}</td>
                       <td className="text-mono">{fecha(o.fecha_esperada_cierre)}</td>
-                      <td className="text-muted">{recortar(o.comentarios)}</td>
+                      <td className="text-muted">
+                        <span className="cel-texto">{recortar(o.comentarios)}</span>
+                      </td>
                       <td>
                         <div className="fila-acciones">
                           <EstadoOportunidadControl

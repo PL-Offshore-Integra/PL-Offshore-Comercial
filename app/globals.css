@@ -278,3 +278,36 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 /* El desplegable de estado en la fila de la lista: mas angosto y sin el
    min-width de los filtros. */
 .select-estado{min-width:0;width:118px;height:28px;font-size:13px;padding:0 8px}
+
+/* ── LISTADO ANCHO ────────────────────────────────────────────────────── */
+/* La lista de oportunidades tiene diez columnas y no entraba sin barra
+   horizontal. Lo que sobraba no era el contenido sino el envase: los
+   encabezados en una sola linea (CIERRE ESPERADO pedia 152px para una fecha
+   de 85), 12px de relleno a cada lado de diez celdas, y los tres controles de
+   la ultima columna con el aire de un formulario. Aca el relleno se acorta,
+   el encabezado parte de linea y el texto largo se corta en dos renglones. */
+.tabla-lista th{white-space:normal;padding:8px 6px;line-height:1.3}
+.tabla-lista td{padding:10px 6px}
+/* Ni el numero ni la plata se parten en dos renglones: PL-1-2026 partido no
+   es un numero y US$ 5.000.000,00 partido no es un importe. */
+.cel-nro,.cel-valor{white-space:nowrap}
+.tabla-lista .fila-acciones{gap:3px}
+.tabla-lista .select-estado{width:96px}
+.tabla-lista .btn-sm{padding:0 7px}
+/* Tarea y Comentarios: dos renglones y se corta. El texto ya viene recortado
+   por caracteres; esto le pone el techo en pantalla. */
+.cel-texto{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:190px;white-space:normal}
+/* En pantalla mas angosta lo que cede es el texto, no la estructura: la
+   compania parte entre palabras y las dos columnas de texto se angostan. Asi
+   las diez columnas entran sin barra horizontal y sin apilar los controles de
+   la ultima columna, que dejaban la fila con la altura de tres botones. */
+@media (max-width:1400px){
+  .tabla-lista .cel-compania{white-space:normal}
+  .cel-texto{max-width:150px}
+  .tabla-lista .fila-acciones{gap:2px}
+  .tabla-lista .btn-sm{padding:0 6px}
+}
+@media (max-width:1250px){
+  .tabla-lista th,.tabla-lista td{padding:8px 4px}
+  .cel-texto{max-width:120px}
+}
