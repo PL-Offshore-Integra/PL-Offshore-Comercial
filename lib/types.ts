@@ -90,6 +90,12 @@ export const ADICIONALES: CampoTarifa[] = [
 // segun la estructura, asi que comparten el valor guardado.
 export type CampoTarifa = { concepto: Concepto; label: string; unidad: Unidad };
 
+// Lo unico que un formulario necesita de una tarifa para precargar sus
+// casilleros. Las cuatro tablas de tarifas —de oportunidad, de proyecto, de
+// plantilla y de operacion— cumplen esta forma, asi que los formularios piden
+// esto y no una union que crezca con cada tabla nueva.
+export type MontoDeTarifa = { concepto: Concepto; monto: number };
+
 export const CONTRATACIONES: {
   id: EstructuraTarifaria;
   label: string;
@@ -544,4 +550,54 @@ export function diasDeOperacion(inicio: string | null, fin: string | null): numb
   const b = new Date(fin).getTime();
   if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return null;
   return (b - a) / (1000 * 60 * 60 * 24);
+}
+
+// ── PLANTILLAS (0020) ─────────────────────────────────────────────────────
+//
+// El punto de partida de un proyecto que se repite: el cliente habitual, el
+// buque, el tipo de contratacion y las tarifas.
+//
+// La plantilla se copia al crear el proyecto y despues los dos caminos se
+// separan: cambiar una plantilla NO toca los proyectos ya creados. Un proyecto
+// es un acuerdo cerrado y no puede cambiar porque alguien corrigio una
+// plantilla.
+export interface Plantilla {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+
+  cliente_empresa_id: string | null;
+  cliente_contacto_id: string | null;
+  cliente_final: string | null;
+
+  buque: string | null;
+  alcance: string | null;
+
+  moneda: Moneda;
+  iva: Iva;
+  estructura_tarifaria: EstructuraTarifaria;
+
+  // Retirarla sin borrarla: deja de ofrecerse pero no se pierde.
+  activa: boolean;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// La plantilla con el nombre de su empresa resuelto (vista de 0020).
+export interface PlantillaListada extends Plantilla {
+  compania: string | null;
+  contacto: string | null;
+  tarifas: number;
+}
+
+export interface PlantillaTarifa {
+  id: string;
+  plantilla_id: string;
+  concepto: Concepto;
+  detalle: string | null;
+  unidad: Unidad;
+  monto: number;
+  orden: number;
+  created_at: string;
 }

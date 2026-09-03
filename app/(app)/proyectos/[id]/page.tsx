@@ -8,6 +8,7 @@ import {
   subirAdjuntoProyecto,
 } from "@/app/(app)/proyectos/actions";
 import { BotonGuardar } from "@/components/BotonGuardar";
+import { plantillaDesdeProyecto } from "@/app/(app)/plantillas/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
 import { fechaHoraLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
@@ -97,6 +98,7 @@ export default async function ProyectoPage({
   const guardar = actualizarProyecto.bind(null, proyecto.id);
   const eliminar = borrarProyecto.bind(null, proyecto.id);
   const subir = subirAdjuntoProyecto.bind(null, proyecto.id);
+  const aPlantilla = plantillaDesdeProyecto.bind(null, proyecto.id);
 
   return (
     <div>
@@ -104,11 +106,20 @@ export default async function ProyectoPage({
         <span className="tag">
           {proyecto.nro_proyecto ?? "sin nro"} &middot; {proyecto.nombre}
         </span>
-        <form action={eliminar}>
-          <button type="submit" className="btn btn-danger btn-sm">
-            Eliminar
-          </button>
-        </form>
+        <div className="fila-acciones">
+          {/* El atajo: un proyecto bien cargado ya tiene todo lo que una
+              plantilla necesita, asi que se copia en vez de tipearse. */}
+          <form action={aPlantilla}>
+            <BotonGuardar className="btn btn-ghost btn-sm" enviando="Guardando...">
+              Guardar como plantilla
+            </BotonGuardar>
+          </form>
+          <form action={eliminar}>
+            <button type="submit" className="btn btn-danger btn-sm">
+              Eliminar
+            </button>
+          </form>
+        </div>
       </div>
 
       <ProyectoForm

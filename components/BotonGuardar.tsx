@@ -8,15 +8,28 @@ import { useRef, useState } from "react";
 // quedan dos filas iguales con dos numeros distintos. Pasa igual apretando
 // Enter con impaciencia, y pasa mas cuando la accion tarda —subir un adjunto,
 // crear un cliente nuevo— porque justo ahi la pantalla no da ninguna senal de
-// que algo esta pasando.
+// que algo este pasando.
 //
-// El bloqueo tiene que ser SINCRONICO, y por eso no alcanza `useState` ni
-// `useFormStatus`: los dos actualizan en el tick siguiente, asi que entre el
-// primer clic y el re-render el boton sigue habilitado. Probado: tres clics en
-// el mismo tick entraban los tres y creaban tres proyectos. La guarda real es
-// el ref, que se marca y se lee en el mismo evento, y el preventDefault que
-// corta los clics de mas antes de que lleguen a ser un submit. El estado solo
-// existe para cambiar el texto del boton.
+// Dos cosas que parecen obvias y estan mal, las dos medidas:
+//
+// 1. `useState` / `useFormStatus` NO alcanzan para bloquear. Los dos
+//    actualizan en el tick siguiente, asi que entre el primer clic y el
+//    re-render el boton sigue habilitado: tres clics en el mismo tick entraban
+//    los tres y creaban tres proyectos identicos. El bloqueo real es el ref,
+//    que se marca y se lee en el mismo evento, mas el preventDefault que corta
+//    los clics de mas antes de que lleguen a ser un submit.
+//
+// 2. Poner `disabled` mientras se envia ROMPE el envio. React 19 vacia el
+//    estado de forma sincronica en un evento discreto como el clic, asi que el
+//    boton queda deshabilitado ANTES de que el navegador ejecute la accion por
+//    defecto —y un boton deshabilitado no envia el formulario—. El sintoma es
+//    exacto: el boton dice "Guardando..." para siempre y al servidor no llega
+//    ningun POST. Por eso el estado solo cambia el texto y el aspecto
+//    (aria-disabled), nunca el atributo `disabled`.
+//
+//    Esto no se veia probando con `boton.click()` desde la consola: un clic
+//    sintetico ejecuta el submit dentro de la misma llamada, antes del
+//    re-render, y el bug queda tapado. Aparece solo con un clic de verdad.
 //
 // Sirve para las dos formas en que el boton se relaciona con su formulario:
 // dentro de el, o afuera apuntandolo por id con `form=` —que es como quedaron
@@ -41,7 +54,7 @@ export function BotonGuardar({
       type="submit"
       form={form}
       className={className}
-      disabled={enviando}
+      aria-disabled={enviando}
       onClick={(e) => {
         if (yaEnvie.current) {
           e.preventDefault();

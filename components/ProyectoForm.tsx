@@ -16,9 +16,9 @@ import {
   type Concepto,
   type EstructuraTarifaria,
   type Oportunidad,
+  type Plantilla,
   type Proyecto,
-  type ProyectoTarifa,
-  type Tarifa,
+  type MontoDeTarifa,
 } from "@/lib/types";
 
 export const ID_FORM_PROYECTO = "form-proyecto";
@@ -42,20 +42,25 @@ export default function ProyectoForm({
   oportunidad,
   tarifas = [],
   nroQueSigue,
+  plantilla,
   empresas = [],
   contactos = [],
 }: {
   action: (formData: FormData) => void;
   proyecto?: Proyecto;
   oportunidad?: Oportunidad;
-  tarifas?: (Tarifa | ProyectoTarifa)[];
+  tarifas?: MontoDeTarifa[];
   nroQueSigue?: string;
+  plantilla?: Plantilla;
   // El maestro de clientes: solo hace falta cuando el cliente se elige aca.
   empresas?: ClienteEmpresa[];
   contactos?: ClienteContacto[];
 }) {
   const [estructura, setEstructura] = useState<EstructuraTarifaria>(
-    proyecto?.estructura_tarifaria ?? oportunidad?.estructura_tarifaria ?? "time_charter"
+    proyecto?.estructura_tarifaria ??
+      oportunidad?.estructura_tarifaria ??
+      plantilla?.estructura_tarifaria ??
+      "time_charter"
   );
   const campos = camposDe(estructura);
 
@@ -73,13 +78,20 @@ export default function ProyectoForm({
   // lo hereda; uno cargado desde cero lo elige. `oportunidad_id` es el dato
   // duro: si esta, hay origen.
   const conOrigen = Boolean(oportunidad ?? proyecto?.oportunidad_id);
-  // Editando un proyecto manda el valor del proyecto; convirtiendo una
-  // oportunidad, el de la oportunidad. Siempre devuelve string: los <input> no
-  // aceptan null.
+  // De donde sale un default, en orden de precedencia: editando un proyecto
+  // manda el proyecto; convirtiendo una oportunidad, la oportunidad; y
+  // arrancando de una plantilla, la plantilla. Son mutuamente excluyentes.
+  // Siempre devuelve string: los <input> no aceptan null.
   const desde = (
     delProyecto: string | null | undefined,
-    deLaOportunidad: string | null | undefined
-  ): string => (proyecto ? (delProyecto ?? "") : (deLaOportunidad ?? ""));
+    deLaOportunidad: string | null | undefined,
+    deLaPlantilla?: string | null | undefined
+  ): string =>
+    proyecto
+      ? (delProyecto ?? "")
+      : oportunidad
+        ? (deLaOportunidad ?? "")
+        : (deLaPlantilla ?? "");
 
   return (
     <form action={action} className="card" id={ID_FORM_PROYECTO}>
@@ -138,8 +150,8 @@ export default function ProyectoForm({
           <ClientePicker
             empresas={empresas}
             contactos={contactos}
-            empresaId={proyecto?.cliente_empresa_id}
-            contactoId={proyecto?.cliente_contacto_id}
+            empresaId={proyecto?.cliente_empresa_id ?? plantilla?.cliente_empresa_id}
+            contactoId={proyecto?.cliente_contacto_id ?? plantilla?.cliente_contacto_id}
           />
         )}
         <div className="fg">
@@ -150,7 +162,11 @@ export default function ProyectoForm({
           <label>Cliente final</label>
           <input
             name="cliente_final"
-            defaultValue={desde(proyecto?.cliente_final, oportunidad?.cliente_final)}
+            defaultValue={desde(
+              proyecto?.cliente_final,
+              oportunidad?.cliente_final,
+              plantilla?.cliente_final
+            )}
             placeholder="Para quien es el trabajo"
           />
           <span className="hint">Si es distinto de quien contrata</span>
@@ -162,7 +178,11 @@ export default function ProyectoForm({
         <label>En que consiste</label>
         <textarea
           name="descripcion"
-          defaultValue={desde(proyecto?.descripcion, oportunidad?.descripcion_alcance)}
+          defaultValue={desde(
+            proyecto?.descripcion,
+            oportunidad?.descripcion_alcance,
+            plantilla?.descripcion
+          )}
           rows={4}
         />
       </div>
@@ -171,7 +191,7 @@ export default function ProyectoForm({
           <label>Buque</label>
           <input
             name="buque"
-            defaultValue={desde(proyecto?.buque, oportunidad?.buque)}
+            defaultValue={desde(proyecto?.buque, oportunidad?.buque, plantilla?.buque)}
             placeholder="Atlantic Dama"
           />
         </div>
@@ -179,7 +199,11 @@ export default function ProyectoForm({
           <label>Alcance (categoria)</label>
           <input
             name="alcance"
-            defaultValue={desde(proyecto?.alcance, oportunidad?.alcance_oportunidad)}
+            defaultValue={desde(
+              proyecto?.alcance,
+              oportunidad?.alcance_oportunidad,
+              plantilla?.alcance
+            )}
           />
         </div>
       </div>
@@ -220,7 +244,7 @@ export default function ProyectoForm({
       <div className="form-grid">
         <div className="fg">
           <label>Moneda</label>
-          <select name="moneda" defaultValue={proyecto?.moneda ?? oportunidad?.moneda ?? "USD"}>
+          <select name="moneda" defaultValue={proyecto?.moneda ?? oportunidad?.moneda ?? plantilla?.moneda ?? "USD"}>
             {MONEDAS.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
@@ -230,7 +254,7 @@ export default function ProyectoForm({
         </div>
         <div className="fg">
           <label>IVA</label>
-          <select name="iva" defaultValue={proyecto?.iva ?? "21"}>
+          <select name="iva" defaultValue={proyecto?.iva ?? plantilla?.iva ?? "21"}>
             {IVAS.map((i) => (
               <option key={i.id} value={i.id}>
                 {i.label}

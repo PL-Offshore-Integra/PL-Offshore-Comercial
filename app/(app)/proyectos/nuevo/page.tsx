@@ -3,7 +3,14 @@ import ProyectoForm from "@/components/ProyectoForm";
 import { crearProyecto } from "@/app/(app)/proyectos/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
 import { createClient } from "@/lib/supabase/server";
-import { etiquetaEstado, type Oportunidad, type Tarifa } from "@/lib/types";
+import {
+  etiquetaEstado,
+  type Oportunidad,
+  type Plantilla,
+  type PlantillaListada,
+  type PlantillaTarifa,
+  type Tarifa,
+} from "@/lib/types";
 
 // Alta de proyecto, por los dos caminos:
 //
@@ -18,9 +25,9 @@ import { etiquetaEstado, type Oportunidad, type Tarifa } from "@/lib/types";
 export default async function NuevoProyectoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ oportunidad?: string }>;
+  searchParams: Promise<{ oportunidad?: string; plantilla?: string }>;
 }) {
-  const { oportunidad: oportunidadId } = await searchParams;
+  const { oportunidad: oportunidadId, plantilla: plantillaId } = await searchParams;
   const supabase = await createClient();
 
   let oportunidad: Oportunidad | undefined;
@@ -103,6 +110,39 @@ export default async function NuevoProyectoPage({
     );
   }
 
+  // La plantilla: el punto de partida cuando el trabajo se repite. No aplica
+  // en una conversion, donde todo viene de la oportunidad.
+  let plantilla: Plantilla | undefined;
+  let tarifasPlantilla: PlantillaTarifa[] = [];
+  if (!oportunidad && plantillaId) {
+    const { data } = await supabase
+      .from("plantillas")
+      .select("*")
+      .eq("id", plantillaId)
+      .single();
+    plantilla = (data ?? undefined) as Plantilla | undefined;
+
+    if (plantilla) {
+      const { data: tp } = await supabase
+        .from("plantilla_tarifas")
+        .select("*")
+        .eq("plantilla_id", plantillaId)
+        .order("orden", { ascending: true });
+      tarifasPlantilla = (tp ?? []) as PlantillaTarifa[];
+    }
+  }
+
+  // Las que se pueden ofrecer, solo cuando todavia no se eligio ninguna.
+  let disponibles: PlantillaListada[] = [];
+  if (!oportunidad && !plantilla) {
+    const { data } = await supabase
+      .from("plantillas_listado")
+      .select("*")
+      .eq("activa", true)
+      .order("nombre", { ascending: true });
+    disponibles = (data ?? []) as PlantillaListada[];
+  }
+
   // El maestro de clientes solo se lee cuando el cliente se elige aca: en una
   // conversion viene de la oportunidad y no hay nada que elegir.
   const { empresas, contactos } = oportunidad
@@ -119,6 +159,17 @@ export default async function NuevoProyectoPage({
             lo cotizado casi nunca es exactamente lo que se firma. La
             oportunidad queda como estaba, con lo que se ofrecio.
           </>
+        ) : plantilla ? (
+          <>
+            Arrancando desde la plantilla{" "}
+            <strong>{plantilla.nombre}</strong>: el cliente, el buque, el tipo
+            de contratacion y las tarifas vienen cargados y se pueden corregir.
+            Lo que quede guardado vive en el proyecto, asi que despues cambiar
+            la plantilla no lo toca.{" "}
+            <Link href="/proyectos/nuevo">
+              <strong>Cargar en blanco</strong>
+            </Link>
+          </>
         ) : (
           <>
             Proyecto sin oportunidad de origen: se carga entero aca, con el
@@ -133,10 +184,50 @@ export default async function NuevoProyectoPage({
         )}
       </div>
 
+      {/* Las plantillas de trabajos que se repiten. Se ofrecen antes del
+          formulario porque elegir una cambia lo que el formulario muestra. */}
+      {disponibles.length > 0 && (
+        <div className="card">
+          <div className="card-title">
+            <span>Arrancar desde una plantilla</span>
+            <Link href="/plantillas" className="btn btn-ghost btn-sm">
+              Administrar
+            </Link>
+          </div>
+          <div className="fila-plantillas">
+            {disponibles.map((pl) => (
+              <Link
+                key={pl.id}
+                href={`/proyectos/nuevo?plantilla=${pl.id}`}
+                className="plantilla-chip"
+              >
+                <strong>{pl.nombre}</strong>
+                <span className="text-muted">
+                  {[pl.compania, pl.buque].filter(Boolean).join(" · ") ||
+                    "sin cliente ni buque fijo"}
+                </span>
+              </Link>
+            ))}
+          </div>
+          <span className="hint">
+            O segui abajo y carga el proyecto en blanco.
+          </span>
+        </div>
+      )}
+
+      {/* La key fuerza a React a rehacer el formulario cuando cambia la
+          plantilla elegida. Elegir una navega a esta misma ruta con otro query
+          string, asi que sin la key React reusa el componente y los `useState`
+          —el tipo de contratacion y la empresa del cliente— se quedan con los
+          valores del render anterior. Eso daba un sintoma confuso: el buque y
+          el cliente final llegaban, porque se calculan en cada render, y el
+          tipo de contratacion no. */}
       <ProyectoForm
+        key={plantilla?.id ?? "en-blanco"}
         action={crearProyecto}
         oportunidad={oportunidad}
-        tarifas={tarifas}
+        tarifas={oportunidad ? tarifas : tarifasPlantilla}
+        plantilla={plantilla}
         nroQueSigue={nroQueSigue}
         empresas={empresas}
         contactos={contactos}

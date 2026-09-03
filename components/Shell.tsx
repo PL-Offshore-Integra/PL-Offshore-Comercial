@@ -17,7 +17,10 @@ const NAV: NavGroup[] = [
   },
   {
     titulo: "Maestros",
-    items: [{ href: "/clientes", label: "Base de datos clientes"  }],
+    items: [
+      { href: "/clientes", label: "Base de datos clientes" },
+      { href: "/plantillas", label: "Plantillas de proyecto" },
+    ],
   },
   {
     titulo: "Eventos",
@@ -44,6 +47,11 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     grupo: "Maestros",
     titulo: "Base de datos clientes",
     sub: "El maestro de clientes: empresas, contactos y su historia comercial.",
+  },
+  "/plantillas": {
+    grupo: "Maestros",
+    titulo: "Plantillas de proyecto",
+    sub: "El punto de partida de los trabajos que se repiten: cliente, buque y tarifas.",
   },
   "/calendario": {
     grupo: "Eventos",
@@ -83,6 +91,16 @@ function seccionFor(pathname: string) {
   }
   if (pathname.startsWith("/proyectos/")) {
     return { grupo: "Comercial", titulo: "Proyecto", sub: "" };
+  }
+  if (pathname === "/plantillas/nueva") {
+    return {
+      grupo: "Maestros",
+      titulo: "Nueva plantilla",
+      sub: "Lo que se repite en cada proyecto de este tipo.",
+    };
+  }
+  if (pathname.startsWith("/plantillas/")) {
+    return { grupo: "Maestros", titulo: "Plantilla", sub: "" };
   }
   if (pathname === "/oportunidades/nueva") {
     return {
@@ -202,6 +220,13 @@ export default function Shell({
                 <div className="pagehead-actions">
                   <Link href="/proyectos/nuevo" className="btn btn-amarillo">
                     Nuevo proyecto
+                  </Link>
+                </div>
+              )}
+              {pathname === "/plantillas" && (
+                <div className="pagehead-actions">
+                  <Link href="/plantillas/nueva" className="btn btn-amarillo">
+                    Nueva plantilla
                   </Link>
                 </div>
               )}

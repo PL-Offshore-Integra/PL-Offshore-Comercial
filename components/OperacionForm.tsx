@@ -17,8 +17,7 @@ import {
   type EstructuraTarifaria,
   type Moneda,
   type Operacion,
-  type OperacionTarifa,
-  type ProyectoTarifa,
+  type MontoDeTarifa,
   type Proyecto,
 } from "@/lib/types";
 
@@ -53,7 +52,7 @@ export default function OperacionForm({
   operacion?: Operacion;
   // Editando una salida son las suyas; creandola, las del proyecto, que se
   // usan como punto de partida.
-  tarifas?: (OperacionTarifa | ProyectoTarifa)[];
+  tarifas?: MontoDeTarifa[];
   nroQueSigue?: string;
 }) {
   const [tipo, setTipo] = useState<EstructuraTarifaria>(
