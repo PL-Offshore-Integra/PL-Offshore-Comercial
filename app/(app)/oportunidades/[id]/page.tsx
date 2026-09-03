@@ -14,7 +14,11 @@ import {
 // mirar una oportunidad no tiene por que pasar por la pantalla de edicion,
 // donde cualquier tecla suelta cambia un dato.
 
-const plata = new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD" });
+const plata = (moneda: string, valor: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: moneda === "ARS" ? "ARS" : "USD",
+  }).format(valor);
 
 function fecha(iso: string | null) {
   if (!iso) return "—";
@@ -113,7 +117,7 @@ export default async function VerOportunidadPage({
         <div className="form-grid">
           <Dato label="Tipo de contratacion">{tipo?.label ?? o.estructura_tarifaria}</Dato>
           <Dato label="Valor total">
-            <strong>{plata.format(o.valor)}</strong>
+            <strong>{plata(o.moneda, o.valor)}</strong>
           </Dato>
         </div>
 
@@ -133,7 +137,7 @@ export default async function VerOportunidadPage({
                     <td>{etiquetaConcepto(t.concepto)}</td>
                     <td className="text-muted">{t.unidad === "dia" ? "por dia" : "global"}</td>
                     <td className="text-mono" style={{ textAlign: "right" }}>
-                      {plata.format(Number(t.monto))}
+                      {plata(o.moneda, Number(t.monto))}
                     </td>
                   </tr>
                 ))}

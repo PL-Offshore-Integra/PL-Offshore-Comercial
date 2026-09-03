@@ -190,7 +190,7 @@ export default function ProyectoForm({
       <div className="form-grid">
         <div className="fg">
           <label>Moneda</label>
-          <select name="moneda" defaultValue={proyecto?.moneda ?? "USD"}>
+          <select name="moneda" defaultValue={proyecto?.moneda ?? oportunidad?.moneda ?? "USD"}>
             {MONEDAS.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}

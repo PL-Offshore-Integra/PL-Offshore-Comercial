@@ -9,22 +9,26 @@ import {
   camposDe,
   CONTRATACIONES,
   ESTADOS_OPORTUNIDAD,
+  MONEDAS,
   finEstimado,
   type ClienteContacto,
   type ClienteEmpresa,
   type Concepto,
   type EstructuraTarifaria,
+  type Moneda,
   type Oportunidad,
   type Tarifa,
 } from "@/lib/types";
 
 const HOY = () => new Date().toISOString().slice(0, 10);
 
-const plata = new Intl.NumberFormat("es-AR", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-});
+// El total se muestra en la moneda elegida, no siempre en dolares.
+const plata = (moneda: Moneda, valor: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: moneda,
+    minimumFractionDigits: 2,
+  }).format(valor);
 
 // Cerrar no se hace desde este formulario: se hace desde la lista, donde el
 // cierre pide el resultado y, si se perdio, el comentario. Aca solo se elige
@@ -65,6 +69,7 @@ export default function OportunidadForm({
     oportunidad?.duracion_estimada_dias ? String(oportunidad.duracion_estimada_dias) : ""
   );
   const [fechaAlta, setFechaAlta] = useState(oportunidad?.fecha_creacion ?? HOY());
+  const [moneda, setMoneda] = useState<Moneda>(oportunidad?.moneda ?? "USD");
 
   const anio = Number(fechaAlta.slice(0, 4));
   const nroQueSigue =
@@ -214,6 +219,23 @@ export default function OportunidadForm({
           </select>
         </div>
 
+        <div className="fg">
+          {/* En que moneda se cotiza. Al convertir en proyecto, el proyecto la
+              hereda. */}
+          <label>Moneda</label>
+          <select
+            name="moneda"
+            value={moneda}
+            onChange={(e) => setMoneda(e.target.value as Moneda)}
+          >
+            {MONEDAS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {campos.map((c) => (
           <div className="fg" key={c.concepto}>
             <label>{c.label}</label>
@@ -241,7 +263,7 @@ export default function OportunidadForm({
               guardar con la misma funcion, asi que lo que se ve es lo que
               queda. */}
           <label>Valor total de la propuesta</label>
-          <input value={plata.format(valor)} readOnly />
+          <input value={plata(moneda, valor)} readOnly />
           <span className="hint">
             {tipo === "time_charter"
               ? "Daily hire × dias + mobilization + demobilization"

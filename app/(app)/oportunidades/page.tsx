@@ -8,7 +8,13 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { etiquetaEstado, type Oportunidad } from "@/lib/types";
 
-const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD" });
+// Cada fila se muestra en su moneda: una cotizada en pesos no se puede
+// imprimir con el signo del dolar.
+const plata = (moneda: string, valor: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: moneda === "ARS" ? "ARS" : "USD",
+  }).format(valor);
 
 // dd/mm/aaaa, que es como se leen las fechas aca.
 function fecha(iso: string | null) {
@@ -79,7 +85,7 @@ export default async function OportunidadesPage() {
                       <td>{recortar(o.descripcion_alcance ?? o.nombre_proyecto, 60)}</td>
                       <td className="text-muted">{o.buque ?? "—"}</td>
                       <td className="text-muted">{o.contacto ?? o.contacto_email ?? "—"}</td>
-                      <td className="text-mono">{currency.format(o.valor)}</td>
+                      <td className="text-mono">{plata(o.moneda, o.valor)}</td>
                       <td className="text-mono">{fecha(o.fecha_esperada_cierre)}</td>
                       <td className="text-muted">{recortar(o.comentarios)}</td>
                       <td>

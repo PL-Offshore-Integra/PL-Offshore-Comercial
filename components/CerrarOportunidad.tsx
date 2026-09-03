@@ -4,16 +4,18 @@ import { useRef, useState } from "react";
 
 // El control de estado de cada fila de la lista.
 //
-// Abierto y En curso se cambian de una. Cerrado no: cerrar obliga a decir con
-// que resultado, y si se perdio, por que. Por eso al elegir "Cerrado" se abre
-// un cuadro de dialogo en lugar de guardar directo.
+// Abierto y En curso se cambian de una: no hay nada que explicar. Los otros dos
+// abren un cuadro de dialogo, porque los dos son un final y un final sin motivo
+// no le sirve a nadie:
 //
-// El comentario de la perdida no va a un campo aparte: va a `comentarios`, que
-// es el que se ve en la lista. Cuando alguien mira el listado y ve una
-// perdida, lo primero que quiere saber es por que.
+//   Cerrado    pide el resultado —ganado o perdido— y el comentario.
+//   Cancelado  pide el comentario.
+//
+// El comentario no va a un campo aparte: va a `comentarios`, que es el que se
+// ve en la lista. Cuando alguien mira el listado y ve una perdida o una
+// cancelada, lo primero que quiere saber es por que.
 export default function EstadoOportunidadControl({
   estado,
-  resultado,
   cambiarEstado,
   cerrar,
   reabrir,
@@ -29,6 +31,7 @@ export default function EstadoOportunidadControl({
   comentarios: string | null;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const [modo, setModo] = useState<"cerrar" | "cancelar">("cerrar");
   const [comoCierra, setComoCierra] = useState<"ganado" | "perdido">("ganado");
 
   if (estado === "cerrado") {
@@ -40,6 +43,11 @@ export default function EstadoOportunidadControl({
       </form>
     );
   }
+
+  const cancelando = modo === "cancelar";
+  // Perdida y cancelada exigen el motivo; una ganada puede no tener nada que
+  // agregar.
+  const motivoObligatorio = cancelando || comoCierra === "perdido";
 
   return (
     <>
@@ -54,9 +62,12 @@ export default function EstadoOportunidadControl({
           defaultValue={estado}
           className="filter-select select-estado"
           onChange={(e) => {
-            if (e.target.value === "cerrado") {
-              // Volver al valor anterior: el cierre lo confirma el cuadro.
+            const elegido = e.target.value;
+            if (elegido === "cerrado" || elegido === "cancelado") {
+              // Vuelve al valor anterior: lo confirma el cuadro, no el
+              // desplegable.
               e.target.value = estado;
+              setModo(elegido === "cancelado" ? "cancelar" : "cerrar");
               dialogo.current?.showModal();
             } else {
               e.target.form?.requestSubmit();
@@ -65,42 +76,58 @@ export default function EstadoOportunidadControl({
         >
           <option value="abierto">Abierto</option>
           <option value="en_curso">En curso</option>
-          <option value="cancelado">Cancelado</option>
+          <option value="cancelado">Cancelado...</option>
           <option value="cerrado">Cerrado...</option>
         </select>
       </form>
 
       <dialog ref={dialogo} className="modal">
-        <form action={cerrar}>
-          <div className="modal-titulo">Cerrar {etiqueta}</div>
-
-          <div className="fg mb16">
-            <label>Resultado</label>
-            <select
-              name="resultado"
-              value={comoCierra}
-              onChange={(e) => setComoCierra(e.target.value as "ganado" | "perdido")}
-            >
-              <option value="ganado">Ganado</option>
-              <option value="perdido">Perdido</option>
-            </select>
+        {/* Un solo cuadro para los dos finales: cambia el titulo, si pide
+            resultado y a que accion apunta. */}
+        <form action={cancelando ? cambiarEstado : cerrar}>
+          <div className="modal-titulo">
+            {cancelando ? "Cancelar" : "Cerrar"} {etiqueta}
           </div>
 
+          {cancelando ? (
+            <input type="hidden" name="estado" value="cancelado" />
+          ) : (
+            <div className="fg mb16">
+              <label>Resultado</label>
+              <select
+                name="resultado"
+                value={comoCierra}
+                onChange={(e) => setComoCierra(e.target.value as "ganado" | "perdido")}
+              >
+                <option value="ganado">Ganado</option>
+                <option value="perdido">Perdido</option>
+              </select>
+            </div>
+          )}
+
           <div className="fg mb16">
-            <label>{comoCierra === "perdido" ? "Por que se perdio" : "Comentarios"}</label>
+            <label>
+              {cancelando
+                ? "Por que se cancela"
+                : comoCierra === "perdido"
+                  ? "Por que se perdio"
+                  : "Comentarios"}
+            </label>
             <textarea
               name="comentarios"
               rows={3}
               defaultValue={comentarios ?? ""}
-              required={comoCierra === "perdido"}
+              required={motivoObligatorio}
               placeholder={
-                comoCierra === "perdido"
-                  ? "Precio, disponibilidad de buque, plazo..."
-                  : "Opcional"
+                cancelando
+                  ? "El cliente suspendio el proyecto, se cayo la licitacion..."
+                  : comoCierra === "perdido"
+                    ? "Precio, disponibilidad de buque, plazo..."
+                    : "Opcional"
               }
             />
             <span className="hint">
-              {comoCierra === "perdido"
+              {motivoObligatorio
                 ? "Obligatorio. Es lo que se ve en el listado."
                 : "Reemplaza los comentarios que tenga cargados."}
             </span>
@@ -112,13 +139,17 @@ export default function EstadoOportunidadControl({
               className="btn btn-ghost"
               onClick={() => dialogo.current?.close()}
             >
-              Cancelar
+              Volver
             </button>
             <button
               type="submit"
-              className={comoCierra === "perdido" ? "btn btn-danger" : "btn btn-success"}
+              className={
+                cancelando || comoCierra === "perdido" ? "btn btn-danger" : "btn btn-success"
+              }
             >
-              Cerrar como {comoCierra === "perdido" ? "perdida" : "ganada"}
+              {cancelando
+                ? "Cancelar la oportunidad"
+                : `Cerrar como ${comoCierra === "perdido" ? "perdida" : "ganada"}`}
             </button>
           </div>
         </form>

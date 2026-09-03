@@ -183,6 +183,10 @@ export interface Oportunidad {
   // La persona pone los dias y el fin estimado se calcula.
   duracion_estimada_dias: number | null;
 
+  // --- 0015 ---
+  // En que moneda se cotiza. El proyecto la hereda al convertirse.
+  moneda: Moneda;
+
   valor: number;
   costo: number;
   fecha_creacion: string;

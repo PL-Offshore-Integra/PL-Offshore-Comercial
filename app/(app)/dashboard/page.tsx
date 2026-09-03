@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Oportunidad } from "@/lib/types";
 
-const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD" });
+const currency = (moneda: string, valor: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: moneda === "ARS" ? "ARS" : "USD",
+  }).format(valor);
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -17,12 +21,28 @@ export default async function DashboardPage() {
   // Nombre de proyecto dejo de pedirse en el formulario (0004), asi que
   // agrupar por ahi dejaria casi todo en una fila vacia. El corte pasa a ser
   // el cliente.
-  const porEmpresa = new Map<string, number>();
-  const porCliente = new Map<string, number>();
+  // Se agrupa por moneda ademas de por empresa y cliente: desde 0015 una
+  // oportunidad puede estar en pesos, y sumar pesos con dolares daria un
+  // numero que no significa nada. Un cliente con las dos monedas aparece en
+  // dos filas.
+  const porEmpresa = new Map<string, { clave: string; moneda: string; total: number }>();
+  const porCliente = new Map<string, { clave: string; moneda: string; total: number }>();
+
+  const acumular = (
+    mapa: Map<string, { clave: string; moneda: string; total: number }>,
+    clave: string,
+    moneda: string,
+    valor: number
+  ) => {
+    const k = `${clave}·${moneda}`;
+    const actual = mapa.get(k) ?? { clave, moneda, total: 0 };
+    actual.total += valor;
+    mapa.set(k, actual);
+  };
 
   for (const o of oportunidades) {
-    porEmpresa.set(o.empresa, (porEmpresa.get(o.empresa) ?? 0) + o.valor);
-    porCliente.set(o.compania, (porCliente.get(o.compania) ?? 0) + o.valor);
+    acumular(porEmpresa, o.empresa, o.moneda, o.valor);
+    acumular(porCliente, o.compania, o.moneda, o.valor);
   }
 
   return (
@@ -39,11 +59,11 @@ export default async function DashboardPage() {
           <div className="table-wrap">
             <table>
               <tbody>
-                {[...porEmpresa.entries()].map(([empresa, cotizado]) => (
-                  <tr key={empresa}>
-                    <td>{empresa}</td>
+                {[...porEmpresa.entries()].map(([k, fila]) => (
+                  <tr key={k}>
+                    <td>{fila.clave}</td>
                     <td className="text-mono" style={{ textAlign: "right" }}>
-                      {currency.format(cotizado)}
+                      {currency(fila.moneda, fila.total)}
                     </td>
                   </tr>
                 ))}
@@ -57,11 +77,11 @@ export default async function DashboardPage() {
           <div className="table-wrap">
             <table>
               <tbody>
-                {[...porCliente.entries()].map(([cliente, cotizado]) => (
-                  <tr key={cliente}>
-                    <td>{cliente}</td>
+                {[...porCliente.entries()].map(([k, fila]) => (
+                  <tr key={k}>
+                    <td>{fila.clave}</td>
                     <td className="text-mono" style={{ textAlign: "right" }}>
-                      {currency.format(cotizado)}
+                      {currency(fila.moneda, fila.total)}
                     </td>
                   </tr>
                 ))}

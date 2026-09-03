@@ -167,6 +167,8 @@ function fields(formData: FormData) {
     fecha_fin_estimada: finDelTrabajo(formData),
     // 0013
     comentarios: str(formData, "comentarios"),
+    // 0015
+    moneda: str(formData, "moneda") === "ARS" ? "ARS" : "USD",
     duracion_estimada_dias: numOrNull(formData.get("duracion_estimada_dias") ?? undefined),
   };
 }
@@ -329,8 +331,8 @@ async function guardarTarifas(supabase: Cliente, id: string, formData: FormData)
 // que. Ese porque va a `comentarios`, que es lo que se ve en el listado.
 // ------------------------------------------------------------
 
-// Los estados que se eligen directo del desplegable, sin cuadro de cierre.
-// Cancelado esta aca: no pide resultado ni comentario.
+// Los estados que puede fijar esta accion. Cerrado no esta: pasa por
+// cerrarOportunidad, que ademas pide el resultado.
 const ESTADOS_DIRECTOS = ["abierto", "en_curso", "cancelado"];
 // Y estos son los que cuentan como "todavia viva", para saber a donde vuelve
 // una reapertura.
@@ -342,22 +344,36 @@ export async function cambiarEstadoOportunidad(id: string, formData: FormData) {
     throw new Error("Estado invalido. Para cerrar hay que usar el cuadro de cierre.");
   }
 
+  // Cancelar es un final, y un final sin motivo no le sirve a nadie: el cuadro
+  // lo pide y aca se exige igual, porque el required del formulario lo saltea
+  // cualquiera.
+  const comentarios = str(formData, "comentarios");
+  if (nuevo === "cancelado" && !comentarios) {
+    throw new Error("Para cancelar hace falta el comentario.");
+  }
+
   const supabase = await createClient();
 
   const { data: previa } = await supabase
     .from("oportunidades")
-    .select("estado")
+    .select("estado, comentarios")
     .eq("id", id)
     .single();
 
   const { error } = await supabase
     .from("oportunidades")
-    .update({ estado: nuevo, resultado: null })
+    .update({
+      estado: nuevo,
+      resultado: null,
+      // Volver a abierto o a en curso desde el desplegable no manda
+      // comentarios: en ese caso se deja lo que ya habia.
+      comentarios: comentarios ?? previa?.comentarios ?? null,
+    })
     .eq("id", id);
   if (error) throw new Error(error.message);
 
   if (previa?.estado !== nuevo) {
-    await registrarHistorial(supabase, id, previa?.estado ?? null, nuevo, null);
+    await registrarHistorial(supabase, id, previa?.estado ?? null, nuevo, comentarios);
   }
 
   revalidatePath("/oportunidades");
