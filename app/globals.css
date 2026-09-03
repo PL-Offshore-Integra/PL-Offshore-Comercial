@@ -38,10 +38,13 @@
 [data-instance="pl-offshore"]{--nav:#002247;--action:#002247;--blue:#002247;--accent:#002247}
 
 html,body{height:100%}
-/* Body 13/1.55 de la escala del sistema. Los campos de formulario se dejan en
-   14px: el sistema es documental y no define controles, y a 13 el tipeo se
-   vuelve incomodo. */
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.55;min-height:100vh;overflow-x:hidden}
+/* Desviacion consciente del design system, decidida por Silvestre: el sistema
+   define Body 13/1.55 y aca va 15. Esa escala esta pensada para piezas
+   documentales —decks, A4, one-pagers—, no para una pantalla de carga de datos
+   que se mira de cerca varias horas por dia. Por el mismo motivo los campos de
+   formulario van en 14px. El resto de la escala —H1, eyebrow, caption, KPI—
+   sigue al sistema al pie de la letra. */
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;min-height:100vh;overflow-x:hidden}
 /* Focus amarillo con 2px de offset, y hover de enlaces navy -> amarillo. Los
    .btn quedan afuera del hover: tienen el suyo. */
 *:focus-visible{outline:2px solid var(--amarillo);outline-offset:2px}
