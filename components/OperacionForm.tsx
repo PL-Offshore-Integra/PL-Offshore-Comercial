@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
+import ZonaPicker from "@/components/ZonaPicker";
 import { aInputLocal, diasLegibles } from "@/lib/fechas";
 import {
   calcularValor,
@@ -20,6 +21,7 @@ import {
   type MontoDeTarifa,
   type Operacion,
   type Proyecto,
+  type Zona,
 } from "@/lib/types";
 
 export const ID_FORM_OPERACION = "form-operacion";
@@ -69,6 +71,7 @@ export default function OperacionForm({
   operacion,
   tarifas = [],
   nroQueSigue,
+  zonas = [],
 }: {
   action: (formData: FormData) => void;
   proyecto: Proyecto;
@@ -77,6 +80,8 @@ export default function OperacionForm({
   // usan como punto de partida.
   tarifas?: MontoDeTarifa[];
   nroQueSigue?: string;
+  // El maestro de zonas: la ZONA de la planilla se elige de ahi (0027).
+  zonas?: Zona[];
 }) {
   const [tipo, setTipo] = useState<EstructuraTarifaria>(
     operacion?.estructura_tarifaria ?? proyecto.estructura_tarifaria ?? "time_charter"
@@ -125,10 +130,15 @@ export default function OperacionForm({
       {/* Los siete casilleros de la planilla, en su orden. */}
       <div className="form-section">Operacion</div>
       <div className="form-grid">
-        <div className="fg">
-          <label>Zona</label>
-          <input name="zona" defaultValue={operacion?.zona ?? ""} placeholder="Alfa" />
-        </div>
+        {/* La ZONA de la planilla, elegida del maestro y no tipeada (0027).
+            Es el casillero que mas cambia de una salida a otra: el Golondrina
+            opera en Alfa, en Delta o en KM 171. */}
+        <ZonaPicker
+          zonas={zonas}
+          zonaId={operacion?.zona_id}
+          label="Zona"
+          ayuda="Donde se hizo esta salida"
+        />
         <div className="fg">
           <label>Buque madre</label>
           <input

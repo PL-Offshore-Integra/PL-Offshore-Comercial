@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EditarContacto, NuevoContacto } from "@/components/ContactoDialogo";
+import { fechaLegible } from "@/lib/fechas";
 import type { Cliente, ClienteEmpresa } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("es-AR", {
@@ -10,11 +11,8 @@ const currency = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 
-function fecha(iso: string | null) {
-  if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
-  return a && m && d ? `${d}/${m}/${a}` : "—";
-}
+// La fecha se muestra con `fechaLegible`, la misma de todo el modulo:
+// dd/mm/aaaa y leida en hora argentina.
 
 type Situacion = "todas" | "en-curso" | "adjudicadas" | "canceladas" | "sin-datos";
 
@@ -275,7 +273,7 @@ export default function ClientesTabla({
                 <td className="text-mono">{c.adjudicadas}</td>
                 <td className="text-mono">{c.canceladas}</td>
                 <td className="text-mono">{currency.format(Number(c.valor_total ?? 0))}</td>
-                <td className="text-mono">{fecha(c.ultimo_contacto)}</td>
+                <td className="text-mono">{fechaLegible(c.ultimo_contacto)}</td>
                 <td style={{ textAlign: "right" }}>
                   <EditarContacto fila={c} />
                 </td>

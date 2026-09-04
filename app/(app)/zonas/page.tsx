@@ -126,7 +126,12 @@ export default async function ZonasPage() {
                           u.proyectos
                         )}
                       </td>
-                      <td className="text-muted cel-texto">{z.notas ?? "—"}</td>
+                      {/* El recorte va en un span y no en el td: `.cel-texto`
+                          cambia el display, y en una celda de tabla eso le
+                          saca el `table-cell` y descuadra la fila entera. */}
+                      <td className="text-muted">
+                        <span className="cel-texto">{z.notas ?? "—"}</span>
+                      </td>
                       <td style={{ textAlign: "right" }}>
                         <Link href={`/zonas/${z.id}`} className="btn btn-ghost btn-sm">
                           Abrir

@@ -9,6 +9,7 @@ import {
   subirAdjuntoOperacion,
 } from "@/app/(app)/operaciones/actions";
 import { createClient } from "@/lib/supabase/server";
+import { leerZonasPara } from "@/lib/zonas";
 import type { Operacion, OperacionAdjunto, OperacionTarifa, Proyecto } from "@/lib/types";
 
 function pesoLegible(bytes: number | null) {
@@ -75,6 +76,9 @@ export default async function OperacionPage({
   const eliminar = borrarOperacion.bind(null, operacion.id);
   const subir = subirAdjuntoOperacion.bind(null, operacion.id);
 
+  // Con la zona de esta salida incluida aunque se haya retirado del maestro.
+  const zonas = await leerZonasPara(operacion.zona_id);
+
   return (
     <div>
       <div className="flex-between mb16">
@@ -93,6 +97,7 @@ export default async function OperacionPage({
         proyecto={proyecto}
         operacion={operacion}
         tarifas={tarifas}
+        zonas={zonas}
       />
 
       {CLASES.map((clase) => {

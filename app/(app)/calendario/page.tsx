@@ -1,3 +1,4 @@
+import { fechaLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import type { Evento } from "@/lib/types";
 import { createEvento } from "./actions";
@@ -44,7 +45,10 @@ export default async function CalendarioPage() {
             <tbody>
               {eventos.map((e) => (
                 <tr key={e.id}>
-                  <td className="text-mono">{e.fecha}</td>
+                  {/* Era el unico lugar del modulo que mostraba la fecha como
+                      la guarda la base (2026-11-12). Todas van en
+                      dd/mm/aaaa. */}
+                  <td className="text-mono">{fechaLegible(e.fecha)}</td>
                   <td style={{ fontWeight: 600 }}>{e.evento}</td>
                   <td>{e.lugar ?? "-"}</td>
                   <td className="text-muted">{diasRestantes(e.fecha)}</td>

@@ -81,7 +81,10 @@ function fields(formData: FormData) {
     nombre: str(formData, "nombre") ?? "",
     buque: str(formData, "buque"),
     cliente_final: str(formData, "cliente_final"),
-    zona: str(formData, "zona"),
+    // La zona sale del maestro (0027). La columna vieja `zona`, de texto
+    // libre, no esta aca: el formulario dejo de mandarla y se queda con lo que
+    // tenga. Mandarla igual borraria el texto de las salidas viejas.
+    zona_id: str(formData, "zona_id"),
     buque_madre: str(formData, "buque_madre"),
     // El tercer buque del STS: el que recibe (0021).
     alijador: str(formData, "alijador"),

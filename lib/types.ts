@@ -625,7 +625,13 @@ export interface Operacion {
   // cambiar entre una salida y otra del mismo proyecto.
   buque: string | null;
   cliente_final: string | null;
+  // Texto libre, historico: lo reemplazo `zona_id` en 0027 y el formulario
+  // dejo de escribirlo.
   zona: string | null;
+  // Donde se hizo esta salida, del maestro de zonas. Vive en la operacion y no
+  // solo en el proyecto porque un proyecto puede trabajar en varios lugares:
+  // Service Management opera en Alfa, en Delta y en KM 171.
+  zona_id: string | null;
   // Los tres buques de un STS: el nuestro es `buque` (el supply), el que
   // descarga es `buque_madre` y el que recibe es `alijador` (0021).
   buque_madre: string | null;

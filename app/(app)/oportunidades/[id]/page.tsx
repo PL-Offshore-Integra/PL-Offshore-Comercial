@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { fechaLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
   camposDe,
@@ -20,11 +21,10 @@ const plata = (moneda: string, valor: number) =>
     currency: moneda === "ARS" ? "ARS" : "USD",
   }).format(valor);
 
-function fecha(iso: string | null) {
-  if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
-  return a && m && d ? `${d}/${m}/${a}` : "—";
-}
+// Las fechas salen todas de `fechaLegible`: dd/mm/aaaa, y leidas en hora
+// argentina. Habia tres copias de esta funcion —aca, en la lista y en la
+// tabla de clientes— y cada copia partia el ISO a mano, que en una columna con
+// hora puede mostrar un dia menos.
 
 function Dato({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -106,11 +106,11 @@ export default async function VerOportunidadPage({
         <div className="form-grid">
           <Dato label="Buque">{o.buque ?? "—"}</Dato>
           <Dato label="Cliente final">{o.cliente_final ?? "—"}</Dato>
-          <Dato label="Inicio estimado">{fecha(o.fecha_inicio_estimada)}</Dato>
+          <Dato label="Inicio estimado">{fechaLegible(o.fecha_inicio_estimada)}</Dato>
           <Dato label="Duracion estimada">
             {o.duracion_estimada_dias ? `${o.duracion_estimada_dias} dias` : "—"}
           </Dato>
-          <Dato label="Fin estimado">{fecha(o.fecha_fin_estimada)}</Dato>
+          <Dato label="Fin estimado">{fechaLegible(o.fecha_fin_estimada)}</Dato>
         </div>
 
         <div className="form-section">Condiciones comerciales</div>
@@ -175,9 +175,9 @@ export default async function VerOportunidadPage({
 
         <div className="form-section">Seguimiento</div>
         <div className="form-grid">
-          <Dato label="Fecha de alta">{fecha(o.fecha_creacion)}</Dato>
-          <Dato label="Cierre esperado de la venta">{fecha(o.fecha_esperada_cierre)}</Dato>
-          <Dato label="Ultimo contacto">{fecha(o.last_interacted_on)}</Dato>
+          <Dato label="Fecha de alta">{fechaLegible(o.fecha_creacion)}</Dato>
+          <Dato label="Cierre esperado de la venta">{fechaLegible(o.fecha_esperada_cierre)}</Dato>
+          <Dato label="Ultimo contacto">{fechaLegible(o.last_interacted_on)}</Dato>
         </div>
         <div className="fg">
           <label>Comentarios</label>

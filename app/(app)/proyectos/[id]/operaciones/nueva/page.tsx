@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import OperacionForm from "@/components/OperacionForm";
 import { crearOperacion } from "@/app/(app)/operaciones/actions";
 import { createClient } from "@/lib/supabase/server";
+import { leerZonas } from "@/lib/zonas";
 import type { Proyecto, ProyectoTarifa } from "@/lib/types";
 
 // Alta de una salida. Siempre cuelga de un proyecto: una operacion sin
@@ -37,6 +38,10 @@ export default async function NuevaOperacionPage({
     .maybeSingle();
   const nroQueSigue = `OP-${(contador?.ultimo ?? 0) + 1}-${anio}`;
 
+  // La zona no se hereda del proyecto: es justo lo que cambia entre una salida
+  // y otra. Arranca vacia y se elige, como en la planilla.
+  const zonas = await leerZonas();
+
   return (
     <div>
       <div className="info-box accent mb16">
@@ -51,6 +56,7 @@ export default async function NuevaOperacionPage({
         proyecto={proyecto}
         tarifas={tarifas}
         nroQueSigue={nroQueSigue}
+        zonas={zonas}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import EstadoOportunidadControl from "@/components/CerrarOportunidad";
 import { cambiarEstadoOportunidad } from "@/app/(app)/oportunidades/actions";
+import { fechaLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import { etiquetaEstado, type Oportunidad } from "@/lib/types";
 
@@ -11,13 +12,6 @@ const plata = (moneda: string, valor: number) =>
     style: "currency",
     currency: moneda === "ARS" ? "ARS" : "USD",
   }).format(valor);
-
-// dd/mm/aaaa, que es como se leen las fechas aca.
-function fecha(iso: string | null) {
-  if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
-  return a && m && d ? `${d}/${m}/${a}` : "—";
-}
 
 function recortar(texto: string | null, largo = 90) {
   if (!texto) return "—";
@@ -91,7 +85,7 @@ export default async function OportunidadesPage() {
                       <td className="text-muted">{o.buque ?? "—"}</td>
                       <td className="text-muted">{o.contacto ?? o.contacto_email ?? "—"}</td>
                       <td className="text-mono cel-valor">{plata(o.moneda, o.valor)}</td>
-                      <td className="text-mono">{fecha(o.last_interacted_on)}</td>
+                      <td className="text-mono">{fechaLegible(o.last_interacted_on)}</td>
                       <td className="text-muted">
                         <span className="cel-texto">{recortar(o.comentarios)}</span>
                       </td>
