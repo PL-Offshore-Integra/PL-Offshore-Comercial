@@ -429,3 +429,22 @@ button.grafico-chip:hover{border-color:var(--navy)}
 .chip-filtro{display:flex;align-items:center;gap:7px;height:36px;border:1px solid var(--navy);background:var(--surface);border-radius:var(--r);padding:0 12px;font-family:var(--sans);font-size:13px;color:var(--text);cursor:pointer;transition:var(--tr)}
 .chip-filtro i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .chip-filtro:hover{background:var(--surface2)}
+
+/* Imprimir el track record: el dialogo del navegador alcanza para sacarlo en
+   PDF, siempre que la pagina se sepa acomodar. Se va el menu, se van los
+   filtros y las tarjetas dejan de ser tarjetas. */
+.no-imprimir{}
+@media print{
+  .topbar,.sidebar,.pagehead-actions,.no-imprimir{display:none!important}
+  .shell{grid-template-columns:1fr}
+  .content{padding:0}
+  .card{border:0;padding:0;margin:0 0 18px;break-inside:auto}
+  .card-title{border-bottom:1px solid #000;padding-bottom:4px}
+  .table-wrap{overflow:visible}
+  table{font-size:10px}
+  th{border-bottom:1px solid #000}
+  td,th{padding:4px 6px}
+  .cel-texto{-webkit-line-clamp:unset;max-width:none;display:block}
+  tr{break-inside:avoid}
+  a{color:#000;text-decoration:none}
+}
