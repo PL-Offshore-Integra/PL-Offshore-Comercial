@@ -85,11 +85,21 @@ export default async function OperacionPage({
         <span className="tag">
           {operacion.nro_operacion ?? "sin nro"} &middot; {operacion.nombre}
         </span>
-        <form action={eliminar}>
-          <button type="submit" className="btn btn-danger btn-sm">
-            Eliminar
-          </button>
-        </form>
+        <div className="fila-acciones">
+          {/* El documento que se le manda al cliente para que de el OK: la
+              planilla del calculo, con el diseño del modulo. */}
+          <Link
+            href={`/proyectos/${proyecto.id}/operaciones/${operacion.id}/calculo`}
+            className="btn btn-amarillo btn-sm"
+          >
+            Calculo para el cliente
+          </Link>
+          <form action={eliminar}>
+            <button type="submit" className="btn btn-danger btn-sm">
+              Eliminar
+            </button>
+          </form>
+        </div>
       </div>
 
       <OperacionForm

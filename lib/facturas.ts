@@ -1,4 +1,4 @@
-import { diasEntre } from "@/lib/fechas";
+import { diasEntre, sumarDias } from "@/lib/fechas";
 import {
   estadoDeFactura,
   netoDeFactura,
@@ -192,4 +192,56 @@ export function pendienteDeFacturar<
     })
     // Medio centavo de diferencia no es plata pendiente, es redondeo.
     .filter((p) => p.pendiente > 0.005);
+}
+
+// ── LA ESPERA PARA PODER FACTURAR (0032) ──────────────────────────────────
+//
+// En Service Management el trabajo no se factura cuando termina: se esperan 90
+// dias desde la fecha de finalizacion, ahi se le pregunta al cliente si se
+// puede facturar —mandandole el estado de cuenta— y si autoriza se cobra en
+// esa misma semana.
+//
+// Asi que una salida sin facturar puede estar en dos situaciones muy
+// distintas, y mezclarlas esconde el trabajo que hay que hacer hoy:
+//
+//   esperando   todavia no se cumplieron los dias. No hay nada que hacer.
+//   listo       ya se cumplieron. Hay que consultarle al cliente.
+//
+// Los dias salen del maestro de clientes. Un cliente sin dias cargados no
+// tiene espera: se factura cuando se quiere, y la salida sale como lista.
+export type EsperaParaFacturar<T> = {
+  pendiente: PendienteDeFacturar<T>;
+  // Desde cuando se puede consultar. Null si el cliente no tiene espera o la
+  // salida no tiene fecha de fin.
+  habilitaEl: string | null;
+  habilitado: boolean;
+  // Cuantos dias faltan, cuando todavia no esta habilitado.
+  faltan: number | null;
+};
+
+export function esperaParaFacturar<
+  T extends { id: string; valor: number | string; moneda: Moneda; fecha_fin: string | null },
+>(
+  pendientes: PendienteDeFacturar<T>[],
+  diasDeEspera: (salida: T) => number | null,
+  hoy: string
+): EsperaParaFacturar<T>[] {
+  return pendientes.map((pendiente) => {
+    const dias = diasDeEspera(pendiente.salida);
+    const fin = pendiente.salida.fecha_fin?.slice(0, 10) ?? null;
+
+    // Sin espera cargada, o sin fecha de fin, no hay nada que esperar.
+    if (dias === null || dias <= 0 || fin === null) {
+      return { pendiente, habilitaEl: null, habilitado: true, faltan: null };
+    }
+
+    const habilitaEl = sumarDias(fin, dias);
+    const habilitado = habilitaEl !== "" && habilitaEl <= hoy;
+    return {
+      pendiente,
+      habilitaEl: habilitaEl || null,
+      habilitado,
+      faltan: habilitado ? null : diasEntre(hoy, habilitaEl),
+    };
+  });
 }

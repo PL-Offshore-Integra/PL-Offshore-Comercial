@@ -220,22 +220,29 @@ export default function ProyectoForm({
           rows={4}
         />
       </div>
-      {/* El mismo texto en ingles, para el track record: cuando el proyecto se
-          termina aparece ahi solo, y ese documento se manda afuera. Vacio no
-          rompe nada —el track record cae al castellano y lo avisa— pero una
-          linea en castellano en un documento en ingles canta (0030). */}
-      <div className="fg mb16">
-        <label>Scope of work (ingles)</label>
-        <textarea
-          name="descripcion_en"
-          defaultValue={proyecto?.descripcion_en ?? ""}
-          rows={3}
-          placeholder="Lightering support vessel (STS operations)"
-        />
-        <span className="hint">
-          Para el track record, que sale en los dos idiomas. Se puede completar
-          despues.
-        </span>
+      {/* El alcance en una linea, para el track record. Es otro texto y otro
+          trabajo que la descripcion de arriba: ese documento se manda afuera y
+          sus filas son telegraficas —"Lightering Support Vessel"—, asi que la
+          descripcion completa ahi desentona (0031). */}
+      <div className="form-grid">
+        <div className="fg">
+          <label>Scope corto (castellano)</label>
+          <input
+            name="scope_es"
+            defaultValue={proyecto?.scope_es ?? ""}
+            placeholder="Buque de apoyo al alije"
+          />
+          <span className="hint">Una linea, para el track record</span>
+        </div>
+        <div className="fg">
+          <label>Scope corto (ingles)</label>
+          <input
+            name="scope_en"
+            defaultValue={proyecto?.scope_en ?? ""}
+            placeholder="Lightering Support Vessel"
+          />
+          <span className="hint">Es el que sale en el documento en ingles</span>
+        </div>
       </div>
       <div className="form-grid">
         <div className="fg">

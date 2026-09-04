@@ -555,9 +555,11 @@ export interface Proyecto {
   // pone en el mapa.
   zona_id: string | null;
 
-  // En que consiste, en ingles: para el track record, que sale para afuera
-  // (0030). Vacio no rompe nada.
-  descripcion_en: string | null;
+  // El alcance en una linea, para el track record, en los dos idiomas (0031).
+  // La descripcion de arriba es la larga, para adentro. Vacios no rompen nada:
+  // el track record cae a la descripcion.
+  scope_es: string | null;
+  scope_en: string | null;
 
   // Las estimadas vienen de la oportunidad; las reales se cargan cuando pasan.
   fecha_inicio_estimada: string | null;
@@ -1013,4 +1015,117 @@ export function totalEnPesos(f: Factura): number | null {
 export function difDeCambio(f: Factura): number | null {
   if (f.tc_pagado === null || f.tc_dia_cobro === null) return null;
   return Number(f.tc_dia_cobro) - Number(f.tc_pagado);
+}
+
+// ── EL CALCULO QUE SE LE MANDA AL CLIENTE (0032) ──────────────────────────
+//
+// Maximo arma una planilla por salida y la manda en PDF para que el cliente de
+// el OK. Tiene tres bloques:
+//
+//   1 DIA LUMPSUM              la ventana de las primeras 24 h, cantidad 1,
+//                              al precio del dia garantizado
+//   OPERATIVO/STAND BY (PDPR)  lo que paso de las 24 h, con su ventana y su
+//                              fraccion de dia, pro rata al diferencial
+//   TOTAL MOB/DEMOB            movilizacion mas desmovilizacion
+//
+// El PDF de RAIZEN AGO2026 SEAWAYS BALBOA dice, para el 20/08 07:00 al 21/08
+// 12:30: 18.537,75 + 3.522,18 (0,2292 dias) + 37.075,50 = 59.135,43. Esta
+// funcion lo reproduce con los datos del modulo, al centavo.
+export type TramoDelCalculo = {
+  label: string;
+  desde: string | null;
+  hasta: string | null;
+  dias: number;
+  tarifa: number;
+  monto: number;
+};
+
+export type CalculoParaElCliente = {
+  tramos: TramoDelCalculo[];
+  // Los renglones de cierre, con los nombres de la planilla.
+  totales: { label: string; dias?: number; monto: number }[];
+  total: number;
+};
+
+// Suma horas a un timestamp y devuelve otro timestamp ISO.
+function masHoras(iso: string, horas: number): string {
+  return new Date(new Date(iso).getTime() + horas * 3600 * 1000).toISOString();
+}
+
+export function calculoParaElCliente(
+  tipo: EstructuraTarifaria,
+  montos: Partial<Record<Concepto, number>>,
+  inicio: string | null,
+  fin: string | null
+): CalculoParaElCliente {
+  const m = (c: Concepto) => Number(montos[c] ?? 0) || 0;
+  const dias = diasDeOperacion(inicio, fin) ?? 0;
+  const mobDemob = m("movilizacion") + m("desmovilizacion");
+  // Cuantos conceptos de mob/demob se cobraron: la planilla lo dice en el
+  // renglon ("TOTAL MOB/DEMOB 2 DIAS").
+  const cuantosMob = [m("movilizacion"), m("desmovilizacion")].filter((x) => x > 0).length;
+
+  if (tipo === "dia_garantizado") {
+    const finDelPrimerDia = inicio ? masHoras(inicio, 24) : null;
+    const diasOperativos = Math.max(dias - 1, 0);
+
+    const tramos: TramoDelCalculo[] = [
+      {
+        label: "1 dia lumpsum",
+        desde: inicio,
+        hasta: finDelPrimerDia,
+        dias: 1,
+        tarifa: m("dia_garantizado"),
+        monto: m("dia_garantizado"),
+      },
+    ];
+
+    if (diasOperativos > 0) {
+      tramos.push({
+        label: "Operativo / stand by (PDPR)",
+        desde: finDelPrimerDia,
+        hasta: fin,
+        dias: diasOperativos,
+        tarifa: m("tarifa_diferencial"),
+        monto: diasOperativos * m("tarifa_diferencial"),
+      });
+    }
+
+    return {
+      tramos,
+      totales: [
+        { label: "Total 1 dias", dias: 1, monto: m("dia_garantizado") },
+        {
+          label: "Total operativo",
+          dias: diasOperativos,
+          monto: diasOperativos * m("tarifa_diferencial"),
+        },
+        {
+          label: cuantosMob > 0 ? `Total mob/demob ${cuantosMob} dias` : "Total mob/demob",
+          monto: mobDemob,
+        },
+      ],
+      total: calcularValor(tipo, montos, dias),
+    };
+  }
+
+  // Los otros tipos no tienen la planilla de STS, asi que el documento sale
+  // con el desglose que les corresponde y los mismos renglones de cierre.
+  const lineas = desgloseValor(tipo, montos, dias);
+  return {
+    tramos: lineas
+      .filter((l) => !l.esTotal && !l.aparte)
+      .map((l) => ({
+        label: l.label,
+        desde: l.dias !== undefined ? inicio : null,
+        hasta: l.dias !== undefined ? fin : null,
+        dias: l.dias ?? 0,
+        tarifa: l.dias && l.dias > 0 ? l.monto / l.dias : l.monto,
+        monto: l.monto,
+      })),
+    totales: lineas
+      .filter((l) => !l.esTotal && !l.aparte)
+      .map((l) => ({ label: `Total ${l.label.toLowerCase()}`, dias: l.dias, monto: l.monto })),
+    total: calcularValor(tipo, montos, dias),
+  };
 }

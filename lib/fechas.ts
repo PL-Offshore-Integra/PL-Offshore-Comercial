@@ -150,3 +150,16 @@ export function sumarDias(fecha: string | null, dias: number | null): string {
   if (!Number.isFinite(base)) return "";
   return new Date(base + dias * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
+
+// La fecha con hora, salvo que la hora sea medianoche.
+//
+// Las salidas cargadas de la planilla de 2026 no tienen hora —la planilla
+// tiene fechas sueltas— y quedaron en 00:00. En un documento que se le manda
+// al cliente, "14/03/2026 00:00" dice una precision que no existe. Las que si
+// tienen hora, como el STS de agosto (07:00 a 12:30), la muestran: de la hora
+// sale el precio.
+export function fechaHoraSiLaTiene(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const conHora = fechaHoraLegible(iso);
+  return conHora.endsWith(" 00:00") ? conHora.slice(0, -6) : conHora;
+}

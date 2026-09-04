@@ -96,6 +96,13 @@ function seccionFor(pathname: string) {
       sub: "El trabajo concreto, con sus fechas, su buque y su tarifa.",
     };
   }
+  if (pathname.endsWith("/calculo")) {
+    return {
+      grupo: "Comercial",
+      titulo: "Calculo de la salida",
+      sub: "El documento que se le manda al cliente para que de el OK.",
+    };
+  }
   if (pathname.includes("/operaciones/")) {
     return { grupo: "Comercial", titulo: "Salida", sub: "" };
   }
@@ -117,6 +124,13 @@ function seccionFor(pathname: string) {
       grupo: "Comercial",
       titulo: "Nueva factura",
       sub: "Cuelga de un proyecto, y puede facturar una salida puntual o un periodo.",
+    };
+  }
+  if (pathname.includes("/estado-de-cuenta/")) {
+    return {
+      grupo: "Comercial",
+      titulo: "Estado de cuenta",
+      sub: "Lo que esta en condiciones de facturarse, para mandarselo al cliente.",
     };
   }
   if (pathname.startsWith("/facturacion/")) {

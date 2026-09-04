@@ -13,6 +13,7 @@ import {
 } from "@/lib/facturas";
 import { fechaConHoraSiTiene, fechaLegible } from "@/lib/fechas";
 import {
+  CONTRATACIONES,
   estadoDeFactura,
   netoDeFactura,
   type FacturaListada,
@@ -41,6 +42,13 @@ const plata = (moneda: string, valor: number, exacto = false) =>
   }).format(valor);
 
 const anioDe = (iso: string | null | undefined) => iso?.slice(0, 4) ?? null;
+const mesDe = (iso: string | null | undefined) => iso?.slice(5, 7) ?? null;
+
+const NOMBRE_DEL_MES: Record<string, string> = {
+  "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
+  "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
+  "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre",
+};
 
 function Montos({ totales }: { totales: [string, number][] }) {
   const conPlata = totales.filter(([, v]) => v !== 0);
@@ -74,7 +82,10 @@ export default function Tablero({
   hoy: string;
 }) {
   const [anio, setAnio] = useState("todos");
+  const [mes, setMes] = useState("todos");
   const [buque, setBuque] = useState("todos");
+  // El tipo de contratacion, para poder mirar solo lo que entra por un broker.
+  const [tipo, setTipo] = useState("todos");
   const [estado, setEstado] = useState<EstadoDeCobranza | null>(null);
 
   // Lo que se ofrece filtrar sale de los datos: no tiene sentido ofrecer 2025
@@ -89,6 +100,19 @@ export default function Tablero({
     return [...new Set(todos)].sort().reverse();
   }, [oportunidades, proyectos, facturas, salidas]);
 
+  // Los meses que aparecen en los datos, en orden de calendario. Se ofrecen
+  // todos los que existan, no los doce: no tiene sentido ofrecer marzo si no
+  // hay nada de marzo.
+  const meses = useMemo(() => {
+    const todos = [
+      ...oportunidades.map((o) => mesDe(o.fecha_creacion)),
+      ...proyectos.map((p) => mesDe(p.arranco ?? p.fecha_inicio_estimada)),
+      ...facturas.map((f) => mesDe(f.fecha_emision)),
+      ...salidas.map((s) => mesDe(s.fecha_inicio)),
+    ].filter((m): m is string => m !== null);
+    return [...new Set(todos)].sort();
+  }, [oportunidades, proyectos, facturas, salidas]);
+
   const buques = useMemo(() => {
     const todos = [
       ...oportunidades.map((o) => o.buque),
@@ -101,18 +125,45 @@ export default function Tablero({
 
   const pasaAnio = (iso: string | null | undefined) =>
     anio === "todos" || anioDe(iso) === anio;
+  const pasaMes = (iso: string | null | undefined) =>
+    mes === "todos" || mesDe(iso) === mes;
   const pasaBuque = (b: string | null) => buque === "todos" || b === buque;
+  const pasaTipo = (t: string | null | undefined) => tipo === "todos" || t === tipo;
+
+  // Las facturas no tienen tipo de contratacion: lo tiene el proyecto del que
+  // cuelgan. Se filtran por los proyectos que pasan el filtro de tipo.
+  const proyectosDelTipo = new Set(
+    proyectos.filter((p) => pasaTipo(p.estructura_tarifaria)).map((p) => p.id)
+  );
 
   const opp = oportunidades.filter(
-    (o) => pasaAnio(o.fecha_creacion) && pasaBuque(o.buque)
+    (o) =>
+      pasaAnio(o.fecha_creacion) &&
+      pasaMes(o.fecha_creacion) &&
+      pasaBuque(o.buque) &&
+      pasaTipo(o.estructura_tarifaria)
   );
   const proy = proyectos.filter(
-    (p) => pasaAnio(p.arranco ?? p.fecha_inicio_estimada) && pasaBuque(p.buque)
+    (p) =>
+      pasaAnio(p.arranco ?? p.fecha_inicio_estimada) &&
+      pasaMes(p.arranco ?? p.fecha_inicio_estimada) &&
+      pasaBuque(p.buque) &&
+      pasaTipo(p.estructura_tarifaria)
   );
   const fact = facturas.filter(
-    (f) => pasaAnio(f.fecha_emision) && pasaBuque(f.buque)
+    (f) =>
+      pasaAnio(f.fecha_emision) &&
+      pasaMes(f.fecha_emision) &&
+      pasaBuque(f.buque) &&
+      proyectosDelTipo.has(f.proyecto_id)
   );
-  const sal = salidas.filter((s) => pasaAnio(s.fecha_inicio) && pasaBuque(s.buque));
+  const sal = salidas.filter(
+    (s) =>
+      pasaAnio(s.fecha_inicio) &&
+      pasaMes(s.fecha_inicio) &&
+      pasaBuque(s.buque) &&
+      pasaTipo(s.estructura_tarifaria)
+  );
 
   // ── Oportunidades ──
   const enCurso = opp.filter((o) => o.estado === "en_curso");
@@ -133,6 +184,17 @@ export default function Tablero({
   // salida puede tener facturas y faltarle plata igual.
   const pendientes = pendienteDeFacturar(sal, fact);
   const sinFacturar = pendientes.map((p) => p.salida);
+
+  // Las comisiones de broker de lo que esta a la vista. Se muestran solo si
+  // hay: en un time charter no existen y una tarjeta en cero es ruido.
+  const comisiones = porMoneda(
+    [
+      ...enCurso.map((o) => ({ m: o.moneda, v: Number(o.comision_total ?? 0) })),
+      ...sal.map((s) => ({ m: s.moneda, v: Number(s.comision_total ?? 0) })),
+    ],
+    (x) => x.v,
+    (x) => x.m
+  );
 
   const deTotales = (campo: "facturado" | "cobrado" | "enPlazo" | "vencido") =>
     totales.map((t) => [t.moneda, t[campo]] as [string, number]);
@@ -187,7 +249,12 @@ export default function Tablero({
   const pendientesVisibles =
     estado === null || estado === "sin_facturar" ? pendientes : [];
 
-  const hayFiltro = anio !== "todos" || buque !== "todos" || estado !== null;
+  const hayFiltro =
+    anio !== "todos" ||
+    mes !== "todos" ||
+    buque !== "todos" ||
+    tipo !== "todos" ||
+    estado !== null;
   const etiquetaEstado = estado
     ? (ESTADOS_DE_COBRANZA.find((e) => e.id === estado)?.label ?? estado)
     : null;
@@ -207,6 +274,36 @@ export default function Tablero({
             {anios.map((a) => (
               <option key={a} value={a}>
                 {a}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="fg-inline">
+          <label>Mes</label>
+          <select
+            className="filter-select"
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            {meses.map((m) => (
+              <option key={m} value={m}>
+                {NOMBRE_DEL_MES[m] ?? m}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="fg-inline">
+          <label>Contratacion</label>
+          <select
+            className="filter-select"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+          >
+            <option value="todos">Todas</option>
+            {CONTRATACIONES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
               </option>
             ))}
           </select>
@@ -245,7 +342,9 @@ export default function Tablero({
             className="btn btn-ghost btn-sm"
             onClick={() => {
               setAnio("todos");
+              setMes("todos");
               setBuque("todos");
+              setTipo("todos");
               setEstado(null);
             }}
           >
@@ -270,6 +369,17 @@ export default function Tablero({
             <Montos totales={acordado} /> acordados
           </span>
         </Link>
+        {comisiones.length > 0 && (
+          <div className="stat">
+            <div className="stat-label">Comisiones de broker</div>
+            <div className="stat-value">
+              <Montos totales={comisiones} />
+            </div>
+            <span className="hint">
+              Lo que se le paga al broker. No entra en el valor de la propuesta.
+            </span>
+          </div>
+        )}
         <Link href="/facturacion" className="stat stat-link">
           <div className="stat-label">Por cobrar</div>
           <div className="stat-value">

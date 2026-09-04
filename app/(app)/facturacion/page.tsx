@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { diasAlCobro, pendienteDeFacturar, totalesDeCobranza } from "@/lib/facturas";
+import {
+  diasAlCobro,
+  esperaParaFacturar,
+  pendienteDeFacturar,
+  totalesDeCobranza,
+  type EsperaParaFacturar,
+} from "@/lib/facturas";
 import { fechaLegible, hoyEnArgentina } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -37,7 +43,7 @@ export default async function FacturacionPage() {
   const supabase = await createClient();
   const hoy = hoyEnArgentina();
 
-  const [{ data, error }, { data: sal }] = await Promise.all([
+  const [{ data, error }, { data: sal }, { data: proy }, { data: emp }] = await Promise.all([
     supabase
       .from("facturas_listado")
       .select("*")
@@ -49,6 +55,10 @@ export default async function FacturacionPage() {
       .select("*")
       .neq("estado", "cancelada")
       .order("fecha_fin", { ascending: false, nullsFirst: false }),
+    // El cliente de cada salida sale de su proyecto, y los dias de espera del
+    // maestro de clientes (0032).
+    supabase.from("proyectos").select("id, compania, cliente_empresa_id"),
+    supabase.from("cliente_empresas").select("id, nombre, dias_para_facturar"),
   ]);
 
   const facturas = (data ?? []) as FacturaListada[];
@@ -59,6 +69,44 @@ export default async function FacturacionPage() {
   // una salida puede tener facturas y faltarle plata igual. La Atlantic Dama
   // con HOC tiene dos facturas emitidas y le faltan 247.140.
   const pendientesDeFacturar = pendienteDeFacturar(operaciones, facturas);
+
+  const proyectoPorId = new Map(
+    ((proy ?? []) as { id: string; compania: string | null; cliente_empresa_id: string | null }[])
+      .map((p) => [p.id, p])
+  );
+  const empresaPorId = new Map(
+    ((emp ?? []) as { id: string; nombre: string; dias_para_facturar: number | null }[])
+      .map((e) => [e.id, e])
+  );
+
+  const empresaDe = (o: Operacion) => {
+    const p = proyectoPorId.get(o.proyecto_id);
+    return p?.cliente_empresa_id ? empresaPorId.get(p.cliente_empresa_id) : undefined;
+  };
+
+  // En Service Management el trabajo no se factura al terminar: hay que
+  // esperar 90 dias y recien ahi consultarle al cliente. Separar las dos
+  // situaciones es lo que dice que hay que hacer hoy.
+  const esperas = esperaParaFacturar(
+    pendientesDeFacturar,
+    (o) => empresaDe(o)?.dias_para_facturar ?? null,
+    hoy
+  );
+  const listasParaConsultar = esperas.filter((e) => e.habilitado);
+  const esperando = esperas.filter((e) => !e.habilitado);
+
+  // Los clientes que tienen algo para consultar, para poder mandarles el
+  // estado de cuenta.
+  const clientesParaConsultar = [
+    ...new Map(
+      listasParaConsultar
+        .map((e) => empresaDe(e.pendiente.salida))
+        .filter((x): x is { id: string; nombre: string; dias_para_facturar: number | null } =>
+          Boolean(x)
+        )
+        .map((e) => [e.id, e])
+    ).values(),
+  ];
 
   const totales = totalesDeCobranza(facturas, hoy);
 
@@ -229,71 +277,144 @@ export default async function FacturacionPage() {
         </div>
       ))}
 
-      {pendientesDeFacturar.length > 0 && (
+      {/* Lo que falta facturar, partido en dos por la espera de los 90 dias:
+          lo que ya se puede consultar y lo que todavia no. Mezclado esconde
+          justo lo que hay que hacer hoy (0032). */}
+      {listasParaConsultar.length > 0 && (
         <div className="card">
           <div className="card-title">
             <span className="badge b-amber">
-              Pendiente de facturar ({pendientesDeFacturar.length})
+              Listo para consultar al cliente ({listasParaConsultar.length})
             </span>
             <span className="text-muted">
               {plata(
-                pendientesDeFacturar[0]?.salida.moneda ?? "USD",
-                pendientesDeFacturar.reduce((a, p) => a + p.pendiente, 0)
+                listasParaConsultar[0]?.pendiente.salida.moneda ?? "USD",
+                listasParaConsultar.reduce((a, e) => a + e.pendiente.pendiente, 0)
               )}
             </span>
           </div>
-          <div className="table-wrap">
-            <table className="tabla-lista">
-              <thead>
-                <tr>
-                  <th>Nro</th>
-                  <th>Salida</th>
-                  <th>Buque</th>
-                  <th>Valor</th>
-                  <th>Facturado</th>
-                  <th>Falta facturar</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {pendientesDeFacturar.map(({ salida: o, valor, facturado, pendiente }) => (
-                  <tr key={o.id}>
-                    <td className="text-mono cel-nro">{o.nro_operacion ?? "-"}</td>
-                    <td className="cel-compania">
-                      <span className="cel-texto">{o.nombre}</span>
-                    </td>
-                    <td className="text-muted">{o.buque ?? "—"}</td>
-                    <td className="text-mono cel-valor">{plataExacta(o.moneda, valor)}</td>
-                    <td className="text-mono cel-valor">
-                      {facturado > 0 ? (
-                        plataExacta(o.moneda, facturado)
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="text-mono cel-valor">
-                      <strong>{plataExacta(o.moneda, pendiente)}</strong>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <Link
-                        href={`/facturacion/nueva?proyecto=${o.proyecto_id}&operacion=${o.id}`}
-                        className="btn btn-amarillo btn-sm"
-                      >
-                        Facturar
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <TablaDePendientes items={listasParaConsultar} />
+
+          <div className="fila-acciones mt16">
+            {clientesParaConsultar.map((c) => (
+              <Link
+                key={c.id}
+                href={`/facturacion/estado-de-cuenta/${c.id}`}
+                className="btn btn-amarillo btn-sm"
+              >
+                Estado de cuenta · {c.nombre}
+              </Link>
+            ))}
           </div>
           <span className="hint">
-            Valor del trabajo menos lo ya facturado. Una salida puede tener
-            facturas y faltarle plata: un charter largo se factura por mes. Las
-            canceladas no cuentan.
+            Pasaron los dias de espera, asi que se le puede preguntar al cliente
+            si autoriza facturar. El estado de cuenta es lo que se le manda.
           </span>
         </div>
       )}
+
+      {esperando.length > 0 && (
+        <div className="card">
+          <div className="card-title">
+            <span className="badge b-gray">
+              Esperando para poder facturar ({esperando.length})
+            </span>
+            <span className="text-muted">
+              {plata(
+                esperando[0]?.pendiente.salida.moneda ?? "USD",
+                esperando.reduce((a, e) => a + e.pendiente.pendiente, 0)
+              )}
+            </span>
+          </div>
+
+          <TablaDePendientes items={esperando} />
+
+          <span className="hint">
+            El trabajo termino pero todavia no se cumplieron los dias que hay
+            que esperar antes de consultarle al cliente.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// La tabla de salidas pendientes de facturar. Se usa dos veces —las que ya se
+// pueden consultar y las que estan esperando— y la unica diferencia es la
+// fecha desde la que se puede preguntar.
+function TablaDePendientes({
+  items,
+}: {
+  items: EsperaParaFacturar<Operacion>[];
+}) {
+  return (
+    <div className="table-wrap">
+      <table className="tabla-lista">
+        <thead>
+          <tr>
+            <th>Nro</th>
+            <th>Salida</th>
+            <th>Buque</th>
+            <th>Termino</th>
+            <th>Se puede consultar</th>
+            <th>Valor</th>
+            <th>Facturado</th>
+            <th>Falta facturar</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(({ pendiente, habilitaEl, habilitado, faltan }) => {
+            const o = pendiente.salida;
+            return (
+              <tr key={o.id}>
+                <td className="text-mono cel-nro">{o.nro_operacion ?? "-"}</td>
+                <td className="cel-compania">
+                  <span className="cel-texto">{o.nombre}</span>
+                </td>
+                <td className="text-muted">{o.buque ?? "—"}</td>
+                <td className="text-mono">{fechaLegible(o.fecha_fin)}</td>
+                <td className="text-mono">
+                  {habilitaEl === null ? (
+                    <span className="text-muted">sin espera</span>
+                  ) : (
+                    <>
+                      {fechaLegible(habilitaEl)}
+                      {!habilitado && faltan !== null && (
+                        <div className="text-muted cel-sub">
+                          faltan {faltan} dias
+                        </div>
+                      )}
+                    </>
+                  )}
+                </td>
+                <td className="text-mono cel-valor">
+                  {plataExacta(o.moneda, pendiente.valor)}
+                </td>
+                <td className="text-mono cel-valor">
+                  {pendiente.facturado > 0 ? (
+                    plataExacta(o.moneda, pendiente.facturado)
+                  ) : (
+                    <span className="text-muted">—</span>
+                  )}
+                </td>
+                <td className="text-mono cel-valor">
+                  <strong>{plataExacta(o.moneda, pendiente.pendiente)}</strong>
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  <Link
+                    href={`/facturacion/nueva?proyecto=${o.proyecto_id}&operacion=${o.id}`}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Facturar
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

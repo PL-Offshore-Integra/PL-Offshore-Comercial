@@ -57,8 +57,9 @@ function fields(formData: FormData) {
     cliente_final: str(formData, "cliente_final"),
     buque: str(formData, "buque"),
     descripcion: str(formData, "descripcion"),
-    // El mismo texto en ingles, para el track record (0030).
-    descripcion_en: str(formData, "descripcion_en"),
+    // El alcance en una linea para el track record, en los dos idiomas (0031).
+    scope_es: str(formData, "scope_es"),
+    scope_en: str(formData, "scope_en"),
     // `alcance` no esta: el casillero salio del formulario en 0026 —repetia lo
     // que ya dice la descripcion— y la columna se deja con lo que tenga.
     // Mandarla igual borraria lo que hay en las filas viejas.

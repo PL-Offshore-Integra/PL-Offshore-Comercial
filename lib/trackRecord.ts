@@ -232,12 +232,12 @@ export function filaDeProyecto(
     // default, y se corrige con una fila propia si algun dia hace falta.
     region: "Argentina",
     periodo: periodoComoElDocumento(desde, hasta),
-    alcance: p.descripcion ?? p.nombre,
-    // El proyecto se describe en castellano; el ingles es un campo aparte y
-    // puede faltar (0030). Si falta, el documento en ingles cae al castellano
-    // y la pantalla lo avisa.
-    alcance_es: p.descripcion ?? p.nombre,
-    alcance_en: p.descripcion_en ?? null,
+    alcance: p.scope_es ?? p.descripcion ?? p.nombre,
+    // El scope corto es lo que va al documento; si no esta, la descripcion
+    // larga, que es mejor que un agujero. El ingles puede faltar: ahi el
+    // documento cae al castellano y la pantalla lo avisa (0031).
+    alcance_es: p.scope_es ?? p.descripcion ?? p.nombre,
+    alcance_en: p.scope_en ?? null,
     anio_desde: anioDe(desde),
     anio_hasta: anioDe(hasta),
     valor_usd: valor,
