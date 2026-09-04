@@ -5,33 +5,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type NavItem = { href: string; label: string };
-type NavGroup = { titulo: string; items: NavItem[] };
 
-const NAV: NavGroup[] = [
-  {
-    titulo: "Comercial",
-    items: [
-      { href: "/oportunidades", label: "Oportunidades" },
-      { href: "/proyectos", label: "Proyectos" },
-      { href: "/mapa", label: "Mapa de trabajos" },
-    ],
-  },
-  {
-    titulo: "Maestros",
-    items: [
-      { href: "/clientes", label: "Base de datos clientes" },
-      { href: "/plantillas", label: "Plantillas de proyecto" },
-      { href: "/zonas", label: "Zonas y puertos" },
-    ],
-  },
-  {
-    titulo: "Eventos",
-    items: [{ href: "/calendario", label: "Calendario de Ferias"  }],
-  },
-  {
-    titulo: "Resumen",
-    items: [{ href: "/dashboard", label: "Dashboard"  }],
-  },
+// Una sola lista, sin titulos de grupo: con nueve pantallas los encabezados
+// —Comercial, Maestros, Eventos, Resumen— ocupaban mas lugar que lo que
+// ordenaban. El Dashboard primero, que es por donde se empieza a mirar.
+const NAV: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/oportunidades", label: "Oportunidades" },
+  { href: "/proyectos", label: "Proyectos" },
+  { href: "/facturacion", label: "Facturacion" },
+  { href: "/mapa", label: "Mapa de trabajos" },
+  { href: "/clientes", label: "Clientes" },
+  { href: "/plantillas", label: "Plantillas de proyecto" },
+  { href: "/zonas", label: "Zonas y puertos" },
+  { href: "/calendario", label: "Calendario de Ferias" },
 ];
 
 const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> = {
@@ -45,9 +32,14 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     titulo: "Proyectos",
     sub: "Los trabajos ganados, con sus salidas: lo firmado, lo ejecutado y el contrato.",
   },
+  "/facturacion": {
+    grupo: "Comercial",
+    titulo: "Facturacion",
+    sub: "Que se facturo, que se cobro, que esta vencido y que falta facturar.",
+  },
   "/clientes": {
     grupo: "Maestros",
-    titulo: "Base de datos clientes",
+    titulo: "Clientes",
     sub: "El maestro de clientes: empresas, contactos y su historia comercial.",
   },
   "/plantillas": {
@@ -73,7 +65,7 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
   "/dashboard": {
     grupo: "Resumen",
     titulo: "Dashboard",
-    sub: "Valor cotizado por empresa propia y por cliente.",
+    sub: "Oportunidades, proyectos y facturacion: en que anda cada cosa y cuanto.",
   },
 };
 
@@ -113,6 +105,16 @@ function seccionFor(pathname: string) {
   }
   if (pathname.startsWith("/plantillas/")) {
     return { grupo: "Maestros", titulo: "Plantilla", sub: "" };
+  }
+  if (pathname === "/facturacion/nueva") {
+    return {
+      grupo: "Comercial",
+      titulo: "Nueva factura",
+      sub: "Cuelga de un proyecto, y puede facturar una salida puntual o un periodo.",
+    };
+  }
+  if (pathname.startsWith("/facturacion/")) {
+    return { grupo: "Comercial", titulo: "Factura", sub: "" };
   }
   if (pathname === "/zonas/nueva") {
     return {
@@ -174,13 +176,15 @@ export default function Shell({
 
       <div className="shell">
         <nav className="sidebar">
-          <div className="sidebar-header">
+          {/* El logo lleva al Dashboard, que es la pantalla de inicio. Es lo
+              que uno espera de un logo arriba a la izquierda. */}
+          <Link href="/dashboard" className="sidebar-header">
             <img src="/PL.png" alt="PL Offshore" className="sidebar-logo-img" />
             <div>
               <div className="sidebar-logo-main">Comercial</div>
               <div className="sidebar-logo-sub">PL Offshore</div>
             </div>
-          </div>
+          </Link>
 
           {/* Numeros en Saira 900 en lugar de iconos. El design system no
               define iconografia y la ausencia es deliberada: la marca
@@ -188,26 +192,22 @@ export default function Shell({
               alternativa que contempla —Lucide con stroke 1.5— la tiene que
               aprobar Marketing Corporativo, asi que no se usa.
 
-              La numeracion corre sobre todo el menu y no por grupo: es un
-              indice de secciones, y reiniciar en 01 en cada grupo daria
-              cuatro "01" distintos. */}
+              La numeracion corre sobre todo el menu: es un indice de
+              secciones. */}
           <div className="sidebar-nav">
-            {NAV.map((grupo, iGrupo) => (
-              <div key={grupo.titulo} style={{ marginBottom: 8 }}>
-                <div className="nav-section">{grupo.titulo}</div>
-                {grupo.items.map((item, iItem) => {
-                  const active = pathname.startsWith(item.href);
-                  const nro =
-                    NAV.slice(0, iGrupo).reduce((a, g) => a + g.items.length, 0) + iItem + 1;
-                  return (
-                    <Link key={item.href} href={item.href} className={`ni ${active ? "active" : ""}`}>
-                      <span className="ni-num">{String(nro).padStart(2, "0")}</span>
-                      <span className="ni-label">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
+            {NAV.map((item, i) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`ni ${active ? "active" : ""}`}
+                >
+                  <span className="ni-num">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="ni-label">{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="sidebar-foot">
@@ -249,6 +249,13 @@ export default function Shell({
                 <div className="pagehead-actions">
                   <Link href="/plantillas/nueva" className="btn btn-amarillo">
                     Nueva plantilla
+                  </Link>
+                </div>
+              )}
+              {pathname === "/facturacion" && (
+                <div className="pagehead-actions">
+                  <Link href="/facturacion/nueva" className="btn btn-amarillo">
+                    Nueva factura
                   </Link>
                 </div>
               )}

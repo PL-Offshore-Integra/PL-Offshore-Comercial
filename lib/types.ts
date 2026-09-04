@@ -908,3 +908,105 @@ export function desgloseValor(
 
   return lineas;
 }
+
+// ── FACTURACION Y COBRANZA (0028) ─────────────────────────────────────────
+//
+// Lo que se venia siguiendo en "REMOLCADORES - RESUMEN 2026.xlsx": el proyecto
+// se adjudica, se trabaja, se factura y hay que cobrarlo.
+//
+// La factura cuelga del proyecto y un proyecto puede tener varias. Ademas
+// puede apuntar a la salida que factura, cuando factura una sola: en el
+// Golondrina cada viaje se factura entero, y en un survey de 48 dias se
+// factura por mes sin que cada factura sea un viaje.
+export interface Factura {
+  id: string;
+  proyecto_id: string;
+  // La salida facturada, si la factura corresponde a una.
+  operacion_id: string | null;
+
+  nro_factura: string | null;
+  // Cual de las empresas de Integra emite. Los remolcadores de PL Offshore los
+  // factura Parana Logistica.
+  empresa_facturadora: EmpresaPropia;
+
+  fecha_emision: string;
+  vencimiento: string | null;
+
+  importe: number;
+  // Lo que se le paga al broker por esta factura.
+  comision: number;
+  moneda: Moneda;
+
+  // El cobro, uno por factura. Si hay moneda de cobro, esta cobrada: la base
+  // exige que moneda y fecha esten las dos o ninguna.
+  cobro_moneda: Moneda | null;
+  cobro_fecha: string | null;
+  // El TC al que se acordo pagar, y el del dia en que entro la plata.
+  tc_pagado: number | null;
+  tc_dia_cobro: number | null;
+
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// La factura con lo que hace falta para leerla sin ir a buscar el proyecto
+// (vista de 0028).
+export interface FacturaListada extends Factura {
+  nro_proyecto: string | null;
+  proyecto: string;
+  compania: string | null;
+  cliente_final: string | null;
+  buque: string | null;
+  nro_operacion: string | null;
+  salida: string | null;
+  salida_desde: string | null;
+  salida_hasta: string | null;
+  neto: number;
+}
+
+// El estado no se guarda: se deduce. En la planilla era una formula que
+// preguntaba si la columna "Cobrado" decia USD o ARS, pero ahi estaba escrito
+// "Si", asi que ninguna factura cobrada contaba como cobrada y el tablero
+// informaba 0% cobrado con 451.400 USD ya cobrados. Un dato calculado no puede
+// contradecir al que lo origina si se calcula en un solo lugar.
+export type EstadoFactura = "cobrada" | "en_plazo" | "vencida" | "sin_vencimiento";
+
+export const ESTADOS_FACTURA: { id: EstadoFactura; label: string; color: string }[] = [
+  { id: "cobrada", label: "Cobrada", color: "b-green" },
+  { id: "en_plazo", label: "En plazo", color: "b-blue" },
+  { id: "vencida", label: "Vencida", color: "b-red" },
+  { id: "sin_vencimiento", label: "Sin vencimiento", color: "b-gray" },
+];
+
+export function estadoDeFactura(
+  f: Pick<Factura, "cobro_moneda" | "vencimiento">,
+  hoy: string
+): EstadoFactura {
+  if (f.cobro_moneda) return "cobrada";
+  if (!f.vencimiento) return "sin_vencimiento";
+  // Vence hoy todavia esta en plazo: el dia de vencimiento se puede cobrar.
+  return f.vencimiento < hoy ? "vencida" : "en_plazo";
+}
+
+export function etiquetaFactura(estado: EstadoFactura): { label: string; color: string } {
+  return ESTADOS_FACTURA.find((e) => e.id === estado) ?? ESTADOS_FACTURA[3];
+}
+
+// El neto es una resta y no se guarda: guardarla es dejar que se desincronice.
+export function netoDeFactura(f: Pick<Factura, "importe" | "comision">): number {
+  return Number(f.importe ?? 0) - Number(f.comision ?? 0);
+}
+
+// Cobrada en pesos: cuanta plata entro de verdad. El neto esta en la moneda de
+// la factura —USD— y el TC pagado es el acordado para ese cobro.
+export function totalEnPesos(f: Factura): number | null {
+  if (f.cobro_moneda !== "ARS" || !f.tc_pagado) return null;
+  return netoDeFactura(f) * Number(f.tc_pagado);
+}
+
+// Lo que se movio el tipo de cambio entre lo acordado y el dia del cobro.
+export function difDeCambio(f: Factura): number | null {
+  if (f.tc_pagado === null || f.tc_dia_cobro === null) return null;
+  return Number(f.tc_dia_cobro) - Number(f.tc_pagado);
+}

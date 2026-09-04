@@ -113,3 +113,40 @@ export function fechaConHoraSiTiene(iso: string | null | undefined): string {
   if (!iso) return "—";
   return SOLO_FECHA.test(iso) ? fechaLegible(iso) : fechaHoraLegible(iso);
 }
+
+// El dia de hoy en hora argentina, como "aaaa-mm-dd".
+//
+// Hace falta para decidir si una factura esta vencida. `new Date()` del lado
+// del servidor puede estar en UTC, y a las 22:00 de aca ya es el dia siguiente
+// alla: una factura que vence hoy apareceria vencida tres horas antes de
+// tiempo. Se compara texto contra texto, que en formato ISO ordena igual que
+// la fecha.
+export function hoyEnArgentina(): string {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  // en-CA da "2026-09-04", justo el formato que se necesita.
+  return partes;
+}
+
+// Los dias entre dos fechas sueltas ("aaaa-mm-dd"), sin horas en el medio.
+// Positivo si la segunda es posterior.
+export function diasEntre(desde: string | null, hasta: string | null): number | null {
+  if (!desde || !hasta) return null;
+  const a = Date.parse(`${desde.slice(0, 10)}T12:00:00Z`);
+  const b = Date.parse(`${hasta.slice(0, 10)}T12:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+// Suma dias a una fecha suelta y devuelve "aaaa-mm-dd". Se usa para proponer
+// el vencimiento: fecha + los dias de pago del cliente.
+export function sumarDias(fecha: string | null, dias: number | null): string {
+  if (!fecha || dias === null || !Number.isFinite(dias)) return "";
+  const base = Date.parse(`${fecha.slice(0, 10)}T12:00:00Z`);
+  if (!Number.isFinite(base)) return "";
+  return new Date(base + dias * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}

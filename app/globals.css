@@ -150,7 +150,11 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .appbar-link:hover{color:#fff;text-decoration:underline}
 
 .sidebar{width:auto;min-width:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
-.sidebar-header{border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:12px;min-height:69px}
+.sidebar-header{border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:12px;min-height:69px;color:inherit;text-decoration:none;transition:var(--tr)}
+/* Es un link al Dashboard: se comporta como tal al pasar por encima, sin
+   pintarse de amarillo como un link de texto. */
+.sidebar-header:hover{background:var(--surface2)}
+.sidebar-header:hover .sidebar-logo-main{color:var(--navy)}
 .sidebar-logo-img{width:32px;height:32px;object-fit:contain;border:0;border-radius:0;background:none;flex:0 0 auto}
 .sidebar-logo-main{font:600 15px/1.3 var(--sans);color:var(--navy);letter-spacing:0;text-transform:none}
 .sidebar-logo-sub{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
@@ -372,3 +376,10 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .globo li:last-child{border-bottom:0}
 .globo li a{font-weight:600}
 .globo li span{display:block;color:var(--muted);font-size:12px}
+
+/* Un titular del tablero que ademas es un link a su pantalla. Se comporta
+   como tarjeta, no como texto: no se pinta de amarillo, se levanta el borde. */
+.stat-link{display:block;text-decoration:none;color:inherit;transition:var(--tr)}
+.stat-link:hover{border-color:var(--navy)}
+.stat-link:hover .stat-value{color:var(--navy)}
+.stat .hint{display:block;margin-top:6px}

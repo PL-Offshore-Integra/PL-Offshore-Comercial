@@ -11,11 +11,15 @@ import { BotonGuardar } from "@/components/BotonGuardar";
 import { plantillaDesdeProyecto } from "@/app/(app)/plantillas/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
 import { leerZonasPara } from "@/lib/zonas";
-import { diasLegibles, fechaHoraLegible } from "@/lib/fechas";
+import { diasLegibles, fechaHoraLegible, fechaLegible, hoyEnArgentina } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
   diasDeOperacion,
+  estadoDeFactura,
   ESTADOS_OPERACION,
+  etiquetaFactura,
+  netoDeFactura,
+  type FacturaListada,
   type Operacion,
   type Proyecto,
   type ProyectoAdjunto,
@@ -99,6 +103,21 @@ export default async function ProyectoPage({
   const ejecutado = operaciones
     .filter((o) => o.estado !== "cancelada")
     .reduce((a, o) => a + Number(o.valor ?? 0), 0);
+
+  // Las facturas del proyecto (0028). Un proyecto puede tener varias, y no
+  // todas cuelgan de una salida.
+  const { data: fact } = await supabase
+    .from("facturas_listado")
+    .select("*")
+    .eq("proyecto_id", id)
+    .order("fecha_emision", { ascending: false });
+  const facturas = (fact ?? []) as FacturaListada[];
+
+  const hoy = hoyEnArgentina();
+  const facturado = facturas.reduce((a, f) => a + Number(f.importe ?? 0), 0);
+  const cobrado = facturas
+    .filter((f) => f.cobro_moneda !== null)
+    .reduce((a, f) => a + netoDeFactura(f), 0);
 
   const guardar = actualizarProyecto.bind(null, proyecto.id);
   const eliminar = borrarProyecto.bind(null, proyecto.id);
@@ -200,6 +219,92 @@ export default async function ProyectoPage({
                       <td style={{ textAlign: "right" }}>
                         <Link
                           href={`/proyectos/${proyecto.id}/operaciones/${o.id}`}
+                          className="btn btn-ghost btn-sm"
+                        >
+                          Abrir
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* La facturacion del proyecto (0028). Un proyecto puede tener varias
+          facturas, y no todas corresponden a una salida: un charter largo se
+          factura por mes. */}
+      <div className="card">
+        <div className="card-title">
+          <span>
+            Facturacion ({facturas.length})
+            {facturas.length > 0 && (
+              <span className="text-muted">
+                {" "}
+                · {plata(facturado, proyecto.moneda)} facturado ·{" "}
+                {plata(cobrado, proyecto.moneda)} cobrado
+              </span>
+            )}
+          </span>
+          <Link
+            href={`/facturacion/nueva?proyecto=${proyecto.id}&volver=proyecto`}
+            className="btn btn-amarillo btn-sm"
+          >
+            Nueva factura
+          </Link>
+        </div>
+
+        {facturas.length === 0 ? (
+          <div className="empty-state">
+            Todavia no se facturo nada de este proyecto. Cada factura puede
+            colgar de una salida —y ahi trae sus importes— o ser por periodo.
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="tabla-lista">
+              <thead>
+                <tr>
+                  <th>Nro</th>
+                  <th>Salida</th>
+                  <th>Emision</th>
+                  <th>Vencimiento</th>
+                  <th>Neto</th>
+                  <th>Estado</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {facturas.map((f) => {
+                  const et = etiquetaFactura(estadoDeFactura(f, hoy));
+                  return (
+                    <tr key={f.id}>
+                      <td className="text-mono cel-nro">
+                        {f.nro_factura ?? <span className="text-muted">sin nro</span>}
+                      </td>
+                      <td className="text-muted">
+                        {f.salida
+                          ? [f.nro_operacion, f.salida].filter(Boolean).join(" · ")
+                          : "por periodo"}
+                      </td>
+                      <td className="text-mono">{fechaLegible(f.fecha_emision)}</td>
+                      <td className="text-mono">
+                        {f.vencimiento ? (
+                          fechaLegible(f.vencimiento)
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="text-mono cel-valor">
+                        {plata(netoDeFactura(f), f.moneda)}
+                      </td>
+                      <td>
+                        <span className={`badge ${et.color}`}>{et.label}</span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <Link
+                          href={`/facturacion/${f.id}`}
                           className="btn btn-ghost btn-sm"
                         >
                           Abrir
