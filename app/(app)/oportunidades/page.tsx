@@ -63,7 +63,12 @@ export default async function OportunidadesPage() {
                   <th>Buque</th>
                   <th>Contacto</th>
                   <th>Valor</th>
-                  <th>Cierre esperado</th>
+                  {/* Ultimo contacto en vez de cierre esperado: en el
+                      seguimiento importa cuando se hablo por ultima vez, que
+                      es lo que dice si hay que llamar. La fecha de cierre
+                      esperada casi nunca se cargaba, asi que la columna
+                      mostraba un guion. Sigue en la ficha. */}
+                  <th>Ultimo contacto</th>
                   <th>Comentarios</th>
                   <th />
                 </tr>
@@ -86,7 +91,7 @@ export default async function OportunidadesPage() {
                       <td className="text-muted">{o.buque ?? "—"}</td>
                       <td className="text-muted">{o.contacto ?? o.contacto_email ?? "—"}</td>
                       <td className="text-mono cel-valor">{plata(o.moneda, o.valor)}</td>
-                      <td className="text-mono">{fecha(o.fecha_esperada_cierre)}</td>
+                      <td className="text-mono">{fecha(o.last_interacted_on)}</td>
                       <td className="text-muted">
                         <span className="cel-texto">{recortar(o.comentarios)}</span>
                       </td>

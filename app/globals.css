@@ -286,8 +286,8 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
    de 85), 12px de relleno a cada lado de diez celdas, y los tres controles de
    la ultima columna con el aire de un formulario. Aca el relleno se acorta,
    el encabezado parte de linea y el texto largo se corta en dos renglones. */
-.tabla-lista th{white-space:normal;padding:8px 6px;line-height:1.3}
-.tabla-lista td{padding:10px 6px}
+.tabla-lista th{white-space:normal;padding:8px 5px;line-height:1.3}
+.tabla-lista td{padding:10px 5px}
 /* Ni el numero ni la plata se parten en dos renglones: PL-1-2026 partido no
    es un numero y US$ 5.000.000,00 partido no es un importe. */
 .cel-nro,.cel-valor{white-space:nowrap}
