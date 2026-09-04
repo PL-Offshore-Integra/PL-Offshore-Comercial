@@ -8,6 +8,7 @@ import {
   ADICIONALES,
   calcularValor,
   camposDe,
+  comisionTotal,
   CONTRATACIONES,
   etiquetaEstado,
   MONEDAS,
@@ -85,13 +86,21 @@ export default function OportunidadForm({
   const diasNum = Number(dias) || 0;
   const fin = inicio && diasNum > 0 ? finEstimado(inicio, diasNum) : "";
 
-  const valor = calcularValor(
-    tipo,
-    Object.fromEntries(
-      Object.entries(montos).map(([c, v]) => [c, Number(v) || 0])
-    ) as Partial<Record<Concepto, number>>,
-    diasNum
-  );
+  const montosNumericos = Object.fromEntries(
+    Object.entries(montos).map(([c, v]) => [c, Number(v) || 0])
+  ) as Partial<Record<Concepto, number>>;
+
+  const valor = calcularValor(tipo, montosNumericos, diasNum);
+
+  // La comision del broker: dias × comision. Da 0 en los otros tres tipos, y
+  // en esos el casillero no se muestra.
+  const comision = comisionTotal(tipo, montosNumericos, diasNum);
+
+  // La cuenta escrita, para mostrarla abajo del total. Vive en
+  // CONTRATACIONES: antes era un ternario aca y se quedo sin actualizar
+  // cuando entro `dia_garantizado`, asi que la pantalla decia una cuenta y el
+  // servidor hacia otra.
+  const contratacion = CONTRATACIONES.find((c) => c.id === tipo);
 
   return (
     <form action={action} className="card" id={ID_FORM_OPORTUNIDAD}>
@@ -226,6 +235,26 @@ export default function OportunidadForm({
           </select>
         </div>
 
+        {/* Los dos puertos del charter. No son el itinerario del trabajo: son
+            desde y hasta donde corre el hire, y por eso van aca y no en la
+            descripcion de la tarea. */}
+        <div className="fg">
+          <label>Delivery port</label>
+          <input
+            name="delivery_port"
+            defaultValue={oportunidad?.delivery_port ?? ""}
+            placeholder="Donde se entrega el buque"
+          />
+        </div>
+        <div className="fg">
+          <label>Re-delivery port</label>
+          <input
+            name="redelivery_port"
+            defaultValue={oportunidad?.redelivery_port ?? ""}
+            placeholder="Donde se lo devuelve"
+          />
+        </div>
+
         {campos.map((c) => (
           <div className="fg" key={c.concepto}>
             <label>{c.label}</label>
@@ -254,12 +283,21 @@ export default function OportunidadForm({
               queda. */}
           <label>Valor total de la propuesta</label>
           <input value={plata(moneda, valor)} readOnly />
-          <span className="hint">
-            {tipo === "time_charter"
-              ? "Daily hire × dias + mobilization + demobilization"
-              : "Lump sum + mobilization + demobilization"}
-          </span>
+          <span className="hint">{contratacion?.formula}</span>
         </div>
+
+        {/* La comision, cuando hay broker. Es un segundo numero y no una parte
+            del primero: el valor de arriba es lo que paga el cliente, esto es
+            lo que se le paga al broker. */}
+        {tipo === "broker" && (
+          <div className="fg">
+            <label>Total de comision</label>
+            <input value={plata(moneda, comision)} readOnly />
+            <span className="hint">
+              Dias × comision. No entra en el valor de la propuesta.
+            </span>
+          </div>
+        )}
 
         <div className="fg">
           <label>Fecha de alta</label>

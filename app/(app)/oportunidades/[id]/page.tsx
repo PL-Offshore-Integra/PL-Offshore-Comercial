@@ -119,6 +119,13 @@ export default async function VerOportunidadPage({
           <Dato label="Valor total">
             <strong>{plata(o.moneda, o.valor)}</strong>
           </Dato>
+          {/* La comision no se suma al valor: es lo que se le paga al broker.
+              Solo aparece cuando hay broker (0024). */}
+          {o.estructura_tarifaria === "broker" && (
+            <Dato label="Total de comision">{plata(o.moneda, o.comision_total)}</Dato>
+          )}
+          <Dato label="Delivery port">{o.delivery_port ?? "—"}</Dato>
+          <Dato label="Re-delivery port">{o.redelivery_port ?? "—"}</Dato>
         </div>
 
         {conMonto.length > 0 && (

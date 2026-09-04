@@ -8,6 +8,7 @@ import {
   ADICIONALES,
   calcularValor,
   camposDe,
+  comisionTotal,
   CONTRATACIONES,
   desgloseValor,
   diasDeOperacion,
@@ -111,6 +112,9 @@ export default function OperacionForm({
 
   const valor = calcularValor(tipo, montosNumericos, dias);
   const desglose = desgloseValor(tipo, montosNumericos, dias);
+  // Lo que se le paga al broker por esta salida. Aparte del valor: uno entra y
+  // el otro sale (0024).
+  const comision = comisionTotal(tipo, montosNumericos, dias);
 
   const sugerido = nombreSugerido(cliente, inicio, buqueMadre);
   const nombreFinal = nombreAMano || !sugerido ? nombre : sugerido;
@@ -202,7 +206,10 @@ export default function OperacionForm({
         <table className="tabla-calculo">
           <tbody>
             {desglose.map((l) => (
-              <tr key={l.label} className={l.esTotal ? "fila-total" : undefined}>
+              <tr
+                key={l.label}
+                className={l.esTotal ? "fila-total" : l.aparte ? "fila-aparte" : undefined}
+              >
                 <td>{l.label}</td>
                 <td className="text-mono text-muted">
                   {l.dias === undefined ? "" : `${diasLegibles(l.dias)} dias`}
@@ -344,6 +351,14 @@ export default function OperacionForm({
             <strong>{plata(moneda, valor)}</strong>
           </div>
         </div>
+
+        {tipo === "broker" && (
+          <div className="fg">
+            <label>Total de comision</label>
+            <div className="dato">{plata(moneda, comision)}</div>
+            <span className="hint">Dias × comision. No entra en el valor.</span>
+          </div>
+        )}
       </div>
 
       <div className="form-section">Comentarios</div>

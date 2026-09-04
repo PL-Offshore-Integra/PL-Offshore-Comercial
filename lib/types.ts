@@ -58,9 +58,17 @@ export function etiquetaEstado(estado: string): { label: string; color: string }
 //   Dia garantizado  las primeras 24 h se cobran a una tarifa y lo que pasa
 //                    de ahi a otra, pro rata. Es como se cobra el Golondrina
 //                    con Service Management (0019).
+//   Broker           se anota igual que un Time Charter, pero el trabajo entra
+//                    por un broker que cobra comision por dia. El total de la
+//                    propuesta es el mismo que en Time Charter; la comision es
+//                    un segundo numero, aparte (0024).
 //
 // La columna en la base sigue llamandose `estructura_tarifaria`.
-export type EstructuraTarifaria = "time_charter" | "voyage_charter" | "dia_garantizado";
+export type EstructuraTarifaria =
+  | "time_charter"
+  | "voyage_charter"
+  | "dia_garantizado"
+  | "broker";
 
 export type Concepto =
   | "movilizacion"
@@ -72,6 +80,9 @@ export type Concepto =
   | "accommodation"
   | "demurrage"
   | "lump_sum"
+  // La comision del broker, por dia. No entra en el valor de la propuesta: es
+  // lo que se le paga a un tercero, no lo que se le cobra al cliente.
+  | "comision"
   | "otro";
 
 export type Unidad = "dia" | "hora" | "viaje" | "global";
@@ -99,11 +110,16 @@ export type MontoDeTarifa = { concepto: Concepto; monto: number };
 export const CONTRATACIONES: {
   id: EstructuraTarifaria;
   label: string;
+  // La cuenta, escrita como se lee. Se muestra abajo del valor total, asi que
+  // vive al lado de los campos y no en un ternario dentro de un formulario
+  // (donde se quedo sin actualizar cuando entro `dia_garantizado`).
+  formula: string;
   campos: CampoTarifa[];
 }[] = [
   {
     id: "time_charter",
     label: "Time Charter",
+    formula: "Daily hire × dias + mobilization + demobilization",
     campos: [
       { concepto: "tarifa_diaria", label: "Daily hire (por dia)", unidad: "dia" },
       { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
@@ -114,6 +130,7 @@ export const CONTRATACIONES: {
   {
     id: "voyage_charter",
     label: "Voyage Charter",
+    formula: "Lump sum + mobilization + demobilization",
     campos: [
       { concepto: "lump_sum", label: "Lump sum", unidad: "global" },
       { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
@@ -124,6 +141,8 @@ export const CONTRATACIONES: {
   {
     id: "dia_garantizado",
     label: "Dia garantizado",
+    formula:
+      "Dia garantizado + (dias − 1) × tarifa diferencial + mobilization + demobilization",
     campos: [
       {
         concepto: "dia_garantizado",
@@ -137,6 +156,21 @@ export const CONTRATACIONES: {
       },
       { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
       { concepto: "desmovilizacion", label: "Demobilization", unidad: "global" },
+    ],
+  },
+  {
+    // Los mismos casilleros que Time Charter, mas la comision. Se anota igual
+    // porque el trato con el cliente es el mismo; lo que cambia es que hay un
+    // tercero en el medio que cobra por dia.
+    id: "broker",
+    label: "Broker",
+    formula: "Daily hire × dias + mobilization + demobilization",
+    campos: [
+      { concepto: "tarifa_diaria", label: "Daily hire (por dia)", unidad: "dia" },
+      { concepto: "movilizacion", label: "Mobilization", unidad: "global" },
+      { concepto: "desmovilizacion", label: "Demobilization", unidad: "global" },
+      { concepto: "standby", label: "Stand by hire (por dia)", unidad: "dia" },
+      { concepto: "comision", label: "Comision del broker (por dia)", unidad: "dia" },
     ],
   },
 ];
@@ -172,14 +206,19 @@ export function estructuraValida(valor: string | null): EstructuraTarifaria {
 //   Voyage Charter   lump sum + mobilization + demobilization
 //   Dia garantizado  dia garantizado + (dias − 1) × tarifa diferencial
 //                    + mobilization + demobilization
+//   Broker           igual que Time Charter
 //
 // La tercera es la del Golondrina, y la fraccion importa: una salida de 29 h
 // son 1,21 dias, y esas 0,21 jornadas de mas se cobran pro rata. Verificada
 // contra el calculo de RAIZEN AGO2026, da 59.135,43 al centavo.
 //
-// Lo que queda AFUERA de las tres cuentas es lo contingente: stand by hire,
+// Lo que queda AFUERA de las cuatro cuentas es lo contingente: stand by hire,
 // demurrage y accommodation son montos por dia que solo se cobran si pasan.
 // Sumarlos a un total seria mezclar unidades.
+//
+// La comision del broker tambien queda afuera, pero por otro motivo: no es
+// contingente, es plata que sale. El valor de la propuesta es lo que el
+// cliente paga, y la comision se muestra al lado —ver `comisionTotal`.
 export function calcularValor(
   tipo: EstructuraTarifaria,
   montos: Partial<Record<Concepto, number>>,
@@ -189,7 +228,9 @@ export function calcularValor(
   const d = dias && dias > 0 ? dias : 0;
   const mobDesmob = m("movilizacion") + m("desmovilizacion");
 
-  if (tipo === "time_charter") {
+  // Broker se cotiza igual que Time Charter: la comision no se le suma al
+  // cliente.
+  if (tipo === "time_charter" || tipo === "broker") {
     return m("tarifa_diaria") * d + mobDesmob;
   }
   if (tipo === "dia_garantizado") {
@@ -198,6 +239,23 @@ export function calcularValor(
     return m("dia_garantizado") + Math.max(d - 1, 0) * m("tarifa_diferencial") + mobDesmob;
   }
   return m("lump_sum") + mobDesmob;
+}
+
+// La comision del broker: dias × comision. Cero en cualquier otro tipo de
+// contratacion, asi que la pantalla puede llamarla siempre y mostrarla solo
+// cuando da algo.
+//
+// Va aparte del valor de la propuesta a proposito. Son dos numeros que se leen
+// juntos pero no se suman: uno es lo que entra del cliente y el otro lo que
+// sale para el broker. Sumarlos daria un total que no existe en ningun lado.
+export function comisionTotal(
+  tipo: EstructuraTarifaria,
+  montos: Partial<Record<Concepto, number>>,
+  dias: number | null
+): number {
+  if (tipo !== "broker") return 0;
+  const d = dias && dias > 0 ? dias : 0;
+  return (Number(montos["comision"] ?? 0) || 0) * d;
 }
 
 // Suma los dias a una fecha y devuelve el ultimo dia trabajado: arrancar el 1
@@ -278,6 +336,15 @@ export interface Oportunidad {
   // cuando se define la venta.
   fecha_inicio_estimada: string | null;
   fecha_fin_estimada: string | null;
+
+  // --- 0024 ---
+  // Donde se entrega el buque y donde se lo devuelve. Son terminos del
+  // charter, no del itinerario: definen desde y hasta donde corre el hire.
+  delivery_port: string | null;
+  redelivery_port: string | null;
+  // La comision del broker, ya multiplicada por los dias. Se recalcula al
+  // guardar igual que `valor`; en cualquier tipo que no sea Broker queda en 0.
+  comision_total: number;
 }
 
 export interface Adjunto {
@@ -501,6 +568,9 @@ export interface Operacion {
   iva: Iva;
   estructura_tarifaria: EstructuraTarifaria;
   valor: number;
+  // Lo que se le paga al broker por esta salida: dias × comision (0024). Cero
+  // si la salida no es Broker.
+  comision_total: number;
 
   estado: EstadoOperacion;
   comentarios: string | null;
@@ -625,6 +695,9 @@ export type LineaDeCalculo = {
   monto: number;
   // El renglon de cierre se muestra distinto.
   esTotal?: boolean;
+  // Un renglon que NO entra en el total: va debajo, separado. Hoy solo la
+  // comision del broker, que es plata que sale y no que entra.
+  aparte?: boolean;
 };
 
 export function desgloseValor(
@@ -645,7 +718,7 @@ export function desgloseValor(
       dias: extra,
       monto: extra * m("tarifa_diferencial"),
     });
-  } else if (tipo === "time_charter") {
+  } else if (tipo === "time_charter" || tipo === "broker") {
     lineas.push({ label: "Daily hire", dias: d, monto: m("tarifa_diaria") * d });
   } else {
     lineas.push({ label: "Lump sum", monto: m("lump_sum") });
@@ -657,6 +730,16 @@ export function desgloseValor(
     monto: calcularValor(tipo, montos, dias),
     esTotal: true,
   });
+
+  // Debajo del total y afuera de el: la comision no se le cobra al cliente.
+  if (tipo === "broker") {
+    lineas.push({
+      label: "Total comision",
+      dias: d,
+      monto: comisionTotal(tipo, montos, dias),
+      aparte: true,
+    });
+  }
 
   return lineas;
 }

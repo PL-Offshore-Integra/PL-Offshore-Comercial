@@ -328,3 +328,8 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .tabla-calculo .fila-total td{border-top:2px solid var(--navy);border-bottom:none;padding-top:10px}
 .tabla-calculo .fila-total td:first-child{color:var(--navy)}
 .tabla-calculo .fila-total td:last-child{font-weight:700;color:var(--navy)}
+
+/* Un renglon que va debajo del total y NO forma parte de el: hoy solo la
+   comision del broker, que es plata que sale. Se separa con espacio y se
+   escribe apagado, para que no se lea como parte de la suma. */
+.tabla-calculo .fila-aparte td{border-bottom:none;border-top:1px dashed var(--border);padding-top:12px;color:var(--muted)}

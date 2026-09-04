@@ -6,6 +6,7 @@ import { resolverCliente } from "@/lib/clienteResolver";
 import { createClient } from "@/lib/supabase/server";
 import {
   calcularValor,
+  comisionTotal,
   estructuraValida,
   finEstimado,
   type Concepto,
@@ -37,7 +38,21 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
 function valorDeLaPropuesta(formData: FormData): number {
   const tipo = estructuraValida(str(formData, "estructura_tarifaria"));
   const dias = numOrNull(formData.get("duracion_estimada_dias") ?? undefined);
+  return calcularValor(tipo, montosDelFormulario(formData), dias);
+}
 
+// La comision del broker, con el mismo criterio: dias × comision, recalculada
+// aca y no tomada del formulario. Da 0 en los otros tres tipos de
+// contratacion, asi que cambiar de Broker a Time Charter la borra (0024).
+function comisionDeLaPropuesta(formData: FormData): number {
+  const tipo = estructuraValida(str(formData, "estructura_tarifaria"));
+  const dias = numOrNull(formData.get("duracion_estimada_dias") ?? undefined);
+  return comisionTotal(tipo, montosDelFormulario(formData), dias);
+}
+
+// Los montos que vinieron en el submit, indexados por concepto. Lo usan las
+// dos cuentas de arriba.
+function montosDelFormulario(formData: FormData): Partial<Record<Concepto, number>> {
   const conceptos = formData.getAll("tarifa_concepto");
   const montos = formData.getAll("tarifa_monto");
   const mapa: Partial<Record<Concepto, number>> = {};
@@ -45,8 +60,7 @@ function valorDeLaPropuesta(formData: FormData): number {
     const concepto = String(c ?? "").trim() as Concepto;
     if (concepto) mapa[concepto] = numOrNull(montos[i]) ?? 0;
   });
-
-  return calcularValor(tipo, mapa, dias);
+  return mapa;
 }
 
 // El fin estimado tampoco: sale del inicio mas la duracion.
@@ -84,6 +98,10 @@ function fields(formData: FormData) {
     // 0015
     moneda: str(formData, "moneda") === "ARS" ? "ARS" : "USD",
     duracion_estimada_dias: numOrNull(formData.get("duracion_estimada_dias") ?? undefined),
+    // 0024 · los dos puertos del charter y la comision del broker
+    delivery_port: str(formData, "delivery_port"),
+    redelivery_port: str(formData, "redelivery_port"),
+    comision_total: comisionDeLaPropuesta(formData),
   };
 }
 

@@ -6,6 +6,7 @@ import { aTimestamp } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
   calcularValor,
+  comisionTotal,
   diasDeOperacion,
   estructuraValida,
   type Concepto,
@@ -41,7 +42,23 @@ function fechaHora(formData: FormData, key: string): string | null {
 function valorDeLaSalida(formData: FormData, inicio: string | null, fin: string | null): number {
   const tipo = estructuraValida(str(formData, "estructura_tarifaria"));
   const dias = diasDeOperacion(inicio, fin);
+  return calcularValor(tipo, montosDelFormulario(formData), dias);
+}
 
+// La comision del broker por esta salida: dias × comision. Es donde la
+// comision se devenga de verdad, porque es donde hay fechas (0024). Da 0 en
+// cualquier otro tipo de contratacion.
+function comisionDeLaSalida(
+  formData: FormData,
+  inicio: string | null,
+  fin: string | null
+): number {
+  const tipo = estructuraValida(str(formData, "estructura_tarifaria"));
+  const dias = diasDeOperacion(inicio, fin);
+  return comisionTotal(tipo, montosDelFormulario(formData), dias);
+}
+
+function montosDelFormulario(formData: FormData): Partial<Record<Concepto, number>> {
   const conceptos = formData.getAll("tarifa_concepto");
   const montos = formData.getAll("tarifa_monto");
   const mapa: Partial<Record<Concepto, number>> = {};
@@ -49,8 +66,7 @@ function valorDeLaSalida(formData: FormData, inicio: string | null, fin: string 
     const concepto = String(c ?? "").trim() as Concepto;
     if (concepto) mapa[concepto] = numOrNull(montos[i]) ?? 0;
   });
-
-  return calcularValor(tipo, mapa, dias);
+  return mapa;
 }
 
 // Lo que el formulario de la operacion puede escribir.
@@ -77,6 +93,7 @@ function fields(formData: FormData) {
     iva: str(formData, "iva") === "exento" ? "exento" : "21",
     estructura_tarifaria: estructuraValida(str(formData, "estructura_tarifaria")),
     valor: valorDeLaSalida(formData, inicio, fin),
+    comision_total: comisionDeLaSalida(formData, inicio, fin),
 
     estado: str(formData, "estado") ?? "planificada",
     comentarios: str(formData, "comentarios"),
