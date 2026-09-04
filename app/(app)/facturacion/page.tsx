@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { diasAlCobro, totalesDeCobranza } from "@/lib/facturas";
+import { diasAlCobro, pendienteDeFacturar, totalesDeCobranza } from "@/lib/facturas";
 import { fechaLegible, hoyEnArgentina } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -54,10 +54,11 @@ export default async function FacturacionPage() {
   const facturas = (data ?? []) as FacturaListada[];
   const operaciones = (sal ?? []) as Operacion[];
 
-  const facturadas = new Set(
-    facturas.map((f) => f.operacion_id).filter((id): id is string => id !== null)
-  );
-  const pendientesDeFacturar = operaciones.filter((o) => !facturadas.has(o.id));
+  // Lo que falta facturar es valor menos facturado, salida por salida, y no
+  // "las salidas sin factura": un charter largo se factura por mes, asi que
+  // una salida puede tener facturas y faltarle plata igual. La Atlantic Dama
+  // con HOC tiene dos facturas emitidas y le faltan 247.140.
+  const pendientesDeFacturar = pendienteDeFacturar(operaciones, facturas);
 
   const totales = totalesDeCobranza(facturas, hoy);
 
@@ -236,8 +237,8 @@ export default async function FacturacionPage() {
             </span>
             <span className="text-muted">
               {plata(
-                pendientesDeFacturar[0]?.moneda ?? "USD",
-                pendientesDeFacturar.reduce((a, o) => a + Number(o.valor ?? 0), 0)
+                pendientesDeFacturar[0]?.salida.moneda ?? "USD",
+                pendientesDeFacturar.reduce((a, p) => a + p.pendiente, 0)
               )}
             </span>
           </div>
@@ -248,20 +249,30 @@ export default async function FacturacionPage() {
                   <th>Nro</th>
                   <th>Salida</th>
                   <th>Buque</th>
-                  <th>Cliente final</th>
                   <th>Valor</th>
+                  <th>Facturado</th>
+                  <th>Falta facturar</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {pendientesDeFacturar.map((o) => (
+                {pendientesDeFacturar.map(({ salida: o, valor, facturado, pendiente }) => (
                   <tr key={o.id}>
                     <td className="text-mono cel-nro">{o.nro_operacion ?? "-"}</td>
-                    <td className="cel-compania">{o.nombre}</td>
+                    <td className="cel-compania">
+                      <span className="cel-texto">{o.nombre}</span>
+                    </td>
                     <td className="text-muted">{o.buque ?? "—"}</td>
-                    <td className="text-muted">{o.cliente_final ?? "—"}</td>
+                    <td className="text-mono cel-valor">{plataExacta(o.moneda, valor)}</td>
                     <td className="text-mono cel-valor">
-                      {plataExacta(o.moneda, Number(o.valor ?? 0))}
+                      {facturado > 0 ? (
+                        plataExacta(o.moneda, facturado)
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="text-mono cel-valor">
+                      <strong>{plataExacta(o.moneda, pendiente)}</strong>
                     </td>
                     <td style={{ textAlign: "right" }}>
                       <Link
@@ -277,8 +288,9 @@ export default async function FacturacionPage() {
             </table>
           </div>
           <span className="hint">
-            Salidas cargadas que todavia no tienen factura. Las canceladas no
-            cuentan.
+            Valor del trabajo menos lo ya facturado. Una salida puede tener
+            facturas y faltarle plata: un charter largo se factura por mes. Las
+            canceladas no cuentan.
           </span>
         </div>
       )}

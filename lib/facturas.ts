@@ -153,3 +153,43 @@ export function cobranzaPorBuque(
   const porBuque = buques.map((b) => barra(b));
   return porBuque.length > 1 ? [barra(null), ...porBuque] : porBuque;
 }
+
+// ── LO QUE FALTA FACTURAR ─────────────────────────────────────────────────
+//
+// No es "las salidas sin factura", que fue la primera version y se queda corta:
+// un charter largo se factura por mes, asi que una salida puede tener facturas
+// y faltarle plata igual. La Atlantic Dama con HOC tiene dos facturas emitidas
+// —452.000 y 336.630— sobre un trabajo de 1.035.770: le faltan 247.140, y la
+// planilla los cuenta exactamente asi.
+//
+// Entonces: por salida, valor del trabajo menos lo que ya se facturo. Las
+// facturas por periodo —las que no cuelgan de ninguna salida— no descuentan de
+// ninguna, que es lo correcto: no se sabe a que trabajo corresponden.
+export type PendienteDeFacturar<T> = {
+  salida: T;
+  valor: number;
+  facturado: number;
+  pendiente: number;
+};
+
+export function pendienteDeFacturar<
+  T extends { id: string; valor: number | string; moneda: Moneda },
+>(salidas: T[], facturas: FacturaListada[]): PendienteDeFacturar<T>[] {
+  const facturadoPorSalida = new Map<string, number>();
+  for (const f of facturas) {
+    if (!f.operacion_id) continue;
+    facturadoPorSalida.set(
+      f.operacion_id,
+      (facturadoPorSalida.get(f.operacion_id) ?? 0) + Number(f.importe ?? 0)
+    );
+  }
+
+  return salidas
+    .map((salida) => {
+      const valor = Number(salida.valor ?? 0);
+      const facturado = facturadoPorSalida.get(salida.id) ?? 0;
+      return { salida, valor, facturado, pendiente: valor - facturado };
+    })
+    // Medio centavo de diferencia no es plata pendiente, es redondeo.
+    .filter((p) => p.pendiente > 0.005);
+}

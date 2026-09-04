@@ -7,6 +7,7 @@ import {
   cobranzaPorBuque,
   diasAlCobro,
   ESTADOS_DE_COBRANZA,
+  pendienteDeFacturar,
   totalesDeCobranza,
   type EstadoDeCobranza,
 } from "@/lib/facturas";
@@ -128,18 +129,20 @@ export default function Tablero({
 
   // ── Facturacion ──
   const totales = totalesDeCobranza(fact, hoy);
-  const facturadas = new Set(
-    fact.map((f) => f.operacion_id).filter((id): id is string => id !== null)
-  );
-  const sinFacturar = sal.filter((o) => !facturadas.has(o.id));
+  // Lo que falta facturar es valor menos facturado, salida por salida: una
+  // salida puede tener facturas y faltarle plata igual.
+  const pendientes = pendienteDeFacturar(sal, fact);
+  const sinFacturar = pendientes.map((p) => p.salida);
 
   const deTotales = (campo: "facturado" | "cobrado" | "enPlazo" | "vencido") =>
     totales.map((t) => [t.moneda, t[campo]] as [string, number]);
 
-  const sinFacturarParaGrafico = sinFacturar.map((o) => ({
-    buque: o.buque,
-    moneda: o.moneda,
-    valor: Number(o.valor ?? 0),
+  // Al grafico va el pendiente, no el valor entero de la salida: de la
+  // Atlantic Dama con HOC faltan 247.140 sobre un trabajo de 1.035.770.
+  const sinFacturarParaGrafico = pendientes.map((p) => ({
+    buque: p.salida.buque,
+    moneda: p.salida.moneda,
+    valor: p.pendiente,
   }));
 
   const monedas = [
@@ -181,7 +184,8 @@ export default function Tablero({
     );
   });
 
-  const pendientesVisibles = estado === null || estado === "sin_facturar" ? sinFacturar : [];
+  const pendientesVisibles =
+    estado === null || estado === "sin_facturar" ? pendientes : [];
 
   const hayFiltro = anio !== "todos" || buque !== "todos" || estado !== null;
   const etiquetaEstado = estado
@@ -535,20 +539,32 @@ export default function Tablero({
                         <th>Nro</th>
                         <th>Salida</th>
                         <th>Buque</th>
-                        <th>Cliente final</th>
                         <th>Valor</th>
+                        <th>Facturado</th>
+                        <th>Falta facturar</th>
                         <th />
                       </tr>
                     </thead>
                     <tbody>
-                      {pendientesVisibles.map((o) => (
+                      {pendientesVisibles.map(({ salida: o, valor, facturado, pendiente }) => (
                         <tr key={o.id}>
                           <td className="text-mono cel-nro">{o.nro_operacion ?? "-"}</td>
-                          <td className="cel-compania">{o.nombre}</td>
+                          <td className="cel-compania">
+                            <span className="cel-texto">{o.nombre}</span>
+                          </td>
                           <td className="text-muted">{o.buque ?? "—"}</td>
-                          <td className="text-muted">{o.cliente_final ?? "—"}</td>
                           <td className="text-mono cel-valor">
-                            {plata(o.moneda, Number(o.valor ?? 0), true)}
+                            {plata(o.moneda, valor, true)}
+                          </td>
+                          <td className="text-mono cel-valor">
+                            {facturado > 0 ? (
+                              plata(o.moneda, facturado, true)
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
+                          <td className="text-mono cel-valor">
+                            <strong>{plata(o.moneda, pendiente, true)}</strong>
                           </td>
                           <td style={{ textAlign: "right" }}>
                             <Link
