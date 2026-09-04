@@ -97,12 +97,17 @@ export default async function EstadoDeCuentaPage({
 
   return (
     <div className="documento">
+      {/* La barra queda afuera de la hoja: no es parte del documento. */}
       <div className="flex-between mb16 no-imprimir">
         <Link href="/facturacion" className="btn btn-ghost btn-sm">
           Atras
         </Link>
         <ImprimirCalculo />
       </div>
+
+      {/* De aca abajo es la hoja: lo que se ve es lo que sale impreso. */}
+      <div className="hoja-marco">
+        <div className="hoja">
 
       <div className="card">
         <div className="doc-cabeza">
@@ -226,6 +231,8 @@ export default async function EstadoDeCuentaPage({
         {empresa.dias_de_pago
           ? ` Condicion de pago: ${empresa.dias_de_pago} dias desde la emision de la factura.`
           : ""}
+      </div>
+        </div>
       </div>
     </div>
   );

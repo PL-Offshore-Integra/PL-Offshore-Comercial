@@ -81,6 +81,7 @@ export default async function CalculoPage({
 
   return (
     <div className="documento">
+      {/* La barra queda afuera de la hoja: no es parte del documento. */}
       <div className="flex-between mb16 no-imprimir">
         <Link
           href={`/proyectos/${proyecto.id}/operaciones/${operacion.id}`}
@@ -90,6 +91,10 @@ export default async function CalculoPage({
         </Link>
         <ImprimirCalculo />
       </div>
+
+      {/* De aca abajo es la hoja: lo que se ve es lo que sale impreso. */}
+      <div className="hoja-marco">
+        <div className="hoja">
 
       {/* El encabezado del documento. En pantalla se ve como una tarjeta; en el
           PDF es la cabecera de la hoja. */}
@@ -200,6 +205,8 @@ export default async function CalculoPage({
             ? "Exento de IVA. Se cotiza y se cobra en USD oficial."
             : "Los importes no incluyen IVA."}
           {operacion.comentarios && <> {operacion.comentarios}</>}
+        </div>
+      </div>
         </div>
       </div>
     </div>
