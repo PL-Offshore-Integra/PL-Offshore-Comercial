@@ -555,6 +555,10 @@ export interface Proyecto {
   // pone en el mapa.
   zona_id: string | null;
 
+  // En que consiste, en ingles: para el track record, que sale para afuera
+  // (0030). Vacio no rompe nada.
+  descripcion_en: string | null;
+
   // Las estimadas vienen de la oportunidad; las reales se cargan cuando pasan.
   fecha_inicio_estimada: string | null;
   fecha_fin_estimada: string | null;
