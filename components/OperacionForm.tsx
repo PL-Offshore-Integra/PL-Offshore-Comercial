@@ -5,9 +5,8 @@ import { useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import { aInputLocal, diasLegibles } from "@/lib/fechas";
 import {
-  ADICIONALES,
   calcularValor,
-  camposDe,
+  camposConAdicionales,
   comisionTotal,
   CONTRATACIONES,
   desgloseValor,
@@ -102,7 +101,7 @@ export default function OperacionForm({
     return inicial;
   });
 
-  const campos = [...camposDe(tipo), ...ADICIONALES];
+  const campos = camposConAdicionales(tipo);
 
   const dias = diasDeOperacion(inicio ? `${inicio}:00` : null, fin ? `${fin}:00` : null);
 

@@ -87,14 +87,17 @@ export type Concepto =
 
 export type Unidad = "dia" | "hora" | "viaje" | "global";
 
-// Accommodation no depende del tipo de contratacion: puede ir con Time
-// Charter o con Voyage Charter. Vacio = no se cotizo.
+// Accommodation es el unico concepto que no pertenece a un tipo de
+// contratacion: se cotiza aparte, cuando el buque aloja gente. Vacio = no se
+// cotizo.
 //
 // Standby dejo de estar aca: en Time Charter es "Stand by hire" y forma parte
 // del tipo, asi que vive en CONTRATACIONES.
-export const ADICIONALES: CampoTarifa[] = [
-  { concepto: "accommodation", label: "Accommodation (por persona/dia)", unidad: "dia" },
-];
+const ACCOMMODATION: CampoTarifa = {
+  concepto: "accommodation",
+  label: "Accommodation (por persona/dia)",
+  unidad: "dia",
+};
 
 // `concepto` y `unidad` son lo que se guarda; `label` es como se lo nombra en
 // pantalla. Daily hire y tarifa diaria son el mismo concepto con dos nombres
@@ -183,6 +186,23 @@ export function camposDe(estructura: EstructuraTarifaria): CampoTarifa[] {
   return CONTRATACIONES.find((e) => e.id === estructura)?.campos ?? [];
 }
 
+// Los adicionales que se ofrecen ademas de los del tipo.
+//
+// En un dia garantizado no se ofrece accommodation: es como se cobra el
+// Golondrina en un STS, donde no aloja a nadie, y ese casillero no se va a
+// llenar nunca. Un campo que nunca se usa no es inofensivo — invita a
+// llenarlo (0026).
+export function adicionalesDe(estructura: EstructuraTarifaria): CampoTarifa[] {
+  return estructura === "dia_garantizado" ? [] : [ACCOMMODATION];
+}
+
+// Los casilleros de monto de una pantalla, en orden. Los cuatro formularios
+// —oportunidad, proyecto, plantilla y salida— piden esto, asi que muestran los
+// mismos campos sin ponerse de acuerdo cada uno por su lado.
+export function camposConAdicionales(estructura: EstructuraTarifaria): CampoTarifa[] {
+  return [...camposDe(estructura), ...adicionalesDe(estructura)];
+}
+
 // Normaliza lo que llega de un formulario a un tipo valido.
 //
 // Vive aca porque lo necesitan las tres acciones —oportunidad, proyecto y
@@ -256,6 +276,47 @@ export function comisionTotal(
   if (tipo !== "broker") return 0;
   const d = dias && dias > 0 ? dias : 0;
   return (Number(montos["comision"] ?? 0) || 0) * d;
+}
+
+// ── LO ACORDADO EN EL PROYECTO ────────────────────────────────────────────
+//
+// Un proyecto no tiene dias: Service Management lleva cinco años y cada una de
+// sus salidas dura dos. Asi que su valor no puede ser "tarifa × dias" como en
+// una oportunidad o en una salida — es la suma de las tarifas que se
+// acordaron, y los dias los pone despues cada salida.
+//
+// Para el dia garantizado del Golondrina eso es exactamente lo que pidio
+// Silvestre: dia garantizado + tarifa diferencial + mob + demob.
+//
+// Lo que queda afuera de la suma, por dos motivos distintos:
+//
+//   standby, demurrage, accommodation   son contingentes: se cobran solo si
+//                                       pasan, y sumarlos seria cobrar de mas.
+//   comision                            no se le cobra al cliente: es lo que
+//                                       se le paga al broker (0024).
+const FUERA_DEL_TOTAL: Concepto[] = ["standby", "demurrage", "accommodation", "comision"];
+
+function camposDelTotal(tipo: EstructuraTarifaria): CampoTarifa[] {
+  return camposDe(tipo).filter((c) => !FUERA_DEL_TOTAL.includes(c.concepto));
+}
+
+export function sumaAcordada(
+  tipo: EstructuraTarifaria,
+  montos: Partial<Record<Concepto, number>>
+): number {
+  return camposDelTotal(tipo).reduce(
+    (a, c) => a + (Number(montos[c.concepto] ?? 0) || 0),
+    0
+  );
+}
+
+// La cuenta escrita, para mostrarla abajo del total. Sale de los mismos campos
+// que la suma, asi que no puede decir una cosa y sumar otra. El parentesis del
+// label se cae: "Dia garantizado (las primeras 24 h)" en una formula es ruido.
+export function formulaAcordada(tipo: EstructuraTarifaria): string {
+  return camposDelTotal(tipo)
+    .map((c) => c.label.replace(/\s*\(.*\)\s*$/, ""))
+    .join(" + ");
 }
 
 // Suma los dias a una fecha y devuelve el ultimo dia trabajado: arrancar el 1
@@ -487,6 +548,8 @@ export interface Proyecto {
 
   buque: string | null;
   descripcion: string | null;
+  // El formulario dejo de pedirlo en 0026: repetia lo que ya dice
+  // `descripcion`. La columna queda con lo que tenia y nadie la escribe.
   alcance: string | null;
   // Donde se hace el trabajo. FK al maestro de zonas (0025): es lo que lo
   // pone en el mapa.
@@ -645,7 +708,13 @@ export function diasDeOperacion(inicio: string | null, fin: string | null): numb
 // plantilla.
 export interface Plantilla {
   id: string;
+  // Como se elige la plantilla en la lista: "Service Management / STS".
   nombre: string;
+  // Como se va a llamar el proyecto que salga de ella. Casi siempre es el
+  // mismo texto que `nombre`, pero no tienen por que serlo: uno es la etiqueta
+  // del atajo y el otro el nombre de un trabajo real (0026).
+  nombre_proyecto: string | null;
+  // En que consiste el trabajo. Baja tal cual al proyecto.
   descripcion: string | null;
 
   cliente_empresa_id: string | null;
@@ -653,6 +722,8 @@ export interface Plantilla {
   cliente_final: string | null;
 
   buque: string | null;
+  // Igual que en el proyecto: el formulario dejo de pedirlo en 0026 y la
+  // columna queda con lo que tenia.
   alcance: string | null;
 
   moneda: Moneda;

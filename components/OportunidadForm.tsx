@@ -6,9 +6,8 @@ import { BotonGuardar } from "@/components/BotonGuardar";
 import ClientePicker from "@/components/ClientePicker";
 import ZonaPicker from "@/components/ZonaPicker";
 import {
-  ADICIONALES,
   calcularValor,
-  camposDe,
+  camposConAdicionales,
   comisionTotal,
   CONTRATACIONES,
   etiquetaEstado,
@@ -84,7 +83,7 @@ export default function OportunidadForm({
       ? `PL-${(contadores[anio] ?? 0) + 1}-${anio}`
       : "—";
 
-  const campos = [...camposDe(tipo), ...ADICIONALES];
+  const campos = camposConAdicionales(tipo);
 
   // El fin estimado no se escribe: sale del inicio mas los dias.
   const diasNum = Number(dias) || 0;

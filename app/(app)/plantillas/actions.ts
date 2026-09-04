@@ -24,9 +24,18 @@ function numOrNull(valor: FormDataEntryValue | undefined): number | null {
 // El cliente son los dos FK directos y no pasa por `resolverCliente()`: una
 // plantilla se arma con clientes que ya existen. Crear una empresa nueva desde
 // aca seria crearla sin ninguna oportunidad ni proyecto que la justifique.
+//
+// `alcance` no esta: el casillero salio del formulario en 0026 —repetia lo que
+// ya dice la descripcion— y la columna se deja con lo que tenga. Si la
+// mandaramos igual, cada guardado borraria lo que hay en las filas viejas.
 function fields(formData: FormData) {
+  const nombre = str(formData, "nombre") ?? "";
+
   return {
-    nombre: str(formData, "nombre") ?? "",
+    nombre,
+    // Como se va a llamar el proyecto. Si no se completa, el nombre de la
+    // plantilla: es lo que alguien iba a tipear igual.
+    nombre_proyecto: str(formData, "nombre_proyecto") ?? nombre,
     descripcion: str(formData, "descripcion"),
 
     cliente_empresa_id: str(formData, "cliente_empresa_id"),
@@ -34,7 +43,6 @@ function fields(formData: FormData) {
     cliente_final: str(formData, "cliente_final"),
 
     buque: str(formData, "buque"),
-    alcance: str(formData, "alcance"),
 
     moneda: str(formData, "moneda") === "ARS" ? "ARS" : "USD",
     iva: str(formData, "iva") === "exento" ? "exento" : "21",
@@ -105,7 +113,7 @@ export async function plantillaDesdeProyecto(proyectoId: string) {
   const { data: p, error } = await supabase
     .from("proyectos")
     .select(
-      "nombre, descripcion, alcance, buque, cliente_empresa_id, cliente_contacto_id, cliente_final, moneda, iva, estructura_tarifaria"
+      "nombre, descripcion, buque, cliente_empresa_id, cliente_contacto_id, cliente_final, moneda, iva, estructura_tarifaria"
     )
     .eq("id", proyectoId)
     .single();
@@ -126,8 +134,12 @@ export async function plantillaDesdeProyecto(proyectoId: string) {
     .from("plantillas")
     .insert({
       nombre,
+      // El nombre del proyecto es el del proyecto de origen, no el de la
+      // plantilla: si a la plantilla hubo que ponerle un sufijo para que no
+      // choque, el proyecto que salga de ella igual tiene que nacer con el
+      // nombre bueno.
+      nombre_proyecto: p.nombre,
       descripcion: p.descripcion,
-      alcance: p.alcance,
       buque: p.buque,
       cliente_empresa_id: p.cliente_empresa_id,
       cliente_contacto_id: p.cliente_contacto_id,

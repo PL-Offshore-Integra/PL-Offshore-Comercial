@@ -7,16 +7,18 @@ import ClientePicker from "@/components/ClientePicker";
 import ZonaPicker from "@/components/ZonaPicker";
 import { aInputLocal } from "@/lib/fechas";
 import {
-  ADICIONALES,
-  camposDe,
+  camposConAdicionales,
   ESTADOS_PROYECTO,
   ESTRUCTURAS,
+  formulaAcordada,
   IVAS,
   MONEDAS,
+  sumaAcordada,
   type ClienteContacto,
   type ClienteEmpresa,
   type Concepto,
   type EstructuraTarifaria,
+  type Moneda,
   type Oportunidad,
   type Plantilla,
   type Proyecto,
@@ -25,6 +27,13 @@ import {
 } from "@/lib/types";
 
 export const ID_FORM_PROYECTO = "form-proyecto";
+
+const plata = (moneda: Moneda, valor: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: moneda,
+    minimumFractionDigits: 2,
+  }).format(valor);
 
 // El formulario del proyecto sirve para tres cosas: convertir una oportunidad
 // ganada (llega `oportunidad` y sus `tarifas`), cargar un proyecto desde cero
@@ -68,12 +77,29 @@ export default function ProyectoForm({
       plantilla?.estructura_tarifaria ??
       "time_charter"
   );
-  const campos = camposDe(estructura);
+  const campos = camposConAdicionales(estructura);
 
-  const montoDe = (concepto: Concepto) => {
-    const t = tarifas.find((x) => x.concepto === concepto);
-    return t ? String(t.monto) : "";
-  };
+  // Los montos van en estado porque de ellos sale el valor acordado, que se
+  // muestra calculado y no se escribe. Igual que en la oportunidad.
+  const [montos, setMontos] = useState<Partial<Record<Concepto, string>>>(() => {
+    const inicial: Partial<Record<Concepto, string>> = {};
+    for (const t of tarifas) inicial[t.concepto] = String(t.monto);
+    return inicial;
+  });
+
+  const [moneda, setMoneda] = useState<Moneda>(
+    proyecto?.moneda ?? oportunidad?.moneda ?? plantilla?.moneda ?? "USD"
+  );
+
+  // La suma de lo acordado. NO multiplica por dias: un proyecto no tiene dias
+  // —Service Management lleva años y cada salida dura dos—, asi que su valor es
+  // la suma de las tarifas y los dias los pone cada salida.
+  const valor = sumaAcordada(
+    estructura,
+    Object.fromEntries(
+      Object.entries(montos).map(([c, v]) => [c, Number(v) || 0])
+    ) as Partial<Record<Concepto, number>>
+  );
 
   // De donde sale cada default: del proyecto si se esta editando, y si no de
   // la oportunidad que se esta convirtiendo.
@@ -120,9 +146,11 @@ export default function ProyectoForm({
         </div>
         <div className="fg">
           <label>Nombre del proyecto</label>
+          {/* La plantilla lo trae puesto: en un trabajo que se repite el
+              nombre es siempre el mismo y no hay nada que tipear (0026). */}
           <input
             name="nombre"
-            defaultValue={proyecto?.nombre ?? ""}
+            defaultValue={desde(proyecto?.nombre, undefined, plantilla?.nombre_proyecto)}
             placeholder="Como se lo va a llamar en la operacion"
             required
             autoFocus={!proyecto}
@@ -201,17 +229,9 @@ export default function ProyectoForm({
             placeholder="Atlantic Dama"
           />
         </div>
-        <div className="fg">
-          <label>Alcance (categoria)</label>
-          <input
-            name="alcance"
-            defaultValue={desde(
-              proyecto?.alcance,
-              oportunidad?.alcance_oportunidad,
-              plantilla?.alcance
-            )}
-          />
-        </div>
+        {/* "Alcance (categoria)" salio de aca en 0026: era un casillero de una
+            palabra que repetia lo que ya dice "en que consiste" arriba. La
+            columna queda con lo que tenga. */}
         {/* Donde se hace. Si el proyecto vino de una oportunidad hereda su
             zona, y despues se corrige aca: al firmar puede cambiar. */}
         <ZonaPicker
@@ -256,11 +276,15 @@ export default function ProyectoForm({
             de las salidas. */}
       </div>
 
-      <div className="form-section">Plata</div>
+      <div className="form-section">Condiciones comerciales</div>
       <div className="form-grid">
         <div className="fg">
           <label>Moneda</label>
-          <select name="moneda" defaultValue={proyecto?.moneda ?? oportunidad?.moneda ?? plantilla?.moneda ?? "USD"}>
+          <select
+            name="moneda"
+            value={moneda}
+            onChange={(e) => setMoneda(e.target.value as Moneda)}
+          >
             {MONEDAS.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
@@ -294,7 +318,7 @@ export default function ProyectoForm({
           </select>
         </div>
 
-        {[...campos, ...ADICIONALES].map((c) => (
+        {campos.map((c) => (
           <div className="fg" key={c.concepto}>
             <label>{c.label}</label>
             <input
@@ -302,7 +326,10 @@ export default function ProyectoForm({
               step="0.01"
               min="0"
               name="tarifa_monto"
-              defaultValue={montoDe(c.concepto)}
+              value={montos[c.concepto] ?? ""}
+              onChange={(e) =>
+                setMontos((m) => ({ ...m, [c.concepto]: e.target.value }))
+              }
               placeholder="0.00"
             />
             <input type="hidden" name="tarifa_concepto" value={c.concepto} />
@@ -311,15 +338,24 @@ export default function ProyectoForm({
           </div>
         ))}
 
+        {/* Calculado y de solo lectura, igual que en la oportunidad: es la
+            suma de las tarifas de arriba. El servidor la vuelve a hacer al
+            guardar con la misma funcion, asi que lo que se ve es lo que
+            queda, y un valor mandado a mano no entra. */}
         <div className="fg">
           <label>Valor total acordado</label>
-          <input
-            type="number"
-            step="0.01"
-            name="valor"
-            defaultValue={proyecto?.valor ?? oportunidad?.valor ?? 0}
-          />
+          <input value={plata(moneda, valor)} readOnly />
+          <span className="hint">{formulaAcordada(estructura)}</span>
         </div>
+      </div>
+      <div className="fg mb16">
+        <span className="hint">
+          Sin multiplicar por dias: un proyecto no tiene dias. Los dias los
+          pone cada salida, y ahi el valor se calcula con la tarifa. Tampoco
+          entran los conceptos que se cobran solo si pasan —stand by,
+          demurrage, accommodation— ni la comision del broker, que no se le
+          cobra al cliente.
+        </span>
       </div>
 
       <div className="form-section">Notas</div>

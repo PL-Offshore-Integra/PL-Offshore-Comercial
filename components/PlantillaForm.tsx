@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import {
-  ADICIONALES,
-  camposDe,
+  camposConAdicionales,
   CONTRATACIONES,
   IVAS,
   MONEDAS,
@@ -54,7 +53,7 @@ export default function PlantillaForm({
     return t ? String(t.monto) : "";
   };
 
-  const campos = [...camposDe(tipo), ...ADICIONALES];
+  const campos = camposConAdicionales(tipo);
 
   return (
     <form action={action} className="card" id={ID_FORM_PLANTILLA}>
@@ -70,6 +69,22 @@ export default function PlantillaForm({
             autoFocus={!plantilla}
           />
           <span className="hint">Como se la va a elegir al crear un proyecto</span>
+        </div>
+        {/* Dos nombres distintos: arriba la etiqueta del atajo, aca el nombre
+            del trabajo. Casi siempre dicen lo mismo, y por eso este se
+            propone con el de arriba, pero el que termina en la ficha y en el
+            listado es este (0026). */}
+        <div className="fg">
+          <label>Nombre del proyecto</label>
+          <input
+            name="nombre_proyecto"
+            defaultValue={plantilla?.nombre_proyecto ?? ""}
+            placeholder="Service Management / STS"
+          />
+          <span className="hint">
+            Con el que va a nacer cada proyecto que salga de aca. Vacio = se
+            usa el nombre de la plantilla.
+          </span>
         </div>
         <div className="fg">
           <label>Se ofrece al crear un proyecto</label>
@@ -94,13 +109,17 @@ export default function PlantillaForm({
         </div>
       </div>
       <div className="fg mb16">
-        <label>Que trabajo describe</label>
+        <label>En que consiste</label>
         <textarea
           name="descripcion"
           defaultValue={plantilla?.descripcion ?? ""}
           rows={3}
           placeholder="Operacion STS con el Golondrina de Mar como supply"
         />
+        <span className="hint">
+          Baja tal cual al proyecto, al mismo casillero. Si el trabajo es
+          siempre el mismo, se escribe una vez aca.
+        </span>
       </div>
 
       <div className="form-section">Cliente habitual</div>
@@ -162,13 +181,12 @@ export default function PlantillaForm({
             placeholder="Golondrina de Mar"
           />
         </div>
-        <div className="fg">
-          <label>Alcance</label>
-          <input name="alcance" defaultValue={plantilla?.alcance ?? ""} />
-        </div>
+        {/* "Alcance" salio de aca en 0026: era un casillero de una palabra que
+            repetia lo que ya dice "en que consiste". La columna queda con lo
+            que tenia. */}
       </div>
 
-      <div className="form-section">Condiciones y tarifas</div>
+      <div className="form-section">Condiciones comerciales</div>
       <div className="form-grid">
         <div className="fg">
           <label>Tipo de contratacion</label>

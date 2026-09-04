@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { resolverCliente } from "@/lib/clienteResolver";
 import { aTimestamp } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
-import { estructuraValida } from "@/lib/types";
+import { estructuraValida, sumaAcordada, type Concepto } from "@/lib/types";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
@@ -15,16 +15,30 @@ function str(formData: FormData, key: string): string | null {
   return value.trim();
 }
 
-function num(formData: FormData, key: string): number {
-  const value = formData.get(key);
-  const parsed = typeof value === "string" ? Number(value) : 0;
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function numOrNull(valor: FormDataEntryValue | undefined): number | null {
   if (typeof valor !== "string" || valor.trim() === "") return null;
   const n = Number(valor);
   return Number.isFinite(n) ? n : null;
+}
+
+// El valor acordado no se toma del formulario: se recalcula con la misma
+// funcion que usa la pantalla para mostrarlo en vivo, igual que en
+// oportunidades y en salidas.
+//
+// Es la suma de las tarifas del tipo de contratacion, sin multiplicar por
+// dias: un proyecto no tiene dias. Ver `sumaAcordada` (0026).
+function valorAcordado(formData: FormData): number {
+  const tipo = estructuraValida(str(formData, "estructura_tarifaria"));
+
+  const conceptos = formData.getAll("tarifa_concepto");
+  const montos = formData.getAll("tarifa_monto");
+  const mapa: Partial<Record<Concepto, number>> = {};
+  conceptos.forEach((c, i) => {
+    const concepto = String(c ?? "").trim() as Concepto;
+    if (concepto) mapa[concepto] = numOrNull(montos[i]) ?? 0;
+  });
+
+  return sumaAcordada(tipo, mapa);
 }
 
 // Lo que el formulario del proyecto puede escribir.
@@ -43,7 +57,9 @@ function fields(formData: FormData) {
     cliente_final: str(formData, "cliente_final"),
     buque: str(formData, "buque"),
     descripcion: str(formData, "descripcion"),
-    alcance: str(formData, "alcance"),
+    // `alcance` no esta: el casillero salio del formulario en 0026 —repetia lo
+    // que ya dice la descripcion— y la columna se deja con lo que tenga.
+    // Mandarla igual borraria lo que hay en las filas viejas.
     // Donde se hace el trabajo (0025): es lo que lo pone en el mapa. La
     // palabra "zona" aca es el lugar; nada que ver con la zona horaria de las
     // fechas de abajo.
@@ -57,7 +73,7 @@ function fields(formData: FormData) {
     moneda: str(formData, "moneda") ?? "USD",
     iva: str(formData, "iva") ?? "21",
     estructura_tarifaria: estructuraValida(str(formData, "estructura_tarifaria")),
-    valor: num(formData, "valor"),
+    valor: valorAcordado(formData),
 
     estado: str(formData, "estado") ?? "por_arrancar",
     notas: str(formData, "notas"),
