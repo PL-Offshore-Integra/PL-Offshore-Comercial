@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import ClientePicker from "@/components/ClientePicker";
+import ZonaPicker from "@/components/ZonaPicker";
 import { aInputLocal } from "@/lib/fechas";
 import {
   ADICIONALES,
@@ -20,6 +21,7 @@ import {
   type Plantilla,
   type Proyecto,
   type MontoDeTarifa,
+  type Zona,
 } from "@/lib/types";
 
 export const ID_FORM_PROYECTO = "form-proyecto";
@@ -46,6 +48,7 @@ export default function ProyectoForm({
   plantilla,
   empresas = [],
   contactos = [],
+  zonas = [],
 }: {
   action: (formData: FormData) => void;
   proyecto?: Proyecto;
@@ -56,6 +59,8 @@ export default function ProyectoForm({
   // El maestro de clientes: solo hace falta cuando el cliente se elige aca.
   empresas?: ClienteEmpresa[];
   contactos?: ClienteContacto[];
+  // El maestro de zonas, para elegir donde se hace el trabajo (0025).
+  zonas?: Zona[];
 }) {
   const [estructura, setEstructura] = useState<EstructuraTarifaria>(
     proyecto?.estructura_tarifaria ??
@@ -207,6 +212,14 @@ export default function ProyectoForm({
             )}
           />
         </div>
+        {/* Donde se hace. Si el proyecto vino de una oportunidad hereda su
+            zona, y despues se corrige aca: al firmar puede cambiar. */}
+        <ZonaPicker
+          zonas={zonas}
+          zonaId={proyecto ? proyecto.zona_id : oportunidad?.zona_id}
+          label="Donde se hace"
+          ayuda="Lo que lo pone en el mapa"
+        />
       </div>
 
       <div className="form-section">Fechas</div>

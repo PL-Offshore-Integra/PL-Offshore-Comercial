@@ -13,6 +13,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/oportunidades", label: "Oportunidades" },
       { href: "/proyectos", label: "Proyectos" },
+      { href: "/mapa", label: "Mapa de trabajos" },
     ],
   },
   {
@@ -20,6 +21,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/clientes", label: "Base de datos clientes" },
       { href: "/plantillas", label: "Plantillas de proyecto" },
+      { href: "/zonas", label: "Zonas y puertos" },
     ],
   },
   {
@@ -52,6 +54,16 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     grupo: "Maestros",
     titulo: "Plantillas de proyecto",
     sub: "El punto de partida de los trabajos que se repiten: cliente, buque y tarifas.",
+  },
+  "/mapa": {
+    grupo: "Comercial",
+    titulo: "Mapa de trabajos",
+    sub: "Donde se harian los posibles, donde se esta trabajando y donde se trabajo.",
+  },
+  "/zonas": {
+    grupo: "Maestros",
+    titulo: "Zonas y puertos",
+    sub: "Cada lugar donde se trabaja, una vez, con sus coordenadas.",
   },
   "/calendario": {
     grupo: "Eventos",
@@ -101,6 +113,16 @@ function seccionFor(pathname: string) {
   }
   if (pathname.startsWith("/plantillas/")) {
     return { grupo: "Maestros", titulo: "Plantilla", sub: "" };
+  }
+  if (pathname === "/zonas/nueva") {
+    return {
+      grupo: "Maestros",
+      titulo: "Nueva zona",
+      sub: "Un lugar del maestro: como se llama y donde queda.",
+    };
+  }
+  if (pathname.startsWith("/zonas/")) {
+    return { grupo: "Maestros", titulo: "Zona", sub: "" };
   }
   if (pathname === "/oportunidades/nueva") {
     return {
@@ -227,6 +249,13 @@ export default function Shell({
                 <div className="pagehead-actions">
                   <Link href="/plantillas/nueva" className="btn btn-amarillo">
                     Nueva plantilla
+                  </Link>
+                </div>
+              )}
+              {pathname === "/zonas" && (
+                <div className="pagehead-actions">
+                  <Link href="/zonas/nueva" className="btn btn-amarillo">
+                    Nueva zona
                   </Link>
                 </div>
               )}

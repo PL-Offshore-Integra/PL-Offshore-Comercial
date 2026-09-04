@@ -2,6 +2,7 @@ import Link from "next/link";
 import ProyectoForm from "@/components/ProyectoForm";
 import { crearProyecto } from "@/app/(app)/proyectos/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
+import { leerZonasPara } from "@/lib/zonas";
 import { createClient } from "@/lib/supabase/server";
 import {
   etiquetaEstado,
@@ -149,6 +150,11 @@ export default async function NuevoProyectoPage({
     ? { empresas: [], contactos: [] }
     : await leerMaestroClientes();
 
+  // El maestro de zonas si se lee siempre: el lugar se elige aca en los dos
+  // caminos. En una conversion viene propuesto de la oportunidad, y se incluye
+  // esa zona aunque este retirada.
+  const zonas = await leerZonasPara(oportunidad?.zona_id);
+
   return (
     <div>
       <div className="info-box accent mb16">
@@ -231,6 +237,7 @@ export default async function NuevoProyectoPage({
         nroQueSigue={nroQueSigue}
         empresas={empresas}
         contactos={contactos}
+        zonas={zonas}
       />
     </div>
   );

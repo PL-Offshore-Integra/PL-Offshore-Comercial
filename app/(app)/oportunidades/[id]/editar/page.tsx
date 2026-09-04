@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import OportunidadForm, { PieDelFormulario } from "@/components/OportunidadForm";
 import { leerMaestroClientes } from "@/lib/clientes";
+import { leerZonasPara } from "@/lib/zonas";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -63,6 +64,9 @@ export default async function EditarOportunidadPage({
   const subir = subirAdjunto.bind(null, oportunidad.id);
 
   const { empresas, contactos } = await leerMaestroClientes();
+  // Con la zona de esta oportunidad incluida aunque se haya retirado del
+  // maestro: si no, guardar sin tocarla se la borraria.
+  const zonas = await leerZonasPara(oportunidad.zona_id);
 
   // Si ya se convirtio en proyecto, la ficha lo linkea; si no, ofrece
   // convertirla.
@@ -96,6 +100,7 @@ export default async function EditarOportunidadPage({
         tarifas={tarifas}
         empresas={empresas}
         contactos={contactos}
+        zonas={zonas}
       />
 
       <div className="card">

@@ -333,3 +333,42 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
    comision del broker, que es plata que sale. Se separa con espacio y se
    escribe apagado, para que no se lea como parte de la suma. */
 .tabla-calculo .fila-aparte td{border-bottom:none;border-top:1px dashed var(--border);padding-top:12px;color:var(--muted)}
+
+/* Un checkbox con su texto al lado, dentro de un .fg. El label del formulario
+   va en versalitas y espaciado; el de un checkbox se lee como una frase. */
+.fila-check{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0}
+.fila-check input[type=checkbox]{width:auto;height:auto}
+
+/* ── EL MAPA DE TRABAJOS ──────────────────────────────────────────────────
+   Leaflet trae su propio CSS y sus propias fuentes. Aca solo se lo mete en
+   la caja del modulo: el borde y el radio de una tarjeta, la tipografia del
+   resto de la pantalla, y un z-index propio para que sus paneles —que llegan
+   a 800— no se le suban por encima al menu. */
+.mapa{height:560px;border:1px solid var(--border);border-radius:var(--r);position:relative;z-index:0;font-family:var(--sans)}
+@media (max-width:900px){ .mapa{height:420px} }
+
+/* El circulo del punto es un SVG propio, asi que la cajita blanca con borde
+   que Leaflet le pone a un divIcon molesta. */
+.marcador-mapa{background:none;border:0}
+
+/* La referencia: los tres colores, con su cuenta, y cada uno se apaga. */
+.mapa-referencia{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip-mapa{display:flex;align-items:center;gap:8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);padding:6px 10px;cursor:pointer;font-size:13px;transition:var(--tr)}
+.chip-mapa:hover{border-color:var(--navy)}
+.chip-mapa input{width:auto;height:auto;margin:0}
+.chip-mapa i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chip-mapa b{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.chip-mapa.apagado{color:var(--muted2)}
+.chip-mapa.apagado i{opacity:.3}
+
+/* El globo del punto: el lugar arriba, y debajo los trabajos agrupados por
+   categoria. */
+.globo strong{display:block;font-family:var(--display);font-size:15px;color:var(--navy);margin-bottom:8px}
+.globo-grupo{margin-top:8px}
+.globo-cat{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.globo-cat i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.globo ul{list-style:none;margin:4px 0 0;padding:0}
+.globo li{padding:4px 0;border-bottom:1px solid var(--border)}
+.globo li:last-child{border-bottom:0}
+.globo li a{font-weight:600}
+.globo li span{display:block;color:var(--muted);font-size:12px}

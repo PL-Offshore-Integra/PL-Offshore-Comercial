@@ -44,6 +44,10 @@ function fields(formData: FormData) {
     buque: str(formData, "buque"),
     descripcion: str(formData, "descripcion"),
     alcance: str(formData, "alcance"),
+    // Donde se hace el trabajo (0025): es lo que lo pone en el mapa. La
+    // palabra "zona" aca es el lugar; nada que ver con la zona horaria de las
+    // fechas de abajo.
+    zona_id: str(formData, "zona_id"),
 
     // Con hora desde 0022. Sin zona explicita Postgres las tomaria como UTC
     // y se correrian tres horas, igual que pasaba con las salidas.

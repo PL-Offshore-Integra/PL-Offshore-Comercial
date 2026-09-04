@@ -10,6 +10,7 @@ import {
 import { BotonGuardar } from "@/components/BotonGuardar";
 import { plantillaDesdeProyecto } from "@/app/(app)/plantillas/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
+import { leerZonasPara } from "@/lib/zonas";
 import { diasLegibles, fechaHoraLegible } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -83,6 +84,10 @@ export default async function ProyectoPage({
     ? { empresas: [], contactos: [] }
     : await leerMaestroClientes();
 
+  // La zona si se elige siempre, venga de una oportunidad o no: el lugar puede
+  // cambiar entre lo que se cotizo y lo que se firmo.
+  const zonas = await leerZonasPara(proyecto.zona_id);
+
   // Las salidas del proyecto, de la mas reciente a la mas vieja.
   const { data: sal } = await supabase
     .from("operaciones")
@@ -128,6 +133,7 @@ export default async function ProyectoPage({
         tarifas={tarifas}
         empresas={empresas}
         contactos={contactos}
+        zonas={zonas}
       />
 
       {/* Las salidas. Es el tercer eje del modelo: el proyecto dice para quien

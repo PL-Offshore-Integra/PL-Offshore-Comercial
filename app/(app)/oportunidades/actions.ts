@@ -102,6 +102,9 @@ function fields(formData: FormData) {
     delivery_port: str(formData, "delivery_port"),
     redelivery_port: str(formData, "redelivery_port"),
     comision_total: comisionDeLaPropuesta(formData),
+    // 0025 · donde se haria el trabajo. Vacio es una respuesta valida: no
+    // siempre se sabe al cotizar.
+    zona_id: str(formData, "zona_id"),
   };
 }
 

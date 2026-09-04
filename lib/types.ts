@@ -345,6 +345,12 @@ export interface Oportunidad {
   // La comision del broker, ya multiplicada por los dias. Se recalcula al
   // guardar igual que `valor`; en cualquier tipo que no sea Broker queda en 0.
   comision_total: number;
+
+  // --- 0025 ---
+  // Donde se haria el trabajo. FK al maestro de zonas, que es lo que permite
+  // dibujarlo en el mapa. Distinto de los dos puertos de arriba: esos son
+  // condiciones del charter y texto libre; esto es el lugar.
+  zona_id: string | null;
 }
 
 export interface Adjunto {
@@ -482,6 +488,9 @@ export interface Proyecto {
   buque: string | null;
   descripcion: string | null;
   alcance: string | null;
+  // Donde se hace el trabajo. FK al maestro de zonas (0025): es lo que lo
+  // pone en el mapa.
+  zona_id: string | null;
 
   // Las estimadas vienen de la oportunidad; las reales se cargan cuando pasan.
   fecha_inicio_estimada: string | null;
@@ -674,6 +683,85 @@ export interface PlantillaTarifa {
   orden: number;
   created_at: string;
 }
+
+// ── ZONAS Y EL MAPA (0025) ────────────────────────────────────────────────
+//
+// El maestro de lugares. Existe porque el lugar de un trabajo vivia en prosa
+// —"en area Magallanes", "zona = Alfa"— y asi no hay mapa posible, ni forma de
+// preguntar "cuanto trabajamos en Bahia Blanca" sin leer cada ficha.
+//
+// `lat` y `lon` pueden faltar: una zona sin posicion sirve igual para agrupar
+// y para filtrar, y el mapa la muestra en una lista aparte en vez de
+// tragarsela en silencio. Es lo que pasa hoy con Alfa, que nadie ubico
+// todavia.
+export type TipoZona = "puerto" | "zona_sts" | "area_offshore" | "otro";
+
+export const TIPOS_ZONA: { id: TipoZona; label: string }[] = [
+  { id: "puerto", label: "Puerto" },
+  { id: "zona_sts", label: "Zona de STS" },
+  { id: "area_offshore", label: "Area offshore" },
+  { id: "otro", label: "Otro" },
+];
+
+export function etiquetaTipoZona(tipo: string): string {
+  return TIPOS_ZONA.find((t) => t.id === tipo)?.label ?? tipo;
+}
+
+export interface Zona {
+  id: string;
+  nombre: string;
+  tipo: TipoZona;
+  // Grados decimales, negativos al sur y al oeste. O estan las dos o ninguna:
+  // la base lo exige (zonas_posicion_completa).
+  lat: number | null;
+  lon: number | null;
+  notas: string | null;
+  activa: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Las tres categorias del mapa. Son las que pidio Silvestre: lo que podria
+// pasar, lo que esta pasando y lo que ya paso.
+//
+// Un proyecto cancelado no es ninguna de las tres y no se dibuja: no es un
+// lugar donde se trabajo.
+export type CategoriaMapa = "oportunidad" | "en_curso" | "terminado";
+
+export const CATEGORIAS_MAPA: {
+  id: CategoriaMapa;
+  label: string;
+  // El color del punto en el mapa. Salen de la paleta de las etiquetas del
+  // modulo, asi que el mapa y los badges dicen lo mismo con el mismo color.
+  color: string;
+  badge: string;
+}[] = [
+  // Amarillo lo posible, navy lo que esta pasando, verde lo hecho. El navy en
+  // vez del celeste de la etiqueta `b-blue`, que es un turquesa y al lado del
+  // verde de "terminado" se confunde de un vistazo.
+  { id: "oportunidad", label: "Oportunidades", color: "#FBBC05", badge: "b-amber" },
+  { id: "en_curso", label: "Proyectos en curso", color: "#002247", badge: "b-blue" },
+  { id: "terminado", label: "Trabajos terminados", color: "#0E7A5F", badge: "b-green" },
+];
+
+// Un trabajo ubicado, listo para dibujar. Lo arma el servidor a partir de
+// oportunidades y proyectos, y el mapa no necesita saber de donde salio cada
+// uno mas alla de su categoria.
+export type TrabajoEnElMapa = {
+  id: string;
+  categoria: CategoriaMapa;
+  // Como se lo nombra en el globo: "PL-1-2026 · OceanPact Geo".
+  nro: string | null;
+  titulo: string;
+  cliente: string | null;
+  buque: string | null;
+  valor: number;
+  moneda: Moneda;
+  cuando: string | null;
+  // A donde va el link del globo.
+  href: string;
+  zona_id: string;
+};
 
 // ── EL DESGLOSE DEL VALOR ─────────────────────────────────────────────────
 //

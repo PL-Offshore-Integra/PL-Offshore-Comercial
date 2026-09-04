@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import ClientePicker from "@/components/ClientePicker";
+import ZonaPicker from "@/components/ZonaPicker";
 import {
   ADICIONALES,
   calcularValor,
@@ -20,6 +21,7 @@ import {
   type Moneda,
   type Oportunidad,
   type Tarifa,
+  type Zona,
 } from "@/lib/types";
 
 const HOY = () => new Date().toISOString().slice(0, 10);
@@ -47,12 +49,14 @@ export default function OportunidadForm({
   contadores = null,
   empresas,
   contactos,
+  zonas = [],
 }: {
   action: (formData: FormData) => void;
   oportunidad?: Oportunidad;
   tarifas?: Tarifa[];
   empresas: ClienteEmpresa[];
   contactos: ClienteContacto[];
+  zonas?: Zona[];
   contadores?: Record<number, number> | null;
 }) {
   const [tipo, setTipo] = useState<EstructuraTarifaria>(
@@ -171,6 +175,14 @@ export default function OportunidadForm({
             placeholder="Atlantic Dama"
           />
         </div>
+        {/* Donde se haria. Va en La tarea y no en condiciones comerciales:
+            es parte de que hay que hacer, no de como se cobra. */}
+        <ZonaPicker
+          zonas={zonas}
+          zonaId={oportunidad?.zona_id}
+          label="Donde se haria"
+          ayuda="Lo que la pone en el mapa"
+        />
         <div className="fg">
           <label>Inicio estimado del trabajo</label>
           <input
