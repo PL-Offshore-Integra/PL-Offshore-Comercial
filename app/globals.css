@@ -383,3 +383,49 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .stat-link:hover{border-color:var(--navy)}
 .stat-link:hover .stat-value{color:var(--navy)}
 .stat .hint{display:block;margin-top:6px}
+
+/* ── EL GRAFICO DE COBRANZA ───────────────────────────────────────────────
+   Barras apiladas en HTML: el texto es texto —tamaño real y tokens del
+   modulo— y los anchos en porcentaje escalan con la tarjeta. El color lo
+   llevan las marcas, nunca las letras. */
+.grafico-ref{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.grafico-chip{display:flex;align-items:center;gap:7px;border:1px solid var(--border2);border-radius:var(--r);padding:5px 10px;font-size:13px;color:var(--muted)}
+.grafico-chip i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.grafico-chip b{font-family:var(--mono);color:var(--text)}
+.barra-fila{margin-bottom:14px}
+.barra-fila:last-child{margin-bottom:0}
+.barra-cabeza{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:5px}
+.barra-nombre{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.barra-total{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+/* El hueco de 2px entre segmentos lo hace el gap, y el fondo de la pista da
+   la escala cuando la barra es corta. */
+.barra-pista{display:flex;gap:2px;height:26px;background:var(--surface2);border-radius:var(--r)}
+.barra-seg{height:100%;min-width:2px;display:flex;align-items:center;justify-content:flex-end;padding:0 8px;overflow:hidden}
+.barra-etiqueta{font-family:var(--mono);font-size:12px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.barra-pista .barra-seg:first-child{border-top-left-radius:var(--r);border-bottom-left-radius:var(--r)}
+.barra-pista .barra-seg:last-child{border-top-right-radius:var(--r);border-bottom-right-radius:var(--r)}
+
+/* Los segmentos se pueden tocar para filtrar el tablero: son botones, con
+   foco visible y estado apretado. Atenuar en vez de esconder mantiene la
+   escala a la vista. */
+.barra-seg{border:0;padding:0 8px;font:inherit;cursor:default}
+button.barra-seg{cursor:pointer;transition:var(--tr)}
+button.barra-seg:hover{filter:brightness(1.08)}
+.barra-seg.atenuado{opacity:.28}
+.barra-seg{position:relative}
+/* El globo: aparece al pasar por encima, arriba del segmento. */
+.barra-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:var(--r);padding:7px 10px;font-family:var(--sans);font-size:12px;line-height:1.4;white-space:nowrap;opacity:0;pointer-events:none;transition:var(--tr);z-index:5;text-align:left;display:flex;flex-direction:column}
+.barra-tip b{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--amarillo)}
+.barra-tip span{color:#C9D3DE}
+.barra-seg:hover .barra-tip{opacity:1}
+.grafico-chip.activo{border-color:var(--navy);background:var(--surface2)}
+button.grafico-chip{cursor:pointer;font:inherit;transition:var(--tr)}
+button.grafico-chip:hover{border-color:var(--navy)}
+
+/* La fila de filtros del tablero. */
+.filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:16px}
+.fg-inline{display:flex;flex-direction:column;gap:4px}
+.fg-inline label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.chip-filtro{display:flex;align-items:center;gap:7px;height:36px;border:1px solid var(--navy);background:var(--surface);border-radius:var(--r);padding:0 12px;font-family:var(--sans);font-size:13px;color:var(--text);cursor:pointer;transition:var(--tr)}
+.chip-filtro i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chip-filtro:hover{background:var(--surface2)}
