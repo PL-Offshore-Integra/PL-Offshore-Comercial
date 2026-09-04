@@ -50,3 +50,25 @@ node generar-carga.mjs viajes.json 2026_remolcadores.sql
   confirmarlo.
 - **DIQUE SECO** (enero a abril de la Dama) no se cargo: es el buque parado, no
   un trabajo.
+
+## track_record_historico.sql
+
+Las 98 filas de `Company - Track Record_v1.xlsx`, hojas CHARTERING (84),
+CHARTER-IN (4) y MANAGEMENT (10). La cuarta hoja —Company Track Record: los
+campamentos, alquileres y viveres en plataformas de Mexico— quedo afuera por
+decision de Silvestre: es trabajo de otras empresas de Integra.
+
+```bash
+node leer-planilla.mjs <carpeta del xlsx descomprimido> tr.json
+node generar-track-record.mjs tr.json track_record_historico.sql
+```
+
+La identidad de cada fila es **su lugar en el xlsx** (`xlsx CHARTERING fila 12`,
+que queda en `notas`), y no su contenido. La primera version usaba el contenido
+y se comio 7 filas: hay trabajos repetidos identicos —tres remolques iguales de
+Servimagnus en 2022, mismo cliente, mismo alcance, mismo valor— que son
+trabajos distintos.
+
+El valor se guarda dos veces: el numero para poder sumar y el texto tal como lo
+dice el documento ("~0.5 million", "On going"). Ese redondeo es a proposito: es
+lo que se le muestra a un cliente.

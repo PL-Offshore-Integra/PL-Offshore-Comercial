@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { href: "/proyectos", label: "Proyectos" },
   { href: "/facturacion", label: "Facturacion" },
   { href: "/mapa", label: "Mapa de trabajos" },
+  { href: "/track-record", label: "Track record" },
   { href: "/clientes", label: "Clientes" },
   { href: "/plantillas", label: "Plantillas de proyecto" },
   { href: "/zonas", label: "Zonas y puertos" },
@@ -36,6 +37,11 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     grupo: "Comercial",
     titulo: "Facturacion",
     sub: "Que se facturo, que se cobro, que esta vencido y que falta facturar.",
+  },
+  "/track-record": {
+    grupo: "Comercial",
+    titulo: "Track record",
+    sub: "Lo que hizo la empresa: los trabajos historicos y los proyectos terminados.",
   },
   "/clientes": {
     grupo: "Maestros",
