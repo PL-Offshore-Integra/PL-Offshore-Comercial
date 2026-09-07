@@ -161,8 +161,8 @@ export async function crearBuque(formData: FormData) {
   const { error } = await supabase.from("buques").insert(datos);
   if (error) throw new Error(mensajeDeError(error.message));
 
-  revalidatePath("/buques");
-  redirect("/buques");
+  revalidatePath("/broker/tonelaje");
+  redirect("/broker/tonelaje");
 }
 
 export async function actualizarBuque(id: string, formData: FormData) {
@@ -176,9 +176,9 @@ export async function actualizarBuque(id: string, formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(mensajeDeError(error.message));
 
-  revalidatePath("/buques");
-  revalidatePath(`/buques/${id}`);
-  redirect("/buques");
+  revalidatePath("/broker/tonelaje");
+  revalidatePath(`/broker/tonelaje/${id}`);
+  redirect("/broker/tonelaje");
 }
 
 // Para sacar un buque de circulacion sin perder la ficha esta `activo`, que es
@@ -189,6 +189,6 @@ export async function borrarBuque(id: string) {
   const { error } = await supabase.from("buques").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/buques");
-  redirect("/buques");
+  revalidatePath("/broker/tonelaje");
+  redirect("/broker/tonelaje");
 }

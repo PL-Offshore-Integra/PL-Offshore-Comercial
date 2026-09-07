@@ -420,7 +420,7 @@ export default function BuqueForm({
       </div>
 
       <div className="flex-between mt16">
-        <Link href="/buques" className="btn btn-ghost">
+        <Link href="/broker/tonelaje" className="btn btn-ghost">
           Atras
         </Link>
         <BotonGuardar form={ID_FORM_BUQUE} />

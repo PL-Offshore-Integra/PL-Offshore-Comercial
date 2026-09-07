@@ -1270,3 +1270,42 @@ export function precioBuque(b: Buque): string | null {
   const texto = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(millones);
   return `${b.precio_moneda ?? ""} ${texto} M`.trim();
 }
+
+// ------------------------------------------------------------
+// Los contactos del mailing list de Broker (0037)
+//
+// Son 431 armadores, brokers y operadores de 32 paises: la lista a la que se
+// le ofrece el tonelaje. Ojo con como esta armada la planilla de origen —el
+// nombre salio de partir el usuario del mail— asi que 180 de los 431 no
+// tienen apellido ni empresa. El mail y el dominio estan siempre.
+// ------------------------------------------------------------
+export interface BrokerContacto {
+  id: string;
+  email: string;
+  nombre: string | null;
+  apellido: string | null;
+  empresa: string | null;
+  pais: string | null;
+  // Esta siempre, tambien donde la empresa quedo vacia, asi que es por donde
+  // se agrupan esas.
+  dominio: string | null;
+  notas: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Como se lo nombra en pantalla. Si no hay nombre, el mail: es lo unico que
+// siempre esta, y es mejor que un guion.
+export function nombreContacto(c: BrokerContacto): string {
+  const armado = [c.nombre, c.apellido].filter(Boolean).join(" ").trim();
+  return armado === "" ? c.email : armado;
+}
+
+// La empresa, o el dominio cuando la planilla no la pudo deducir. El dominio
+// se muestra distinto —entre parentesis— para que no se confunda con un dato
+// cargado a mano.
+export function empresaContacto(c: BrokerContacto): string {
+  if (c.empresa) return c.empresa;
+  return c.dominio ? `(${c.dominio})` : "—";
+}

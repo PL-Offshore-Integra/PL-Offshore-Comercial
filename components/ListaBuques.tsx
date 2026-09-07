@@ -289,7 +289,7 @@ export default function ListaBuques({ buques }: { buques: Buque[] }) {
                       </td>
                       <td className="text-muted">{b.proxima_seca ?? "—"}</td>
                       <td style={{ textAlign: "right" }}>
-                        <Link href={`/buques/${b.id}`} className="btn btn-ghost btn-sm">
+                        <Link href={`/broker/tonelaje/${b.id}`} className="btn btn-ghost btn-sm">
                           Abrir
                         </Link>
                       </td>

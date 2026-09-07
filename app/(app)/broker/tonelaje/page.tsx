@@ -1,11 +1,12 @@
 import Link from "next/link";
 import ListaBuques from "@/components/ListaBuques";
+import TabsBroker from "@/components/TabsBroker";
 import { createClient } from "@/lib/supabase/server";
 import { type Buque } from "@/lib/types";
 
 // El maestro de buques. Sale de la carpeta 08. COMMERCIAL/Broker: el tonelaje
 // en venta, los remolcadores de LATAM, y los dos buques que PL brokereo.
-export default async function BuquesPage() {
+export default async function TonelajePage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("buques")
@@ -17,6 +18,8 @@ export default async function BuquesPage() {
 
   return (
     <div>
+      <TabsBroker />
+
       {error && (
         <div className="info-box danger mb16">
           No se pudieron leer los buques: {error.message}. Si dice que la
@@ -48,7 +51,7 @@ export default async function BuquesPage() {
       {!error && buques.length === 0 && (
         <div className="empty-state">
           Todavia no hay buques cargados.{" "}
-          <Link href="/buques/nuevo">
+          <Link href="/broker/tonelaje/nuevo">
             <strong>Cargar el primero</strong>
           </Link>
           .

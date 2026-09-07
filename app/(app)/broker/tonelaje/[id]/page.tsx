@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import BuqueForm from "@/components/BuqueForm";
-import { actualizarBuque, borrarBuque } from "@/app/(app)/buques/actions";
+import { actualizarBuque, borrarBuque } from "@/app/(app)/broker/tonelaje/actions";
 import { createClient } from "@/lib/supabase/server";
 import { etiquetaTipoBuque, precioBuque, type Buque } from "@/lib/types";
 
