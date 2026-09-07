@@ -116,6 +116,7 @@ export default function ListaBuques({ buques }: { buques: Buque[] }) {
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Nombre, armador, astillero, IMO"
+            style={{ minWidth: 230 }}
           />
         </div>
         <div className="fg-inline">
@@ -278,10 +279,18 @@ export default function ListaBuques({ buques }: { buques: Buque[] }) {
                       <td className="text-mono" style={{ textAlign: "right" }}>
                         {medida(b.potencia_kw)}
                       </td>
+                      {/* Con las dos medidas va "73,5 × 16,4 m". Con una
+                          sola se dice cual es, porque "— × 16 m" no se
+                          entiende: al ARK TORI el informe de ABS le da la
+                          eslora entre perpendiculares y no la total. */}
                       <td className="text-mono">
-                        {b.loa_m === null && b.manga_m === null
-                          ? "—"
-                          : `${medida(b.loa_m)} × ${medida(b.manga_m)} m`}
+                        {b.loa_m !== null && b.manga_m !== null
+                          ? `${medida(b.loa_m)} × ${medida(b.manga_m)} m`
+                          : b.loa_m !== null
+                            ? `${medida(b.loa_m)} m de eslora`
+                            : b.manga_m !== null
+                              ? `${medida(b.manga_m)} m de manga`
+                              : "—"}
                       </td>
                       <td className="text-muted">{b.bandera ?? "—"}</td>
                       <td className="text-mono" style={{ textAlign: "right" }}>

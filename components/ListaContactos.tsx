@@ -103,6 +103,7 @@ export default function ListaContactos({ contactos }: { contactos: BrokerContact
               setCopiado(null);
             }}
             placeholder="Mail, nombre, empresa, dominio"
+            style={{ minWidth: 230 }}
           />
         </div>
         <div className="fg-inline">
