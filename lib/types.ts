@@ -1129,3 +1129,144 @@ export function calculoParaElCliente(
     total: calcularValor(tipo, montos, dias),
   };
 }
+
+// ------------------------------------------------------------
+// El maestro de buques, o la lista de tonelaje (0036)
+//
+// Existe por lo mismo que el maestro de zonas: hasta ahora el buque de un
+// trabajo era texto libre, y el tonelaje que se puede ofrecer vivia en trece
+// PDFs en OneDrive. La tabla tiene muchas columnas porque una lista de
+// tonelaje es una ficha tecnica; el criterio de que quedo en columna y que
+// quedo en texto esta escrito en la migracion.
+// ------------------------------------------------------------
+export type TipoBuque = "remolcador" | "ahts" | "aht" | "osv" | "psv" | "otro";
+
+export const TIPOS_BUQUE: { id: TipoBuque; label: string }[] = [
+  { id: "remolcador", label: "Remolcador" },
+  { id: "ahts", label: "AHTS" },
+  { id: "aht", label: "AHT" },
+  { id: "osv", label: "OSV" },
+  { id: "psv", label: "PSV" },
+  { id: "otro", label: "Otro" },
+];
+
+export function etiquetaTipoBuque(tipo: string): string {
+  return TIPOS_BUQUE.find((t) => t.id === tipo)?.label ?? tipo;
+}
+
+// Que tiene que ver PL con el buque. Es lo primero que se pregunta al mirar
+// la lista, asi que es como se agrupa la pantalla.
+export type RelacionBuque = "propio" | "gestionado" | "terceros";
+
+export const RELACIONES_BUQUE: { id: RelacionBuque; label: string; sub: string }[] = [
+  { id: "propio", label: "Flota propia", sub: "Los buques de PL Offshore." },
+  {
+    id: "gestionado",
+    label: "Brokereados",
+    sub: "Los que PL coloco o administra: el fletamento lo negocio PL y cobra comision.",
+  },
+  {
+    id: "terceros",
+    label: "Tonelaje de terceros",
+    sub: "Lo que hay en el mercado y se puede ofrecer. De aca sale la respuesta cuando un cliente pregunta que buque hay para un trabajo.",
+  },
+];
+
+export function etiquetaRelacionBuque(relacion: string): string {
+  return RELACIONES_BUQUE.find((r) => r.id === relacion)?.label ?? relacion;
+}
+
+export type EstadoComercialBuque =
+  | "en_venta"
+  | "disponible"
+  | "contratado"
+  | "fuera_de_servicio";
+
+export const ESTADOS_BUQUE: { id: EstadoComercialBuque; label: string; badge: string }[] = [
+  { id: "en_venta", label: "En venta", badge: "b-amber" },
+  { id: "disponible", label: "Disponible", badge: "b-green" },
+  { id: "contratado", label: "Contratado", badge: "b-blue" },
+  { id: "fuera_de_servicio", label: "Fuera de servicio", badge: "b-red" },
+];
+
+export function estadoBuque(estado: string | null) {
+  return ESTADOS_BUQUE.find((e) => e.id === estado) ?? null;
+}
+
+export interface Buque {
+  id: string;
+  nombre: string;
+  tipo: TipoBuque;
+  relacion: RelacionBuque;
+  estado_comercial: EstadoComercialBuque | null;
+
+  propietario: string | null;
+  operador: string | null;
+  broker: string | null;
+
+  bandera: string | null;
+  puerto_registro: string | null;
+  imo: string | null;
+
+  anio: number | null;
+  astillero: string | null;
+  diseno: string | null;
+
+  clasificadora: string | null;
+  notacion_clase: string | null;
+  // Texto y no booleano: la diferencia entre DP1, DP2 y "tenia DP2 y el
+  // armador bajo la notacion" es justamente lo que se quiere leer.
+  dp: string | null;
+
+  loa_m: number | null;
+  manga_m: number | null;
+  puntal_m: number | null;
+  calado_m: number | null;
+  gt: number | null;
+  nt: number | null;
+  dwt_t: number | null;
+
+  bollard_pull_t: number | null;
+  potencia_kw: number | null;
+  velocidad_kn: number | null;
+  motores: string | null;
+  propulsion: string | null;
+  thrusters: string | null;
+
+  winches: string | null;
+  grua: string | null;
+  fifi: string | null;
+  acomodacion: number | null;
+  tanques: string | null;
+
+  precio_pedido: number | null;
+  precio_moneda: "USD" | "EUR" | null;
+  disponibilidad: string | null;
+  // Texto y no date: las fichas dicen "Aug 2026", "1/2031" y "2029". Pasarlo
+  // a fecha obligaria a inventar un dia.
+  proxima_seca: string | null;
+
+  fuente: string | null;
+  notas: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Numeros de ficha tecnica: 73.5 se lee "73,5" y 4000 se lee "4.000", pero
+// 73.50 no se lee "73,50" en una eslora. Se muestran sin ceros de relleno.
+export function medida(valor: number | null, unidad = ""): string {
+  if (valor === null || valor === undefined) return "—";
+  const n = Number(valor);
+  const texto = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(n);
+  return unidad ? `${texto} ${unidad}` : texto;
+}
+
+// El precio de un buque se habla en millones, y asi lo escriben las ofertas:
+// "EUR 10.8 M AIWI".
+export function precioBuque(b: Buque): string | null {
+  if (b.precio_pedido === null) return null;
+  const millones = Number(b.precio_pedido) / 1_000_000;
+  const texto = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(millones);
+  return `${b.precio_moneda ?? ""} ${texto} M`.trim();
+}

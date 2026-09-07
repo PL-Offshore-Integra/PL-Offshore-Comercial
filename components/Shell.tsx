@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { href: "/mapa", label: "Mapa de trabajos" },
   { href: "/track-record", label: "Track record" },
   { href: "/clientes", label: "Clientes" },
+  { href: "/buques", label: "Buques" },
   { href: "/plantillas", label: "Plantillas de proyecto" },
   { href: "/zonas", label: "Zonas y puertos" },
   { href: "/calendario", label: "Calendario de Ferias" },
@@ -62,6 +63,11 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     grupo: "Maestros",
     titulo: "Zonas y puertos",
     sub: "Cada lugar donde se trabaja, una vez, con sus coordenadas.",
+  },
+  "/buques": {
+    grupo: "Maestros",
+    titulo: "Buques",
+    sub: "La lista de tonelaje: la flota propia, lo brokereado, y que hay en el mercado para ofrecer.",
   },
   "/calendario": {
     grupo: "Eventos",
@@ -145,6 +151,16 @@ function seccionFor(pathname: string) {
   }
   if (pathname.startsWith("/zonas/")) {
     return { grupo: "Maestros", titulo: "Zona", sub: "" };
+  }
+  if (pathname === "/buques/nuevo") {
+    return {
+      grupo: "Maestros",
+      titulo: "Nuevo buque",
+      sub: "Una ficha del maestro. Se puede cargar incompleta: lo que el papel no diga queda vacio.",
+    };
+  }
+  if (pathname.startsWith("/buques/")) {
+    return { grupo: "Maestros", titulo: "Buque", sub: "" };
   }
   if (pathname === "/oportunidades/nueva") {
     return {
@@ -283,6 +299,13 @@ export default function Shell({
                 <div className="pagehead-actions">
                   <Link href="/zonas/nueva" className="btn btn-amarillo">
                     Nueva zona
+                  </Link>
+                </div>
+              )}
+              {pathname === "/buques" && (
+                <div className="pagehead-actions">
+                  <Link href="/buques/nuevo" className="btn btn-amarillo">
+                    Nuevo buque
                   </Link>
                 </div>
               )}
