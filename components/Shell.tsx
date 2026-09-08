@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type NavItem = { href: string; label: string };
@@ -212,6 +213,47 @@ export default function Shell({
   const seccion = seccionFor(pathname);
   const inicial = (userEmail || "C").replace(/@.*$/, "").slice(0, 2).toUpperCase();
 
+  // En pantalla chica la navegacion se acuesta y hay que deslizarla: con once
+  // secciones no entran todas. Al cambiar de pantalla se corre sola para que
+  // la actual quede a la vista, que es lo que evita que uno crea que la
+  // navegacion se movio de lugar.
+  //
+  // Solo cuando esta acostada de verdad: si no desborda, `scrollIntoView`
+  // no tiene nada que hacer y evitamos que toque el scroll de la pagina.
+  const refNav = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const nav = refNav.current;
+    if (!nav) return;
+
+    // La cuenta va a mano y no con `scrollIntoView`. Las dos cosas se
+    // midieron en el navegador y las dos fallaban:
+    //
+    //   `scrollIntoView({behavior:"smooth"})` dejaba el item cortado a la
+    //   derecha, porque la animacion arranca antes de que terminen de cargar
+    //   las tipografias y los anchos todavia cambian.
+    //
+    //   Preguntar `scrollWidth > clientWidth` afuera, una sola vez, no
+    //   centraba nada: en el primer frame la tira todavia no desborda y el
+    //   guardia se saltaba el centrado entero.
+    //
+    // Por eso la pregunta esta adentro —se evalua cuando toca correr— y se
+    // corre dos veces: en el frame siguiente y de nuevo cuando las
+    // tipografias estan listas.
+    const centrar = () => {
+      // Si no desborda es el sidebar vertical de siempre: nada que correr.
+      if (nav.scrollWidth <= nav.clientWidth) return;
+      const activo = nav.querySelector<HTMLElement>(".ni.active");
+      if (!activo) return;
+      nav.scrollLeft = activo.offsetLeft - (nav.clientWidth - activo.offsetWidth) / 2;
+    };
+
+    const id = requestAnimationFrame(centrar);
+    if (typeof document !== "undefined" && document.fonts) {
+      document.fonts.ready.then(centrar).catch(() => {});
+    }
+    return () => cancelAnimationFrame(id);
+  }, [pathname]);
+
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -254,7 +296,7 @@ export default function Shell({
 
               La numeracion corre sobre todo el menu: es un indice de
               secciones. */}
-          <div className="sidebar-nav">
+          <div className="sidebar-nav" ref={refNav}>
             {NAV.map((item, i) => {
               const active = pathname.startsWith(item.href);
               return (

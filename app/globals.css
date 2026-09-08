@@ -53,10 +53,26 @@ a:not(.btn):hover{color:var(--amarillo)}
 
 /* ── PANELES ──────────────────────────────────────────────────────────── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:16px}
-.card-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* `flex-wrap` no es un detalle: el titulo lleva a la izquierda una etiqueta
+   que puede ser larga —"Listo para consultar al cliente (6)"— y a la derecha
+   un importe. Sin envolver, en un telefono el importe se iba fuera de la
+   tarjeta y lo recortaba el `overflow-x:hidden` del body: el numero
+   directamente no se veia. */
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 /* ── KPIs ─────────────────────────────────────────────────────────────── */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+/* El minimo de la columna sale de una cuenta, no del gusto.
+   El KPI va en Saira 900 a 38px como manda el design system, y un importe en
+   millones —"US$ 2.653.489"— mide 271px. Intl.NumberFormat separa el simbolo
+   del numero con un espacio duro, asi que la cifra no puede partirse en dos
+   lineas: la caja tiene que darle el ancho. Con 36px de padding, la tarjeta
+   necesita 307px como piso.
+   Estaba en 200px y el resultado era que en 1440, con cuatro columnas de
+   258px, el numero salia de su caja y se pisaba con la tarjeta de al lado:
+   "US$ 2.653.489" se leia cortado. Con 320px entran tres en escritorio, dos
+   en tablet y una en telefono, y en las tres el numero entra entero. Si algun
+   dia hay que mostrar decenas de millones, este es el numero que se sube. */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:24px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
 .stat-label{font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase}
 .stat-value{font-family:var(--display);font-size:38px;font-weight:900;line-height:1.05;color:var(--navy);font-variant-numeric:tabular-nums}
@@ -106,7 +122,7 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .fg input,.fg select,.fg textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--sans);font-size:14px;height:36px;padding:0 12px;outline:none;transition:var(--tr)}
 .fg textarea{resize:vertical;min-height:72px;height:auto;padding:10px 12px}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--navy);outline:2px solid var(--amarillo);outline-offset:2px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
 /* Los campos que se muestran pero no se escriben: el nro de oportunidad
  * en un alta lo pone la base, no la persona. */
 .fg input[readonly]{background:var(--surface2);color:var(--muted);cursor:default}
@@ -188,9 +204,42 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 
 @media (max-width:768px){
   .shell{grid-template-columns:1fr}
-  .sidebar{display:none}
+
+  /* LA NAVEGACION NO SE ESCONDE: SE ACUESTA.
+     Antes era `display:none` y nada la reemplazaba, asi que en un telefono
+     se podia entrar al Dashboard y no se podia ir a ninguna otra pantalla.
+     Es el mismo markup del sidebar puesto en horizontal y pegado arriba.
+     No va detras de un boton de menu porque el sistema de diseno no admite
+     iconos —los sustituye por numeracion en Saira 900— y un menu sin icono
+     seria un boton que dice MENU, un componente que el sistema no tiene.
+     Acostada, esa misma numeracion hace de indice y se ve donde estas sin
+     abrir nada. El item activo pasa el borde amarillo de la izquierda al
+     borde de abajo, que es como se lee una fila. */
+  .sidebar{display:flex;flex-direction:row;border-right:0;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+  .sidebar-header,.sidebar-foot{display:none}
+  .sidebar-nav{flex:1;display:flex;padding:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .sidebar-nav::-webkit-scrollbar{display:none}
+  .ni{width:auto;flex:0 0 auto;gap:8px;padding:11px 14px;border-left:0;border-bottom:3px solid transparent;min-height:44px}
+  .ni.active{border-bottom-color:var(--amarillo)}
+  .ni-label{flex:0 0 auto;white-space:nowrap;overflow:visible;text-overflow:clip}
+
   .appbar{gap:12px;padding:0 16px}
   .appbar-instance{display:none}
+  /* El mail entero mide 169px de los 375 y dejaba 3px de aire: con uno mas
+     largo la barra desbordaba. Las iniciales del avatar ya dicen quien es. */
+  .appbar-user{display:none}
+
+  /* Los filtros en columna, todos del mismo ancho. Apilados con anchos
+     distintos —230, 193, 242— quedaba una escalera. */
+  .filtros{flex-direction:column;align-items:stretch;gap:10px}
+  .fg-inline{width:100%}
+  .fg-inline>input,.fg-inline>select,.filtros>input,.filtros>select{width:100%;min-width:0}
+  .filtro-ancho{min-width:0}
+  .filtro-corto{width:100%}
+  .filtro-a-la-derecha{margin-left:0}
+  /* Se estiran todos menos el amarillo, por lo mismo que en `pagehead`: el
+     sistema no admite el amarillo como fondo de un bloque grande. */
+  .filtros .btn:not(.btn-amarillo){width:100%}
   .pagehead{padding:14px 16px}
   .pagehead-row{flex-direction:column;align-items:stretch;gap:12px}
   /* En pantalla chica los botones se estiran, menos el amarillo: el sistema
@@ -198,15 +247,29 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
   .pagehead-actions .btn:not(.btn-amarillo){flex:1}
   .content{padding:16px}
   .card{padding:16px;margin-bottom:12px}
-  .stats{grid-template-columns:1fr 1fr;gap:12px}
+  /* Sin forzar dos columnas. Las forzaba y en /facturacion desbordaba la
+     pagina: "US$ 2.653.489" en Saira 900 mide 171px y no se puede partir,
+     asi que cada KPI pide 199px de minimo y dos no entran en los 343 utiles
+     de un telefono —el `1fr` respeta el min-content y el grid se iba a
+     413px—. La regla base, `auto-fit` con minimo de 200px, ya resuelve las
+     tres medidas sola: una columna en 375, dos desde ~480, tres en tablet. */
+  .stats{gap:12px}
   .stat{padding:14px}
   .stat-value{font-size:24px}
-  .form-grid{grid-template-columns:1fr;gap:12px}
+  /* `minmax(0,1fr)` y no `1fr`: el `1fr` pelado respeta el min-content y
+     cualquier campo que no se encoja —el input de archivo pedia 346px—
+     estira la columna y con ella la pagina. */
+  .form-grid{grid-template-columns:minmax(0,1fr);gap:12px}
   table{font-size:13px;min-width:540px}
   th,td{padding:10px 8px}
   .filter-row{flex-direction:column;align-items:stretch}
   .filter-input,.filter-select{min-width:unset;width:100%}
-  .btn{height:44px;padding:0 14px}
+  /* 44px de alto minimo por el area tactil, pero alto libre y texto que
+     envuelve: hay botones que llevan el nombre del cliente adentro
+     —"Estado de cuenta · Service Management" mide 344px— y con `nowrap` se
+     salian de la pantalla. Envolviendo entran en dos lineas, y de paso el
+     amarillo deja de ocupar el ancho completo. */
+  .btn{height:auto;min-height:44px;padding:10px 14px;white-space:normal;text-align:center;max-width:100%}
 }
 
 /* ══ LOGIN ═══════════════════════════════════════════════════════════════ */
@@ -254,6 +317,11 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 /* Los botones de la ultima columna de la lista, en una sola linea. */
 .fila-acciones{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
 
+/* El input de archivo mide por su contenido y no se encoge: con el texto del
+   boton del navegador mas el nombre del archivo pedia 348px y desbordaba la
+   ficha del proyecto en un telefono. */
+input[type="file"]{max-width:100%;width:100%}
+
 /* ── ACENTO AMARILLO ──────────────────────────────────────────────────── */
 /* La regla de 64x3px debajo del titulo de seccion, como la define el design
    system de PL Offshore. */
@@ -275,6 +343,29 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .filter-guion{color:var(--muted2);font-size:12px}
 .filter-row .filter-select{min-width:0;width:158px}
 .filter-fechas{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+/* Segundo bloque de movil, y va aca a proposito.
+   Estos anchos fijos se declaran despues del bloque grande de 768px, asi que
+   con la misma especificidad le ganan por orden y el bloque de arriba no los
+   podia neutralizar. Sintoma medido en /clientes a 375px: el par de fechas
+   no podia encogerse —`flex:0 0 auto` con dos inputs de 132px— y empujaba la
+   columna entera a 372px dentro de un contenedor de 309, con lo cual la
+   pagina completa scrolleaba en horizontal. Es el unico desborde real que
+   quedaba en el modulo. */
+@media (max-width:768px){
+  .filter-buscar{flex:1 1 auto;min-width:0;width:100%}
+  .filter-fechas{flex:1 1 auto;width:100%}
+  .filter-fecha{width:100%}
+  .filter-row .filter-select{width:100%}
+
+  /* `.fila-acciones` cumple dos papeles. Dentro de una tabla es la ultima
+     columna y ahi el `nowrap` es correcto: la tabla scrollea. Fuera de una
+     tabla son los botones de la pantalla —"Guardar como plantilla" y
+     "Eliminar" en la ficha del proyecto— y sin envolver se iban de la
+     pagina. Se distinguen por donde estan, no por una clase nueva. */
+  .fila-acciones{flex-wrap:wrap;justify-content:flex-start}
+  td .fila-acciones,th .fila-acciones{flex-wrap:nowrap;justify-content:flex-end}
+}
 
 /* Dato de solo lectura: mismo lugar que un campo, sin la caja del input. */
 .dato{font-size:14px;color:var(--text);min-height:36px;display:flex;align-items:center}
@@ -426,6 +517,13 @@ button.grafico-chip:hover{border-color:var(--navy)}
 .filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:16px}
 .fg-inline{display:flex;flex-direction:column;gap:4px}
 .fg-inline label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+/* Tres medidas de la fila de filtros. Van en clases y no en un `style`
+   inline del componente porque el estilo inline le gana a la media query:
+   con el ancho pegado al elemento, en 375px el buscador se negaba a
+   encogerse y quedaba una columna despareja. */
+.filtro-ancho{min-width:230px}
+.filtro-corto{width:90px}
+.filtro-a-la-derecha{margin-left:auto}
 .chip-filtro{display:flex;align-items:center;gap:7px;height:36px;border:1px solid var(--navy);background:var(--surface);border-radius:var(--r);padding:0 12px;font-family:var(--sans);font-size:13px;color:var(--text);cursor:pointer;transition:var(--tr)}
 .chip-filtro i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .chip-filtro:hover{background:var(--surface2)}

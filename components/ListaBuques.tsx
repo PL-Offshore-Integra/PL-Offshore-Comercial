@@ -116,7 +116,7 @@ export default function ListaBuques({ buques }: { buques: Buque[] }) {
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Nombre, armador, astillero, IMO"
-            style={{ minWidth: 230 }}
+            className="filtro-ancho"
           />
         </div>
         <div className="fg-inline">
@@ -171,7 +171,7 @@ export default function ListaBuques({ buques }: { buques: Buque[] }) {
             onChange={(e) => setTiroDesde(e.target.value)}
             placeholder="70"
             inputMode="decimal"
-            style={{ width: 90 }}
+            className="filtro-corto"
           />
         </div>
         <div className="fg-inline">

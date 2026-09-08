@@ -103,7 +103,7 @@ export default function ListaContactos({ contactos }: { contactos: BrokerContact
               setCopiado(null);
             }}
             placeholder="Mail, nombre, empresa, dominio"
-            style={{ minWidth: 230 }}
+            className="filtro-ancho"
           />
         </div>
         <div className="fg-inline">
@@ -179,8 +179,7 @@ export default function ListaContactos({ contactos }: { contactos: BrokerContact
 
         <button
           type="button"
-          className="btn btn-amarillo btn-sm"
-          style={{ marginLeft: "auto" }}
+          className="btn btn-amarillo btn-sm filtro-a-la-derecha"
           onClick={copiar}
           disabled={visibles.length === 0}
         >
