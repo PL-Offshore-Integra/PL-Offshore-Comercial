@@ -355,6 +355,7 @@ export default function BuqueForm({
         <div className="fg">
           <label>Precio pedido</label>
           <input
+            className="cifra"
             name="precio_pedido"
             value={precio}
             onChange={(e) => setPrecio(e.target.value)}

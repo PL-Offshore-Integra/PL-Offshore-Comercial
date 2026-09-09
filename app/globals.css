@@ -598,3 +598,49 @@ button.grafico-chip:hover{border-color:var(--navy)}
 .hoja th{padding:8px 6px;letter-spacing:.1em}
 .hoja td{padding:7px 6px}
 .hoja .text-mono{white-space:nowrap}
+
+/* ── MODO PRIVADO · las cifras borrosas ───────────────────────────────── */
+/* Para mostrar la pantalla con alguien al lado, proyectar en una reunion o
+   sacar una captura para un chat sin que se lean los importes. Lo prende el
+   boton "Ocultar cifras" de la barra de arriba y queda guardado en el
+   navegador: si se prendio, sigue prendido al volver a entrar.
+
+   Lo que se borronea son los importes —el peso y el dolar— mas los KPI de
+   arriba de cada pantalla, que son plata en el 90% de los casos. Las fechas,
+   los dias, el IMO y los numeros de factura quedan legibles a proposito: sin
+   ellos la pantalla no se puede usar, y no son lo que uno tapa.
+
+   El blur va en `em` y no en pixeles para que escale con la tipografia: al
+   KPI de 38px le toca casi el triple de difuminado que a una celda de tabla,
+   que es lo que hace falta para que las dos queden igual de ilegibles.
+
+   Cuidado: esto tapa la cifra, no la borra. El numero sigue en el HTML, asi
+   que sirve contra una mirada o una captura, no contra alguien que abra el
+   inspector del navegador. Por eso tampoco se puede seleccionar: copiar y
+   pegar era la forma facil de leer lo que esta tapado. */
+html[data-privado="1"] .stat-value,
+html[data-privado="1"] .cel-valor,
+html[data-privado="1"] .cifra{
+  filter:blur(.28em);
+  user-select:none;
+  -webkit-user-select:none;
+}
+/* Un campo en el que se esta escribiendo se destapa. Si no, cargar una
+   factura con el modo prendido seria escribir a ciegas, y lo que uno hace en
+   ese caso es apagarlo, dejarlo apagado y perder el sentido de tenerlo. Al
+   salir del campo el importe se vuelve a tapar solo. */
+html[data-privado="1"] .cifra:focus,
+html[data-privado="1"] .cifra:focus-within{filter:none;user-select:auto}
+
+/* En el boton se lee el estado, no la accion pendiente: prendido dice que las
+   cifras estan tapadas. */
+.appbar-link.esta-prendido{color:var(--amarillo)}
+
+/* Impreso nunca. El calculo para el cliente y el estado de cuenta se imprimen
+   para mandarselos: salir con los importes tapados los haria inservibles, y
+   el que imprime no siempre se acuerda de que dejo el modo prendido. */
+@media print{
+  html[data-privado="1"] .stat-value,
+  html[data-privado="1"] .cel-valor,
+  html[data-privado="1"] .cifra{filter:none;user-select:auto}
+}

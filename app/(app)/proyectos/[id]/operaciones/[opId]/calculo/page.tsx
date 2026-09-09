@@ -162,10 +162,10 @@ export default async function CalculoPage({
                   <td className="text-mono" style={{ textAlign: "right" }}>
                     {diasLegibles(t.dias)}
                   </td>
-                  <td className="text-mono" style={{ textAlign: "right" }}>
+                  <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                     {plata(operacion.moneda, t.tarifa)}
                   </td>
-                  <td className="text-mono" style={{ textAlign: "right" }}>
+                  <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                     {plata(operacion.moneda, t.monto)}
                   </td>
                 </tr>

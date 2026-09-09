@@ -250,6 +250,7 @@ export default function FacturaForm({
             type="number"
             step="0.01"
             min="0"
+            className="cifra"
             name="importe"
             value={importe}
             onChange={(e) => setImporte(e.target.value)}
@@ -263,6 +264,7 @@ export default function FacturaForm({
             type="number"
             step="0.01"
             min="0"
+            className="cifra"
             name="comision"
             value={comision}
             onChange={(e) => setComision(e.target.value)}
@@ -286,7 +288,7 @@ export default function FacturaForm({
         </div>
         <div className="fg">
           <label>Importe neto</label>
-          <input value={plata(moneda, neto)} readOnly />
+          <input className="cifra" value={plata(moneda, neto)} readOnly />
           <span className="hint">Importe menos comisiones</span>
         </div>
       </div>
@@ -325,6 +327,7 @@ export default function FacturaForm({
             type="number"
             step="0.0001"
             min="0"
+            className="cifra"
             name="tc_pagado"
             value={tcPagado}
             onChange={(e) => setTcPagado(e.target.value)}
@@ -353,6 +356,7 @@ export default function FacturaForm({
           <div className="fg">
             <label>Total en pesos</label>
             <input
+              className="cifra"
               value={new Intl.NumberFormat("es-AR", {
                 style: "currency",
                 currency: "ARS",

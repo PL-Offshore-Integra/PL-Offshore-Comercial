@@ -117,12 +117,14 @@ export default async function VerOportunidadPage({
         <div className="form-grid">
           <Dato label="Tipo de contratacion">{tipo?.label ?? o.estructura_tarifaria}</Dato>
           <Dato label="Valor total">
-            <strong>{plata(o.moneda, o.valor)}</strong>
+            <strong className="cifra">{plata(o.moneda, o.valor)}</strong>
           </Dato>
           {/* La comision no se suma al valor: es lo que se le paga al broker.
               Solo aparece cuando hay broker (0024). */}
           {o.estructura_tarifaria === "broker" && (
-            <Dato label="Total de comision">{plata(o.moneda, o.comision_total)}</Dato>
+            <Dato label="Total de comision">
+              <span className="cifra">{plata(o.moneda, o.comision_total)}</span>
+            </Dato>
           )}
           <Dato label="Delivery port">{o.delivery_port ?? "—"}</Dato>
           <Dato label="Re-delivery port">{o.redelivery_port ?? "—"}</Dato>
@@ -143,7 +145,7 @@ export default async function VerOportunidadPage({
                   <tr key={t.id}>
                     <td>{etiquetaConcepto(t.concepto)}</td>
                     <td className="text-muted">{t.unidad === "dia" ? "por dia" : "global"}</td>
-                    <td className="text-mono" style={{ textAlign: "right" }}>
+                    <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                       {plata(o.moneda, Number(t.monto))}
                     </td>
                   </tr>

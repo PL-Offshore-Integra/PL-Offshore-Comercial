@@ -164,7 +164,8 @@ export default async function ProyectoPage({
             {operaciones.length > 0 && (
               <span className="text-muted">
                 {" "}
-                · {plata(ejecutado, proyecto.moneda)} ejecutado
+                · <span className="cifra">{plata(ejecutado, proyecto.moneda)}</span>{" "}
+                ejecutado
               </span>
             )}
           </span>
@@ -243,8 +244,10 @@ export default async function ProyectoPage({
             {facturas.length > 0 && (
               <span className="text-muted">
                 {" "}
-                · {plata(facturado, proyecto.moneda)} facturado ·{" "}
-                {plata(cobrado, proyecto.moneda)} cobrado
+                · <span className="cifra">{plata(facturado, proyecto.moneda)}</span>{" "}
+                facturado ·{" "}
+                <span className="cifra">{plata(cobrado, proyecto.moneda)}</span>{" "}
+                cobrado
               </span>
             )}
           </span>

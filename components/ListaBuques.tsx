@@ -293,7 +293,7 @@ export default function ListaBuques({ buques }: { buques: Buque[] }) {
                               : "—"}
                       </td>
                       <td className="text-muted">{b.bandera ?? "—"}</td>
-                      <td className="text-mono" style={{ textAlign: "right" }}>
+                      <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                         {precio ?? <span className="text-muted">—</span>}
                       </td>
                       <td className="text-muted">{b.proxima_seca ?? "—"}</td>

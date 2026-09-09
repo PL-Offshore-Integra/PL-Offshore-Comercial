@@ -349,6 +349,7 @@ export default function ProyectoForm({
               type="number"
               step="0.01"
               min="0"
+              className="cifra"
               name="tarifa_monto"
               value={montos[c.concepto] ?? ""}
               onChange={(e) =>
@@ -368,7 +369,7 @@ export default function ProyectoForm({
             queda, y un valor mandado a mano no entra. */}
         <div className="fg">
           <label>Valor total acordado</label>
-          <input value={plata(moneda, valor)} readOnly />
+          <input className="cifra" value={plata(moneda, valor)} readOnly />
           <span className="hint">{formulaAcordada(estructura)}</span>
         </div>
       </div>

@@ -158,7 +158,8 @@ export default async function NuevaFacturaPage({
           <>
             Facturando la salida <strong>{elegida.nombre}</strong> —{" "}
             {fechaConHoraSiTiene(elegida.fecha_inicio)} a{" "}
-            {fechaConHoraSiTiene(elegida.fecha_fin)}, {plata(elegida.moneda, elegida.valor)}.
+            {fechaConHoraSiTiene(elegida.fecha_fin)},{" "}
+            <span className="cifra">{plata(elegida.moneda, elegida.valor)}</span>.
           </>
         ) : (
           <>

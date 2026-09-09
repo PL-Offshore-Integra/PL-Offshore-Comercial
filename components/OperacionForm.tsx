@@ -343,6 +343,7 @@ export default function OperacionForm({
               type="number"
               step="0.01"
               min="0"
+              className="cifra"
               name="tarifa_monto"
               value={montos[c.concepto] ?? ""}
               onChange={(e) => setMontos((m) => ({ ...m, [c.concepto]: e.target.value }))}
@@ -357,14 +358,14 @@ export default function OperacionForm({
         <div className="fg">
           <label>Valor de la salida</label>
           <div className="dato">
-            <strong>{plata(moneda, valor)}</strong>
+            <strong className="cifra">{plata(moneda, valor)}</strong>
           </div>
         </div>
 
         {tipo === "broker" && (
           <div className="fg">
             <label>Total de comision</label>
-            <div className="dato">{plata(moneda, comision)}</div>
+            <div className="dato cifra">{plata(moneda, comision)}</div>
             <span className="hint">Dias × comision. No entra en el valor.</span>
           </div>
         )}

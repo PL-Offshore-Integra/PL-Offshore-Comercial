@@ -59,11 +59,12 @@ export default async function BuquePage({ params }: { params: Promise<{ id: stri
   const eliminar = borrarBuque.bind(null, buque.id);
 
   const precio = precioBuque(buque);
+  // El precio se saca del titular y se dibuja aparte: es lo unico de esta
+  // linea que es plata, y suelto lo puede tapar el modo privado.
   const titular = [
     etiquetaTipoBuque(buque.tipo),
     buque.bollard_pull_t !== null ? `${buque.bollard_pull_t} t de tiro` : null,
     buque.anio,
-    precio ? `${precio} AIWI` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -79,7 +80,17 @@ export default async function BuquePage({ params }: { params: Promise<{ id: stri
         </form>
       </div>
 
-      {titular && <div className="info-box accent mb16">{titular}</div>}
+      {(titular || precio) && (
+        <div className="info-box accent mb16">
+          {titular}
+          {precio && (
+            <>
+              {titular && " · "}
+              <span className="cifra">{precio}</span> AIWI
+            </>
+          )}
+        </div>
+      )}
 
       {buque.fuente && (
         <div className="hint mb16">

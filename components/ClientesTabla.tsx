@@ -272,7 +272,7 @@ export default function ClientesTabla({
                 <td className="text-mono">{c.en_curso}</td>
                 <td className="text-mono">{c.adjudicadas}</td>
                 <td className="text-mono">{c.canceladas}</td>
-                <td className="text-mono">{currency.format(Number(c.valor_total ?? 0))}</td>
+                <td className="text-mono cel-valor">{currency.format(Number(c.valor_total ?? 0))}</td>
                 <td className="text-mono">{fechaLegible(c.ultimo_contacto)}</td>
                 <td style={{ textAlign: "right" }}>
                   <EditarContacto fila={c} />

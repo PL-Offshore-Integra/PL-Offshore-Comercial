@@ -149,7 +149,8 @@ export default async function FacturacionPage() {
               <div className="stat-value">{plata(t.moneda, t.facturado)}</div>
               {t.comisiones > 0 && (
                 <span className="hint">
-                  Neto de comisiones: {plata(t.moneda, t.neto)}
+                  Neto de comisiones:{" "}
+                  <span className="cifra">{plata(t.moneda, t.neto)}</span>
                 </span>
               )}
             </div>
@@ -157,8 +158,10 @@ export default async function FacturacionPage() {
               <div className="stat-label">Cobrado</div>
               <div className="stat-value">{plata(t.moneda, t.cobrado)}</div>
               <span className="hint">
-                {plata(t.moneda, t.cobradoEnUSD)} en dolares ·{" "}
-                {plata(t.moneda, t.cobradoEnARS)} en pesos
+                <span className="cifra">{plata(t.moneda, t.cobradoEnUSD)}</span>{" "}
+                en dolares ·{" "}
+                <span className="cifra">{plata(t.moneda, t.cobradoEnARS)}</span>{" "}
+                en pesos
               </span>
             </div>
             <div className="stat">
@@ -286,7 +289,7 @@ export default async function FacturacionPage() {
             <span className="badge b-amber">
               Listo para consultar al cliente ({listasParaConsultar.length})
             </span>
-            <span className="text-muted">
+            <span className="text-muted cifra">
               {plata(
                 listasParaConsultar[0]?.pendiente.salida.moneda ?? "USD",
                 listasParaConsultar.reduce((a, e) => a + e.pendiente.pendiente, 0)
@@ -320,7 +323,7 @@ export default async function FacturacionPage() {
             <span className="badge b-gray">
               Esperando para poder facturar ({esperando.length})
             </span>
-            <span className="text-muted">
+            <span className="text-muted cifra">
               {plata(
                 esperando[0]?.pendiente.salida.moneda ?? "USD",
                 esperando.reduce((a, e) => a + e.pendiente.pendiente, 0)

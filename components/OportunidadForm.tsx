@@ -273,6 +273,7 @@ export default function OportunidadForm({
               type="number"
               step="0.01"
               min="0"
+              className="cifra"
               name="tarifa_monto"
               value={montos[c.concepto] ?? ""}
               onChange={(e) =>
@@ -293,7 +294,7 @@ export default function OportunidadForm({
               guardar con la misma funcion, asi que lo que se ve es lo que
               queda. */}
           <label>Valor total de la propuesta</label>
-          <input value={plata(moneda, valor)} readOnly />
+          <input className="cifra" value={plata(moneda, valor)} readOnly />
           <span className="hint">{contratacion?.formula}</span>
         </div>
 
@@ -303,7 +304,7 @@ export default function OportunidadForm({
         {tipo === "broker" && (
           <div className="fg">
             <label>Total de comision</label>
-            <input value={plata(moneda, comision)} readOnly />
+            <input className="cifra" value={plata(moneda, comision)} readOnly />
             <span className="hint">
               Dias × comision. No entra en el valor de la propuesta.
             </span>

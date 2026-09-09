@@ -4,6 +4,7 @@ import {
   type EstadoDeCobranza,
 } from "@/lib/facturas";
 import type { Moneda } from "@/lib/types";
+import { usePrivado } from "./Privado";
 
 // El grafico del tablero: una barra apilada por buque con los cuatro estados
 // de la plata, todas en la misma escala.
@@ -66,6 +67,12 @@ export default function GraficoCobranza({
   // buque con otro de un vistazo.
   const escala = Math.max(...barras.map((b) => b.total), 1);
 
+  // Los importes dibujados los borronea el CSS, pero el globo nativo que el
+  // navegador saca del `title` de cada segmento no se puede borronear: ahi el
+  // importe hay que no escribirlo. Es el unico lugar del modulo donde el modo
+  // privado cambia lo que se dibuja y no solo como se ve.
+  const { privado } = usePrivado();
+
   return (
     <div>
       {/* La referencia va arriba y con el monto de cada estado: con cuatro
@@ -79,7 +86,7 @@ export default function GraficoCobranza({
             <>
               <i style={{ background: e.color }} />
               <span>{e.label}</span>
-              <b>{plata(moneda, t.monto)}</b>
+              <b className="cifra">{plata(moneda, t.monto)}</b>
             </>
           );
           // La referencia tambien filtra: es donde primero se le apunta.
@@ -107,7 +114,7 @@ export default function GraficoCobranza({
           <div key={barra.nombre} className="barra-fila">
             <div className="barra-cabeza">
               <span className="barra-nombre">{barra.nombre}</span>
-              <b className="barra-total">{plata(moneda, barra.total)}</b>
+              <b className="barra-total cifra">{plata(moneda, barra.total)}</b>
             </div>
             <div className="barra-pista">
               {conMonto.map((parte) => {
@@ -124,7 +131,7 @@ export default function GraficoCobranza({
                         ambar es demasiado claro para texto blanco—. */}
                     {porcentaje >= 11 && (
                       <span
-                        className="barra-etiqueta"
+                        className="barra-etiqueta cifra"
                         style={{ color: e.id === "sin_facturar" ? "#0B0B0B" : "#FFFFFF" }}
                       >
                         {plata(moneda, parte.monto)}
@@ -135,7 +142,7 @@ export default function GraficoCobranza({
                         puede escribir adentro. */}
                     <span className="barra-tip" aria-hidden="true">
                       <b>{e.label}</b>
-                      {plata(moneda, parte.monto)}
+                      <span className="cifra">{plata(moneda, parte.monto)}</span>
                       <span>{barra.nombre}</span>
                     </span>
                   </>
@@ -143,7 +150,9 @@ export default function GraficoCobranza({
 
                 const estilo = { width: `${porcentaje}%`, background: e.color };
                 const clases = `barra-seg ${atenuado ? "atenuado" : ""}`;
-                const titulo = `${barra.nombre} · ${e.label}: ${plata(moneda, parte.monto)}`;
+                const titulo = privado
+                  ? `${barra.nombre} · ${e.label}`
+                  : `${barra.nombre} · ${e.label}: ${plata(moneda, parte.monto)}`;
 
                 return alElegir ? (
                   <button

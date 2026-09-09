@@ -98,7 +98,9 @@ export default async function FacturaPage({
       <div className="flex-between mb16">
         <span className="tag">
           {factura.nro_factura ?? "sin nro"} &middot;{" "}
-          {plata(factura.moneda, netoDeFactura(factura))}
+          <span className="cifra">
+            {plata(factura.moneda, netoDeFactura(factura))}
+          </span>
         </span>
         <div className="fila-acciones">
           <span className={`badge ${etiqueta.color}`}>{etiqueta.label}</span>
@@ -147,11 +149,14 @@ export default async function FacturaPage({
           {pesos !== null && (
             <div className="fg">
               <label>Entraron</label>
-              <div className="dato">{plata("ARS", pesos)}</div>
+              <div className="dato cifra">{plata("ARS", pesos)}</div>
               {dif !== null && (
                 <span className="hint">
-                  Diferencia de cambio: {dif > 0 ? "+" : ""}
-                  {dif.toLocaleString("es-AR", { maximumFractionDigits: 4 })}
+                  Diferencia de cambio:{" "}
+                  <span className="cifra">
+                    {dif > 0 ? "+" : ""}
+                    {dif.toLocaleString("es-AR", { maximumFractionDigits: 4 })}
+                  </span>
                 </span>
               )}
             </div>

@@ -89,16 +89,23 @@ function globoHTML(grupo: Grupo): string {
     .filter((c) => c.trabajos.length > 0)
     .map((c) => {
       const filas = c.trabajos
-        .map(
-          (t) => `<li>
+        .map((t) => {
+          // El importe se arma aparte y va en su propio span: el globo se
+          // dibuja como HTML dentro del mapa, asi que el modo privado lo
+          // puede tapar igual que en el resto del modulo. Lo demas —cliente,
+          // buque, cuando— se escapa y se pega tal cual.
+          const detalle = [t.cliente, t.buque, t.cuando]
+            .filter(Boolean)
+            .map((x) => escapar(String(x)));
+          const importe = plata(t.moneda, t.valor);
+          if (importe) {
+            detalle.push(`<span class="cifra">${escapar(importe)}</span>`);
+          }
+          return `<li>
             <a href="${t.href}">${escapar([t.nro, t.titulo].filter(Boolean).join(" · "))}</a>
-            <span>${escapar(
-              [t.cliente, t.buque, t.cuando, plata(t.moneda, t.valor)]
-                .filter(Boolean)
-                .join(" · ")
-            )}</span>
-          </li>`
-        )
+            <span>${detalle.join(" · ")}</span>
+          </li>`;
+        })
         .join("");
       return `<div class="globo-grupo">
         <div class="globo-cat"><i style="background:${c.color}"></i>${escapar(c.label)}</div>

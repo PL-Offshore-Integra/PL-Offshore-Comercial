@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { BotonPrivado, PrivadoProvider } from "./Privado";
 
 type NavItem = { href: string; label: string };
 
@@ -262,12 +263,15 @@ export default function Shell({
   };
 
   return (
-    <>
+    <PrivadoProvider>
       <header className="appbar">
         <img src="/integra-isotipo-white.svg" alt="INTEGRA" className="appbar-iso" />
         <span className="appbar-div" />
         <span className="appbar-instance">PL Offshore</span>
         <div className="appbar-tools">
+          {/* Primero el boton de tapar y despues el usuario: en el telefono el
+              mail se esconde y este tiene que quedar igual a mano. */}
+          <BotonPrivado />
           <span className="appbar-avatar">{inicial}</span>
           <span className="appbar-user">{userEmail}</span>
           <button className="appbar-link" onClick={handleLogout}>
@@ -388,6 +392,6 @@ export default function Shell({
           <div className="content">{children}</div>
         </div>
       </div>
-    </>
+    </PrivadoProvider>
   );
 }

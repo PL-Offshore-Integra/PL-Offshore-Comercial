@@ -52,8 +52,14 @@ const NOMBRE_DEL_MES: Record<string, string> = {
 
 function Montos({ totales }: { totales: [string, number][] }) {
   const conPlata = totales.filter(([, v]) => v !== 0);
-  if (conPlata.length === 0) return <>{plata("USD", 0)}</>;
-  return <>{conPlata.map(([m, v]) => plata(m, v)).join(" · ")}</>;
+  // Va envuelto en un span propio porque estos montos aparecen tanto dentro
+  // del KPI como en la linea de abajo, donde son la unica cifra: sin el span,
+  // el modo privado tapaba el numero grande y dejaba el chico a la vista, que
+  // es peor que no tapar nada.
+  if (conPlata.length === 0) return <span className="cifra">{plata("USD", 0)}</span>;
+  return (
+    <span className="cifra">{conPlata.map(([m, v]) => plata(m, v)).join(" · ")}</span>
+  );
 }
 
 function porMoneda<T>(items: T[], monto: (t: T) => number, moneda: (t: T) => string) {

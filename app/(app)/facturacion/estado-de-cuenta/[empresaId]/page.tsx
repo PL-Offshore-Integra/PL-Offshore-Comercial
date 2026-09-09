@@ -163,7 +163,7 @@ export default async function EstadoDeCuentaPage({
                       <td className="text-mono" style={{ textAlign: "right" }}>
                         {dias === null ? "—" : diasLegibles(dias)}
                       </td>
-                      <td className="text-mono" style={{ textAlign: "right" }}>
+                      <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                         {plata(o.moneda, pendiente.pendiente)}
                       </td>
                     </tr>
@@ -171,7 +171,7 @@ export default async function EstadoDeCuentaPage({
                 })}
                 <tr className="fila-total">
                   <td colSpan={6}>Total a facturar</td>
-                  <td className="text-mono" style={{ textAlign: "right" }}>
+                  <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                     {plata(moneda, totalListo)}
                   </td>
                 </tr>
@@ -209,14 +209,14 @@ export default async function EstadoDeCuentaPage({
                         <span className="text-muted"> (vencida)</span>
                       )}
                     </td>
-                    <td className="text-mono" style={{ textAlign: "right" }}>
+                    <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                       {plata(f.moneda, Number(f.importe))}
                     </td>
                   </tr>
                 ))}
                 <tr className="fila-total">
                   <td colSpan={4}>Total pendiente de cobro</td>
-                  <td className="text-mono" style={{ textAlign: "right" }}>
+                  <td className="text-mono cel-valor" style={{ textAlign: "right" }}>
                     {plata(moneda, totalSinCobrar)}
                   </td>
                 </tr>
