@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { aTimestamp } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
+import { resolverZona } from "@/lib/zonas";
 import {
   calcularValor,
   comisionTotal,
@@ -83,8 +84,9 @@ function fields(formData: FormData) {
     cliente_final: str(formData, "cliente_final"),
     // La zona sale del maestro (0027). La columna vieja `zona`, de texto
     // libre, no esta aca: el formulario dejo de mandarla y se queda con lo que
-    // tenga. Mandarla igual borraria el texto de las salidas viejas.
-    zona_id: str(formData, "zona_id"),
+    // tenga. Mandarla igual borraria el texto de las salidas viejas. El id no
+    // sale de aca sino de resolverZona(), que ademas puede tener que crear el
+    // lugar antes de poder devolver el FK.
     buque_madre: str(formData, "buque_madre"),
     // El tercer buque del STS: el que recibe (0021).
     alijador: str(formData, "alijador"),
@@ -109,7 +111,7 @@ export async function crearOperacion(formData: FormData) {
   const proyectoId = str(formData, "proyecto_id");
   if (!proyectoId) throw new Error("La operacion necesita un proyecto.");
 
-  const datos = fields(formData);
+  const datos = { ...fields(formData), ...(await resolverZona(supabase, formData)) };
   if (!datos.nombre) throw new Error("La operacion necesita un nombre.");
   if (datos.fecha_inicio && datos.fecha_fin && datos.fecha_fin <= datos.fecha_inicio) {
     throw new Error("La fecha de fin tiene que ser posterior a la de inicio.");
@@ -141,7 +143,7 @@ export async function crearOperacion(formData: FormData) {
 export async function actualizarOperacion(id: string, formData: FormData) {
   const supabase = await createClient();
 
-  const datos = fields(formData);
+  const datos = { ...fields(formData), ...(await resolverZona(supabase, formData)) };
   if (!datos.nombre) throw new Error("La operacion necesita un nombre.");
   if (datos.fecha_inicio && datos.fecha_fin && datos.fecha_fin <= datos.fecha_inicio) {
     throw new Error("La fecha de fin tiene que ser posterior a la de inicio.");

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { resolverCliente } from "@/lib/clienteResolver";
+import { resolverZona } from "@/lib/zonas";
 import { aTimestamp } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import { estructuraValida, sumaAcordada, type Concepto } from "@/lib/types";
@@ -65,8 +66,8 @@ function fields(formData: FormData) {
     // Mandarla igual borraria lo que hay en las filas viejas.
     // Donde se hace el trabajo (0025): es lo que lo pone en el mapa. La
     // palabra "zona" aca es el lugar; nada que ver con la zona horaria de las
-    // fechas de abajo.
-    zona_id: str(formData, "zona_id"),
+    // fechas de abajo. No sale de aca sino de resolverZona(), que ademas
+    // puede tener que crear el lugar antes de poder devolver el FK.
 
     // Con hora desde 0022. Sin zona explicita Postgres las tomaria como UTC
     // y se correrian tres horas, igual que pasaba con las salidas.
@@ -153,7 +154,7 @@ export async function crearProyecto(formData: FormData) {
   const supabase = await createClient();
 
   const oportunidadId = str(formData, "oportunidad_id");
-  const datos = fields(formData);
+  const datos = { ...fields(formData), ...(await resolverZona(supabase, formData)) };
   if (!datos.nombre) throw new Error("El proyecto necesita un nombre.");
 
   const cliente = await clienteDelProyecto(supabase, oportunidadId, formData);
@@ -174,7 +175,7 @@ export async function crearProyecto(formData: FormData) {
 
 export async function actualizarProyecto(id: string, formData: FormData) {
   const supabase = await createClient();
-  const datos = fields(formData);
+  const datos = { ...fields(formData), ...(await resolverZona(supabase, formData)) };
   if (!datos.nombre) throw new Error("El proyecto necesita un nombre.");
 
   // El cliente solo se toca en un proyecto sin oportunidad de origen. Si hay

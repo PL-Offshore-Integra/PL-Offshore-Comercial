@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { resolverCliente } from "@/lib/clienteResolver";
+import { resolverZona } from "@/lib/zonas";
 import { createClient } from "@/lib/supabase/server";
 import {
   calcularValor,
@@ -103,8 +104,8 @@ function fields(formData: FormData) {
     redelivery_port: str(formData, "redelivery_port"),
     comision_total: comisionDeLaPropuesta(formData),
     // 0025 · donde se haria el trabajo. Vacio es una respuesta valida: no
-    // siempre se sabe al cotizar.
-    zona_id: str(formData, "zona_id"),
+    // siempre se sabe al cotizar. No sale de aca sino de resolverZona(), que
+    // ademas puede tener que crear el lugar antes de poder devolver el FK.
   };
 }
 
@@ -141,9 +142,10 @@ function fields(formData: FormData) {
 export async function createOportunidad(formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
+  const zona = await resolverZona(supabase, formData);
 
   // Sin estado: lo pone el default de la tabla, en_curso.
-  const datos = { ...fields(formData), ...cliente };
+  const datos = { ...fields(formData), ...cliente, ...zona };
 
   const { data, error } = await supabase
     .from("oportunidades")
@@ -178,10 +180,11 @@ export async function createOportunidad(formData: FormData) {
 export async function updateOportunidad(id: string, formData: FormData) {
   const supabase = await createClient();
   const cliente = await resolverCliente(supabase, formData);
+  const zona = await resolverZona(supabase, formData);
 
   // Sin estado: el formulario no lo edita. Guardar los datos de una
   // oportunidad adjudicada no la devuelve a en curso.
-  const datos = { ...fields(formData), ...cliente };
+  const datos = { ...fields(formData), ...cliente, ...zona };
 
   const { error } = await supabase.from("oportunidades").update(datos).eq("id", id);
   if (error) throw new Error(error.message);
