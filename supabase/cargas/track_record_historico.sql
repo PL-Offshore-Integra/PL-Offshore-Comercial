@@ -10,6 +10,20 @@
 --
 -- Idempotente: cada fila se identifica por seccion + buque + cliente + alcance
 -- + anio, asi que correrlo dos veces no duplica.
+--
+-- FALTAN LAS FILAS 4, 5, 6 Y 7 DE MANAGEMENT, A PROPOSITO
+--
+--   Eran los cuatro Crew Management sobre buques de terceros —Sunrise G para
+--   TGS y para PXGEO, Victory G y Hai Yang Shi You 721—. Se sacaron del track
+--   record el 25/11/2026 por decision de Silvestre: es lo que se le manda a un
+--   cliente para decir que hizo PL Offshore, y estos tres no van. Ver
+--   supabase/migrations/0042_sacar_del_track_record_tres_buques_gestionados.sql
+--
+--   Los bloques salen tambien de aca y no solo de la base: este archivo no
+--   inserta lo que ya esta, pero SI volveria a insertar lo que se borro, asi
+--   que dejarlos los hacia volver el dia que alguien levante la base de cero.
+--   La numeracion del xlsx se conserva con el agujero: las notas son la clave
+--   de idempotencia y renumerarlas duplicaria todo.
 
 insert into comercial.track_record
   (seccion, buque, tipo_de_buque, armador, cliente, region, periodo, alcance,
@@ -538,30 +552,6 @@ insert into comercial.track_record
    anio_desde, anio_hasta, valor_usd, valor_texto, notas)
 select 'charter_in', 'Argentino I', 'Tug', 'SIPSA', 'Stolt Tankers', 'Argentina', '~3 days', 'Stand by', 2024, 2024, 90000, '~0.09 million', 'xlsx CHARTER-IN fila 7'
 where not exists (select 1 from comercial.track_record t where t.notas = 'xlsx CHARTER-IN fila 7');
-
-insert into comercial.track_record
-  (seccion, buque, tipo_de_buque, armador, cliente, region, periodo, alcance,
-   anio_desde, anio_hasta, valor_usd, valor_texto, notas)
-select 'management', 'Hai Yang Shi You 721', 'Seismic', 'COSL', 'TGS', 'Argentina', '~6 months', 'Crew Management', 2024, 2025, null, null, 'xlsx MANAGEMENT fila 4'
-where not exists (select 1 from comercial.track_record t where t.notas = 'xlsx MANAGEMENT fila 4');
-
-insert into comercial.track_record
-  (seccion, buque, tipo_de_buque, armador, cliente, region, periodo, alcance,
-   anio_desde, anio_hasta, valor_usd, valor_texto, notas)
-select 'management', 'Victory G', 'Supply', 'Rederij Groen', 'TGS', 'Argentina', '~6 months', 'Crew Management', 2024, 2025, null, null, 'xlsx MANAGEMENT fila 5'
-where not exists (select 1 from comercial.track_record t where t.notas = 'xlsx MANAGEMENT fila 5');
-
-insert into comercial.track_record
-  (seccion, buque, tipo_de_buque, armador, cliente, region, periodo, alcance,
-   anio_desde, anio_hasta, valor_usd, valor_texto, notas)
-select 'management', 'Sunrise G', 'Supply', 'Rederij Groen', 'PXGEO', 'Argentina', null, null, null, null, null, null, 'xlsx MANAGEMENT fila 6'
-where not exists (select 1 from comercial.track_record t where t.notas = 'xlsx MANAGEMENT fila 6');
-
-insert into comercial.track_record
-  (seccion, buque, tipo_de_buque, armador, cliente, region, periodo, alcance,
-   anio_desde, anio_hasta, valor_usd, valor_texto, notas)
-select 'management', 'Sunrise G', 'Supply', 'Rederij Groen', 'TGS', 'Argentina', '~30 days', 'Crew Management', 2024, 2025, null, null, 'xlsx MANAGEMENT fila 7'
-where not exists (select 1 from comercial.track_record t where t.notas = 'xlsx MANAGEMENT fila 7');
 
 insert into comercial.track_record
   (seccion, buque, tipo_de_buque, armador, cliente, region, periodo, alcance,
