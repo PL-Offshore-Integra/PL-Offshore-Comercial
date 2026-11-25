@@ -1,24 +1,16 @@
-import Link from "next/link";
-import EstadoOportunidadControl from "@/components/CerrarOportunidad";
-import { cambiarEstadoOportunidad } from "@/app/(app)/oportunidades/actions";
-import { fechaLegible } from "@/lib/fechas";
+import OportunidadesTabla from "@/components/OportunidadesTabla";
 import { createClient } from "@/lib/supabase/server";
-import { etiquetaEstado, type Oportunidad } from "@/lib/types";
+import { type Oportunidad } from "@/lib/types";
 
-// Cada fila se muestra en su moneda: una cotizada en pesos no se puede
-// imprimir con el signo del dolar.
-const plata = (moneda: string, valor: number) =>
-  new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: moneda === "ARS" ? "ARS" : "USD",
-  }).format(valor);
-
-function recortar(texto: string | null, largo = 90) {
-  if (!texto) return "—";
-  const limpio = texto.replace(/\s+/g, " ").trim();
-  return limpio.length > largo ? `${limpio.slice(0, largo)}…` : limpio;
-}
-
+// El pipeline: lo que se cotizo y como salio.
+//
+// Esta pagina solo trae los datos. El filtrado y el agrupado por estado viven
+// en el componente cliente, igual que en el Dashboard y en Clientes: son pocas
+// filas, se traen enteras una vez y escribir en el buscador no vuelve al
+// servidor.
+//
+// El orden de la consulta es el que se mantiene adentro de cada grupo: alta
+// descendente.
 export default async function OportunidadesPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -41,84 +33,7 @@ export default async function OportunidadesPage() {
         <div className="empty-state">Todavia no hay oportunidades cargadas.</div>
       )}
 
-      {/* Un solo listado continuo, ordenado por fecha de alta. Antes venia
-          partido en una tarjeta por estadio, que con nueve estadios eran nueve
-          tablas. */}
-      {oportunidades.length > 0 && (
-        <div className="card">
-          <div className="table-wrap">
-            <table className="tabla-lista">
-              <thead>
-                <tr>
-                  <th>Nro</th>
-                  <th>Estado</th>
-                  <th>Compania</th>
-                  <th>Tarea</th>
-                  <th>Buque</th>
-                  <th>Contacto</th>
-                  <th>Valor</th>
-                  {/* Ultimo contacto en vez de cierre esperado: en el
-                      seguimiento importa cuando se hablo por ultima vez, que
-                      es lo que dice si hay que llamar. La fecha de cierre
-                      esperada casi nunca se cargaba, asi que la columna
-                      mostraba un guion. Sigue en la ficha. */}
-                  <th>Ultimo contacto</th>
-                  <th>Comentarios</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {oportunidades.map((o) => {
-                  const etiqueta = etiquetaEstado(o.estado);
-                  return (
-                    <tr key={o.id}>
-                      <td className="text-mono cel-nro">{o.nro_oportunidad ?? "-"}</td>
-                      <td>
-                        <span className={`badge ${etiqueta.color}`}>{etiqueta.label}</span>
-                      </td>
-                      <td className="cel-compania">{o.compania}</td>
-                      <td>
-                        <span className="cel-texto">
-                          {recortar(o.descripcion_alcance ?? o.nombre_proyecto, 60)}
-                        </span>
-                      </td>
-                      <td className="text-muted">{o.buque ?? "—"}</td>
-                      <td className="text-muted">{o.contacto ?? o.contacto_email ?? "—"}</td>
-                      <td className="text-mono cel-valor">{plata(o.moneda, o.valor)}</td>
-                      <td className="text-mono">{fechaLegible(o.last_interacted_on)}</td>
-                      <td className="text-muted">
-                        <span className="cel-texto">{recortar(o.comentarios)}</span>
-                      </td>
-                      <td>
-                        <div className="fila-acciones">
-                          <EstadoOportunidadControl
-                            estado={o.estado}
-                            etiqueta={`${o.nro_oportunidad ?? "esta oportunidad"} · ${o.compania}`}
-                            comentarios={o.comentarios}
-                            cambiarEstado={cambiarEstadoOportunidad.bind(null, o.id)}
-                          />
-                          {/* Ver abre la ficha de lectura; Editar, el
-                              formulario. Mirar una oportunidad no tiene por
-                              que pasar por la pantalla de edicion. */}
-                          <Link href={`/oportunidades/${o.id}`} className="btn btn-ghost btn-sm">
-                            Ver
-                          </Link>
-                          <Link
-                            href={`/oportunidades/${o.id}/editar`}
-                            className="btn btn-ghost btn-sm"
-                          >
-                            Editar
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {oportunidades.length > 0 && <OportunidadesTabla oportunidades={oportunidades} />}
     </div>
   );
 }

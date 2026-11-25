@@ -21,7 +21,10 @@ export default function LoginPage() {
         setError("Credenciales incorrectas. Verifica tu email y contrasena.");
         return;
       }
-      router.push("/oportunidades");
+      // Se entra por el Dashboard: es la pantalla que contesta "en que anda
+      // cada cosa y cuanto", que es lo primero que se mira al abrir el
+      // modulo. Oportunidades es una seccion mas, no el inicio.
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Error de conexion. Verifica tu red e intenta nuevamente.");
@@ -62,7 +65,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="usuario@terra-mare.com.ar"
+              placeholder="usuario@ploffshore.com"
               autoFocus
             />
           </div>

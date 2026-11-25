@@ -78,7 +78,42 @@ a:not(.btn):hover{color:var(--amarillo)}
 .stat-value{font-family:var(--display);font-size:38px;font-weight:900;line-height:1.05;color:var(--navy);font-variant-numeric:tabular-nums}
 
 /* ── TABLAS ───────────────────────────────────────────────────────────── */
-.table-wrap{overflow-x:auto}
+/* AVISA QUE SE DESPLAZA.
+   La tabla scrollea adentro de su caja, que es lo correcto, pero nada decia
+   que hubiera mas a la derecha: medido en /facturacion a 375px, las tres
+   tablas esconden 230, 386 y 405px, asi que esas columnas no existian para
+   quien mira desde el telefono.
+   El aviso es un degrade angosto pegado al borde, y aparece solo del lado
+   que tiene contenido escondido. El truco es de que capa se agarra cada
+   fondo: las dos tapas van con `local`, asi que viajan con el contenido y se
+   paran justo en sus extremos; el degrade va con `scroll`, asi que queda
+   fijo en el borde de la caja. Al llegar a una punta, la tapa de ese lado
+   cae encima del degrade y lo borra. Sin JavaScript y sin medir nada.
+   NO ES UNA SOMBRA, aunque se le parezca: el design system no admite
+   sombras, y esto no simula elevacion —no hay nada flotando sobre nada—,
+   marca el corte del contenido. Si igual se lee como sombra, se cambia por
+   una regla de 2px y queda el mismo comportamiento.
+   El 16px de ancho es el minimo que se ve sin taparle el numero a la celda
+   del borde, y el navy al 14% es el mismo tono del resto del modulo. */
+.table-wrap{
+  overflow-x:auto;
+  background:
+    linear-gradient(to right,var(--surface) 60%,rgba(255,255,255,0)) 0 0/22px 100% no-repeat local,
+    linear-gradient(to left,var(--surface) 60%,rgba(255,255,255,0)) 100% 0/22px 100% no-repeat local,
+    linear-gradient(to right,rgba(0,34,71,.14),rgba(0,34,71,0)) 0 0/16px 100% no-repeat scroll,
+    linear-gradient(to left,rgba(0,34,71,.14),rgba(0,34,71,0)) 100% 0/16px 100% no-repeat scroll;
+}
+/* La franja del menu acostado esconde 562px en una tablet: el mismo aviso,
+   contra el blanco de la barra. */
+@media (max-width:1024px){
+  .sidebar-nav{
+    background:
+      linear-gradient(to right,var(--surface) 60%,rgba(255,255,255,0)) 0 0/22px 100% no-repeat local,
+      linear-gradient(to left,var(--surface) 60%,rgba(255,255,255,0)) 100% 0/22px 100% no-repeat local,
+      linear-gradient(to right,rgba(0,34,71,.14),rgba(0,34,71,0)) 0 0/16px 100% no-repeat scroll,
+      linear-gradient(to left,rgba(0,34,71,.14),rgba(0,34,71,0)) 100% 0/16px 100% no-repeat scroll;
+  }
+}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:2px solid var(--navy);white-space:nowrap;background:var(--surface)}
 td{padding:12px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -202,7 +237,21 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .pagehead p{font:400 13px/1.45 var(--sans);color:var(--muted);margin:6px 0 0;max-width:70ch}
 .pagehead-actions{display:flex;gap:8px;flex:0 0 auto}
 
-@media (max-width:768px){
+/* ══ LA NAVEGACION SE ACUESTA · hasta 1024px ═══════════════════════════
+   El corte es 1024 y no 768 por el iPad acostado. Medido en /oportunidades:
+   con el menu de pie, 248 de los 1024 son navegacion y a la tabla le quedan
+   663 de los 1034 que mide, asi que esconde 371px a la derecha y el ultimo
+   encabezado queda cortado al medio de la palabra. Acostado el menu, el
+   contenido pasa a 992 y lo que falta son 42px. El menu no pierde nada: es
+   el mismo markup en horizontal. Las once secciones no entran —piden 1554px
+   y se desplazan 562 dentro de su propia franja, igual que en un telefono—,
+   pero eso es desplazar un renglon de once items contra desplazar una tabla
+   de diez columnas, y lo segundo es donde esta el dato.
+   Son las unicas reglas que suben a 1024. Todo el resto —los formularios en
+   una columna, los filtros apilados, los botones de 44px— sigue en 768: en
+   una tablet acostada hay lugar de sobra para dos columnas de campos y
+   apilarlos seria desperdiciar la pantalla. */
+@media (max-width:1024px){
   .shell{grid-template-columns:1fr}
 
   /* LA NAVEGACION NO SE ESCONDE: SE ACUESTA.
@@ -222,7 +271,9 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
   .ni{width:auto;flex:0 0 auto;gap:8px;padding:11px 14px;border-left:0;border-bottom:3px solid transparent;min-height:44px}
   .ni.active{border-bottom-color:var(--amarillo)}
   .ni-label{flex:0 0 auto;white-space:nowrap;overflow:visible;text-overflow:clip}
+}
 
+@media (max-width:768px){
   .appbar{gap:12px;padding:0 16px}
   .appbar-instance{display:none}
   /* El mail entero mide 169px de los 375 y dejaba 3px de aire: con uno mas
@@ -313,6 +364,53 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 .modal::backdrop{background:rgba(15,20,25,.45)}
 .modal-titulo{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .modal-pie{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+
+/* ── ENCABEZADO DE GRUPO DENTRO DE UNA TABLA ──────────────────────────────
+   Una fila que ocupa el ancho entero y abre un grupo de filas: en
+   Oportunidades son los tres estados. No repite los encabezados de columna
+   —esos van una sola vez arriba de todo—, solo dice de quien es el bloque que
+   sigue y cuantos son.
+   El fondo gris y la linea de arriba son lo que separa un grupo del anterior
+   cuando la tabla corre seguida. El primero no lleva linea: no separa nada. */
+.grupo-fila>th{
+  background:var(--surface2);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  padding:8px 10px;
+  text-align:left;
+  font-weight:400;
+  letter-spacing:0;
+  text-transform:none;
+}
+tbody:first-of-type .grupo-fila>th{border-top:0}
+
+/* Cuando el grupo se pliega, el encabezado entero es el boton. Queda como
+   texto —el design system no admite iconos, asi que no hay triangulito— y
+   dice con la palabra si esta abierto o cerrado. */
+.grupo-boton{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  background:none;
+  border:0;
+  padding:0;
+  cursor:pointer;
+  text-align:left;
+  font:inherit;
+  color:inherit;
+  min-height:28px;
+}
+.grupo-accion{
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--action);
+}
+.grupo-boton:hover .grupo-accion{text-decoration:underline}
+.grupo-boton:focus-visible{outline:2px solid var(--amarillo);outline-offset:2px}
 
 /* Los botones de la ultima columna de la lista, en una sola linea. */
 .fila-acciones{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
@@ -538,7 +636,9 @@ button.grafico-chip:hover{border-color:var(--navy)}
   .content{padding:0}
   .card{border:0;padding:0;margin:0 0 18px;break-inside:auto}
   .card-title{border-bottom:1px solid #000;padding-bottom:4px}
-  .table-wrap{overflow:visible}
+  /* En papel no hay nada escondido ni nada que desplazar, y el degrade
+     saldria impreso como una mancha en el margen. */
+  .table-wrap{overflow:visible;background:none}
   table{font-size:10px}
   th{border-bottom:1px solid #000}
   td,th{padding:4px 6px}
