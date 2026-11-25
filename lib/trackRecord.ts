@@ -67,6 +67,8 @@ export const TEXTOS: Record<Idioma, Record<string, string>> = {
     conValor: "trabajos tienen valor cargado",
     de: "de",
     completo: "Del track record completo",
+    deLoElegido: "De lo que entra en el documento",
+    recorte: "Este documento es un recorte del track record",
     vacio: "No hay trabajos con estos filtros.",
   },
   en: {
@@ -89,6 +91,8 @@ export const TEXTOS: Record<Idioma, Record<string, string>> = {
     conValor: "jobs have a value on record",
     de: "of",
     completo: "Across the full track record",
+    deLoElegido: "Across what the document includes",
+    recorte: "This document is a selection from the full track record",
     vacio: "No jobs match these filters.",
   },
 };

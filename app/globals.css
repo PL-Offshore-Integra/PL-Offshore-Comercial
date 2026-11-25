@@ -360,10 +360,48 @@ tr.click:hover td{background:var(--surface2);cursor:pointer}
 
 /* ── CUADRO DE DIALOGO ─────────────────────────────────────────────────── */
 /* <dialog> nativo: el ::backdrop es del navegador, no un div propio. */
-.modal{border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);padding:24px;width:min(480px,calc(100vw - 32px))}
+/* El `margin:auto` es lo que lo centra: el reset de arriba pone margin 0 en
+   todo y, sin esto, el <dialog> nativo queda pegado al angulo superior
+   izquierdo de la pantalla. Venia asi desde el primer modal; se nota recien
+   con el cuadro de impresion del track record, que es ancho. */
+.modal{border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);padding:24px;width:min(480px,calc(100vw - 32px));margin:auto}
 .modal::backdrop{background:rgba(15,20,25,.45)}
 .modal-titulo{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .modal-pie{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+
+/* ── EL CUADRO DE "QUE VA EN EL DOCUMENTO" ────────────────────────────────
+   Se abre al apretar Imprimir en el track record. Es mas ancho que un modal
+   comun porque muestra cuatro listas de tildes en paralelo —linea, buque,
+   cliente y anio— y partirlas en una columna obligaba a desplazar para ver
+   si quedo algo tildado abajo.
+   Cada lista scrollea sola: los clientes son casi cincuenta y el cuadro no
+   puede crecer con ellos. El tope de 180px entran ocho renglones, que es
+   suficiente para ver que hay mas y seguir. */
+.modal-ancho{width:min(880px,calc(100vw - 32px))}
+.elegir-bloques{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.elegir-bloque{min-width:0}
+.elegir-titulo{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.elegir-titulo .grupo-accion{background:none;border:0;cursor:pointer;padding:0}
+.elegir-titulo .grupo-accion:disabled{color:var(--muted2);cursor:default;text-decoration:none}
+.elegir-lista{max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);padding:8px}
+.elegir-item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px;cursor:pointer}
+.elegir-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.elegir-item input{flex:0 0 auto;margin:0}
+
+/* El cuadro en pantalla chica: las cuatro listas una abajo de la otra. */
+@media (max-width:768px){
+  .elegir-bloques{grid-template-columns:1fr}
+  .elegir-lista{max-height:140px}
+}
+
+/* Lo que existe solo en el papel. El aviso de recorte del track record es
+   el unico caso: en pantalla los controles estan a la vista y no hace falta
+   decirlo, pero el PDF viaja solo. */
+.solo-imprimir{display:none}
+.recorte-aviso{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px}
+@media print{
+  .solo-imprimir{display:block}
+}
 
 /* ── ENCABEZADO DE GRUPO DENTRO DE UNA TABLA ──────────────────────────────
    Una fila que ocupa el ancho entero y abre un grupo de filas: en
