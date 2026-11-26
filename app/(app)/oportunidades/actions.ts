@@ -159,15 +159,10 @@ export async function createOportunidad(formData: FormData) {
   // sola vez.
   await guardarTarifas(supabase, data.id, formData);
 
-  // La documentacion tambien puede venir en el alta. Se sube despues del
-  // insert porque el archivo se cuelga de la oportunidad, que hasta hace un
-  // renglon no existia. Si no viene ninguno, no pasa nada.
-  const archivos = formData
-    .getAll("archivo")
-    .filter((a): a is File => a instanceof File && a.size > 0);
-  for (const archivo of archivos) {
-    await guardarAdjunto(supabase, data.id, archivo);
-  }
+  // La documentacion NO viene en el alta: viajaba adentro de este submit y
+  // Next corta el cuerpo de una accion de servidor en 1 MB, asi que un PDF
+  // grande hacia fallar el alta entera. Se adjunta en la ficha, que es adonde
+  // va este redirect, con la subida directa a Storage (lib/adjuntos.ts).
 
   await registrarHistorial(supabase, data.id, null, "en_curso", "Alta");
 
@@ -333,62 +328,6 @@ export async function cambiarEstadoOportunidad(id: string, formData: FormData) {
 // expone un link publico: se firma una URL cuando alguien la pide.
 // ------------------------------------------------------------
 
-const MAX_ADJUNTO_BYTES = 25 * 1024 * 1024;
-
-// Storage acepta un juego de caracteres acotado en las rutas. En vez de
-// pelear con acentos y espacios, la ruta se arma con un uuid y el nombre
-// original se guarda en la fila, que es lo que despues ve la persona.
-function extensionDe(nombre: string): string {
-  const punto = nombre.lastIndexOf(".");
-  if (punto <= 0 || punto === nombre.length - 1) return "";
-  const ext = nombre.slice(punto + 1).toLowerCase();
-  return /^[a-z0-9]{1,8}$/.test(ext) ? `.${ext}` : "";
-}
-
-// El trabajo real de subir, separado de la accion: lo usan el boton de la
-// ficha y tambien el alta, que puede traer un archivo en el mismo submit.
-async function guardarAdjunto(supabase: Cliente, id: string, archivo: File) {
-  if (archivo.size > MAX_ADJUNTO_BYTES) {
-    throw new Error("El archivo supera los 25 MB.");
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const path = `oportunidades/${id}/${crypto.randomUUID()}${extensionDe(archivo.name)}`;
-
-  const { error: eUp } = await supabase.storage
-    .from("comercial")
-    .upload(path, archivo, { contentType: archivo.type || undefined, upsert: false });
-  if (eUp) throw new Error(`No se pudo subir el archivo: ${eUp.message}`);
-
-  const { error } = await supabase.from("oportunidad_adjuntos").insert({
-    oportunidad_id: id,
-    nombre: archivo.name,
-    path,
-    tipo: archivo.type || null,
-    tamano_bytes: archivo.size,
-    subido_por: user?.id ?? null,
-  });
-  if (error) {
-    // Si la fila no entra, el archivo queda huerfano en el bucket. Lo sacamos.
-    await supabase.storage.from("comercial").remove([path]);
-    throw new Error(error.message);
-  }
-}
-
-export async function subirAdjunto(id: string, formData: FormData) {
-  const archivo = formData.get("archivo");
-  if (!(archivo instanceof File) || archivo.size === 0) {
-    throw new Error("No se eligio ningun archivo.");
-  }
-
-  const supabase = await createClient();
-  await guardarAdjunto(supabase, id, archivo);
-
-  revalidatePath(`/oportunidades/${id}`);
-}
 
 export async function borrarAdjunto(id: string, adjuntoId: string, path: string) {
   const supabase = await createClient();

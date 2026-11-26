@@ -5,8 +5,9 @@ import {
   actualizarProyecto,
   borrarAdjuntoProyecto,
   borrarProyecto,
-  subirAdjuntoProyecto,
 } from "@/app/(app)/proyectos/actions";
+import SubirAdjuntos from "@/components/SubirAdjuntos";
+import { pesoLegible } from "@/lib/adjuntos";
 import { BotonGuardar } from "@/components/BotonGuardar";
 import { plantillaDesdeProyecto } from "@/app/(app)/plantillas/actions";
 import { leerMaestroClientes } from "@/lib/clientes";
@@ -25,13 +26,6 @@ import {
   type ProyectoAdjunto,
   type ProyectoTarifa,
 } from "@/lib/types";
-
-function pesoLegible(bytes: number | null) {
-  if (bytes === null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function plata(valor: number, moneda: string) {
   return new Intl.NumberFormat("es-AR", {
@@ -121,7 +115,10 @@ export default async function ProyectoPage({
 
   const guardar = actualizarProyecto.bind(null, proyecto.id);
   const eliminar = borrarProyecto.bind(null, proyecto.id);
-  const subir = subirAdjuntoProyecto.bind(null, proyecto.id);
+  // El cupo de 20 MB es por proyecto y no por cuadro: el contrato y el resto
+  // de la documentacion suman contra el mismo tope, asi que los dos cuadros
+  // reciben el total.
+  const pesaCargado = adjuntos.reduce((suma, a) => suma + (a.tamano_bytes ?? 0), 0);
   const aPlantilla = plantillaDesdeProyecto.bind(null, proyecto.id);
 
   return (
@@ -361,21 +358,13 @@ export default async function ProyectoPage({
           </div>
         )}
 
-        <form action={subir}>
-          <input type="hidden" name="clase" value="contrato" />
-          <div className="form-grid" style={{ alignItems: "end" }}>
-            <div className="fg">
-              <label>Subir contrato (hasta 25 MB)</label>
-              <input type="file" name="archivo" required />
-            </div>
-            <div className="fg">
-              <label>&nbsp;</label>
-              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
-                Subir contrato
-              </BotonGuardar>
-            </div>
-          </div>
-        </form>
+        <SubirAdjuntos
+          entidad="proyecto"
+          id={proyecto.id}
+          clase="contrato"
+          usado={pesaCargado}
+          etiqueta="Subir el contrato"
+        />
       </div>
 
       <div className="card">
@@ -417,20 +406,12 @@ export default async function ProyectoPage({
           </div>
         )}
 
-        <form action={subir}>
-          <div className="form-grid" style={{ alignItems: "end" }}>
-            <div className="fg">
-              <label>Adjuntar archivos (hasta 25 MB)</label>
-              <input type="file" name="archivo" required />
-            </div>
-            <div className="fg">
-              <label>&nbsp;</label>
-              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
-                Subir
-              </BotonGuardar>
-            </div>
-          </div>
-        </form>
+        <SubirAdjuntos
+          entidad="proyecto"
+          id={proyecto.id}
+          clase="otro"
+          usado={pesaCargado}
+        />
       </div>
 
       {proyecto.oportunidad_id && (

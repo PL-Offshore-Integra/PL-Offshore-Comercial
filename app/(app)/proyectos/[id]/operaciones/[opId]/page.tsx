@@ -1,23 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import OperacionForm, { PieDeLaOperacion } from "@/components/OperacionForm";
-import { BotonGuardar } from "@/components/BotonGuardar";
 import {
   actualizarOperacion,
   borrarAdjuntoOperacion,
   borrarOperacion,
-  subirAdjuntoOperacion,
 } from "@/app/(app)/operaciones/actions";
+import SubirAdjuntos from "@/components/SubirAdjuntos";
+import { pesoLegible } from "@/lib/adjuntos";
 import { createClient } from "@/lib/supabase/server";
 import { leerZonasPara } from "@/lib/zonas";
 import type { Operacion, OperacionAdjunto, OperacionTarifa, Proyecto } from "@/lib/types";
-
-function pesoLegible(bytes: number | null) {
-  if (bytes === null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 // Los dos documentos que se arman por salida y se le mandan al cliente para
 // que de el OK. Hoy los hace Maximo en Excel y los pasa a PDF; al menos van a
@@ -74,7 +67,10 @@ export default async function OperacionPage({
 
   const guardar = actualizarOperacion.bind(null, operacion.id);
   const eliminar = borrarOperacion.bind(null, operacion.id);
-  const subir = subirAdjuntoOperacion.bind(null, operacion.id);
+  // El cupo de 20 MB es por salida: el calculo, el statement of facts y el
+  // resto suman contra el mismo tope, asi que los tres cuadros reciben el
+  // total de lo cargado.
+  const pesaCargado = adjuntos.reduce((suma, a) => suma + (a.tamano_bytes ?? 0), 0);
 
   // Con la zona de esta salida incluida aunque se haya retirado del maestro.
   const zonas = await leerZonasPara(operacion.zona_id);
@@ -152,21 +148,13 @@ export default async function OperacionPage({
               </div>
             )}
 
-            <form action={subir}>
-              <input type="hidden" name="clase" value={clase.id} />
-              <div className="form-grid" style={{ alignItems: "end" }}>
-                <div className="fg">
-                  <label>Archivo (hasta 25 MB)</label>
-                  <input type="file" name="archivo" required />
-                </div>
-                <div className="fg">
-                  <label>&nbsp;</label>
-                  <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
-                    {clase.label}
-                  </BotonGuardar>
-                </div>
-              </div>
-            </form>
+            <SubirAdjuntos
+              entidad="operacion"
+              id={operacion.id}
+              clase={clase.id}
+              usado={pesaCargado}
+              etiqueta={clase.label}
+            />
           </div>
         );
       })}
@@ -210,20 +198,12 @@ export default async function OperacionPage({
             </table>
           </div>
         )}
-        <form action={subir}>
-          <div className="form-grid" style={{ alignItems: "end" }}>
-            <div className="fg">
-              <label>Archivo (hasta 25 MB)</label>
-              <input type="file" name="archivo" required />
-            </div>
-            <div className="fg">
-              <label>&nbsp;</label>
-              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
-                Subir
-              </BotonGuardar>
-            </div>
-          </div>
-        </form>
+        <SubirAdjuntos
+          entidad="operacion"
+          id={operacion.id}
+          clase="otro"
+          usado={pesaCargado}
+        />
       </div>
 
       <div className="info-box accent mb16">

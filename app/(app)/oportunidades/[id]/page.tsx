@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fechaLegible } from "@/lib/fechas";
+import SubirAdjuntos from "@/components/SubirAdjuntos";
 import { createClient } from "@/lib/supabase/server";
 import {
   camposDe,
@@ -190,7 +191,7 @@ export default async function VerOportunidadPage({
       <div className="card">
         <div className="form-section">Documentacion</div>
         {adjuntos.length === 0 ? (
-          <div className="empty-state">Sin documentacion adjunta.</div>
+          <div className="empty-state mb16">Sin documentacion adjunta.</div>
         ) : (
           <div className="table-wrap">
             <table>
@@ -215,6 +216,16 @@ export default async function VerOportunidadPage({
             </table>
           </div>
         )}
+
+        {/* El alta ya no adjunta —los archivos no pueden viajar adentro de
+            una accion de servidor— y despues de guardar se cae justo aca, asi
+            que el cuadro va en la ficha y no solo en la pantalla de editar:
+            si no, para subir el primer archivo habia que entrar a editar. */}
+        <SubirAdjuntos
+          entidad="oportunidad"
+          id={o.id}
+          usado={adjuntos.reduce((suma, a) => suma + (a.tamano_bytes ?? 0), 0)}
+        />
       </div>
 
       {o.estado === "cancelado" && (

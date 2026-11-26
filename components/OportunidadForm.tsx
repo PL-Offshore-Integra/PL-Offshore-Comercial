@@ -345,18 +345,14 @@ export default function OportunidadForm({
         />
       </div>
 
-      {!oportunidad && (
-        <>
-          <div className="form-section">Documentacion</div>
-          <div className="fg">
-            <label>Adjuntar archivos (hasta 25 MB cada uno)</label>
-            <input type="file" name="archivo" multiple />
-            <span className="hint">
-              Opcional. Despues se pueden agregar mas desde la oportunidad.
-            </span>
-          </div>
-        </>
-      )}
+      {/* EL ALTA YA NO ADJUNTA
+          Los archivos viajaban adentro de este mismo submit, o sea por una
+          accion de servidor, y ahi Next corta el cuerpo en 1 MB: un PDF de 2
+          MB no fallaba solo el, hacia fallar el alta entera de la
+          oportunidad. El cartel decia 25 MB.
+          La documentacion se adjunta en la ficha, que es adonde lleva este
+          formulario despues de guardar, con el cuadro que sube derecho a
+          Storage. Ver lib/adjuntos.ts. */}
 
       {!oportunidad && <PieDelFormulario />}
     </form>

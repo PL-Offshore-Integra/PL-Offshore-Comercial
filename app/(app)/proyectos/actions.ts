@@ -258,54 +258,6 @@ async function guardarTarifas(supabase: Cliente, id: string, formData: FormData)
 // Mismo bucket privado y misma mecanica que los adjuntos de oportunidad: la
 // ruta se arma con un uuid y el nombre original queda en la fila.
 // ------------------------------------------------------------
-const MAX_ADJUNTO_BYTES = 25 * 1024 * 1024;
-
-function extensionDe(nombre: string): string {
-  const punto = nombre.lastIndexOf(".");
-  if (punto <= 0 || punto === nombre.length - 1) return "";
-  const ext = nombre.slice(punto + 1).toLowerCase();
-  return /^[a-z0-9]{1,8}$/.test(ext) ? `.${ext}` : "";
-}
-
-export async function subirAdjuntoProyecto(id: string, formData: FormData) {
-  const archivo = formData.get("archivo");
-  if (!(archivo instanceof File) || archivo.size === 0) {
-    throw new Error("No se eligio ningun archivo.");
-  }
-  if (archivo.size > MAX_ADJUNTO_BYTES) {
-    throw new Error("El archivo supera los 25 MB.");
-  }
-
-  const clase = str(formData, "clase") === "contrato" ? "contrato" : "otro";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const path = `proyectos/${id}/${crypto.randomUUID()}${extensionDe(archivo.name)}`;
-
-  const { error: eUp } = await supabase.storage
-    .from("comercial")
-    .upload(path, archivo, { contentType: archivo.type || undefined, upsert: false });
-  if (eUp) throw new Error(`No se pudo subir el archivo: ${eUp.message}`);
-
-  const { error } = await supabase.from("proyecto_adjuntos").insert({
-    proyecto_id: id,
-    clase,
-    nombre: archivo.name,
-    path,
-    tipo: archivo.type || null,
-    tamano_bytes: archivo.size,
-    subido_por: user?.id ?? null,
-  });
-  if (error) {
-    await supabase.storage.from("comercial").remove([path]);
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/proyectos/${id}`);
-}
 
 export async function borrarAdjuntoProyecto(id: string, adjuntoId: string, path: string) {
   const supabase = await createClient();

@@ -3,22 +3,15 @@ import { notFound } from "next/navigation";
 import OportunidadForm, { PieDelFormulario } from "@/components/OportunidadForm";
 import { leerMaestroClientes } from "@/lib/clientes";
 import { leerZonasPara } from "@/lib/zonas";
-import { BotonGuardar } from "@/components/BotonGuardar";
 import { createClient } from "@/lib/supabase/server";
 import {
   borrarAdjunto,
   deleteOportunidad,
-  subirAdjunto,
   updateOportunidad,
 } from "@/app/(app)/oportunidades/actions";
+import SubirAdjuntos from "@/components/SubirAdjuntos";
+import { pesoLegible } from "@/lib/adjuntos";
 import type { Adjunto, Oportunidad, Tarifa } from "@/lib/types";
-
-function pesoLegible(bytes: number | null) {
-  if (bytes === null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default async function EditarOportunidadPage({
   params,
@@ -61,7 +54,6 @@ export default async function EditarOportunidadPage({
 
   const update = updateOportunidad.bind(null, oportunidad.id);
   const remove = deleteOportunidad.bind(null, oportunidad.id);
-  const subir = subirAdjunto.bind(null, oportunidad.id);
 
   const { empresas, contactos } = await leerMaestroClientes();
   // Con la zona de esta oportunidad incluida aunque se haya retirado del
@@ -149,20 +141,13 @@ export default async function EditarOportunidadPage({
           </div>
         )}
 
-        <form action={subir}>
-          <div className="form-grid" style={{ alignItems: "end" }}>
-            <div className="fg">
-              <label>Adjuntar archivo (hasta 25 MB)</label>
-              <input type="file" name="archivo" required />
-            </div>
-            <div className="fg">
-              <label>&nbsp;</label>
-              <BotonGuardar className="btn btn-ghost" enviando="Subiendo...">
-                Subir
-              </BotonGuardar>
-            </div>
-          </div>
-        </form>
+        {/* El cupo es por oportunidad: lo que ya pesa lo cargado sale de las
+            mismas filas que se listan arriba. */}
+        <SubirAdjuntos
+          entidad="oportunidad"
+          id={oportunidad.id}
+          usado={adjuntos.reduce((suma, a) => suma + (a.tamano_bytes ?? 0), 0)}
+        />
       </div>
 
       {/* El pie del formulario va al final de todo, debajo de la
