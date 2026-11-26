@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { href: "/proyectos", label: "Proyectos" },
   { href: "/facturacion", label: "Facturacion" },
   { href: "/mapa", label: "Mapa de trabajos" },
+  { href: "/ocupacion", label: "Ocupacion de flota" },
   { href: "/track-record", label: "Track record" },
   { href: "/clientes", label: "Clientes" },
   { href: "/broker", label: "Broker PL" },
@@ -60,6 +61,12 @@ const SECCIONES: Record<string, { grupo: string; titulo: string; sub: string }> 
     grupo: "Comercial",
     titulo: "Mapa de trabajos",
     sub: "Donde se harian los posibles, donde se esta trabajando y donde se trabajo.",
+  },
+  // El mapa dice donde; esto dice cuando. Van pegados en el menu por eso.
+  "/ocupacion": {
+    grupo: "Comercial",
+    titulo: "Ocupacion de flota",
+    sub: "Que buque esta tomado y hasta cuando, con lo firme y lo que se esta cotizando.",
   },
   "/zonas": {
     grupo: "Maestros",

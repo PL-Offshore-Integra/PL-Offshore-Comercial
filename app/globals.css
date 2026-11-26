@@ -782,3 +782,86 @@ html[data-privado="1"] .cifra:focus-within{filter:none;user-select:auto}
   html[data-privado="1"] .cel-valor,
   html[data-privado="1"] .cifra{filter:none;user-select:auto}
 }
+
+/* ── GANTT DE OCUPACION DE FLOTA ──────────────────────────────────────────
+   Una barra posicionada por fecha, sin libreria: lo unico que hace falta es
+   pasar fechas a porcentaje del ancho. La columna de la izquierda tiene ancho
+   fijo y la pista ocupa el resto, asi que todas las filas comparten la misma
+   escala de tiempo y una barra se puede comparar con la de arriba. */
+.gantt{border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.gantt-cab{display:flex;align-items:stretch;border-bottom:2px solid var(--navy);background:var(--surface)}
+.gantt-fila{display:flex;align-items:stretch;border-bottom:1px solid var(--border)}
+.gantt-fila:last-child{border-bottom:0}
+.gantt-buque{flex:none;width:190px;padding:10px 12px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;justify-content:center;gap:2px;background:var(--surface)}
+.gantt-buque strong{font:600 14px/1.25 var(--sans);color:var(--navy)}
+.gantt-buque-sub{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted2)}
+
+.gantt-pista{position:relative;flex:1;min-width:0;padding:6px 0}
+.gantt-meses{height:34px;padding:0}
+.gantt-mes{position:absolute;top:0;bottom:0;display:flex;align-items:center;gap:6px;
+  padding-left:6px;border-left:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden}
+.gantt-anio{color:var(--navy);letter-spacing:.06em}
+
+/* Las divisiones de mes, repetidas en cada fila: sin ellas no se puede leer
+   en que mes cae una barra sin subir la vista hasta el encabezado. */
+.gantt-linea{position:absolute;top:0;bottom:0;width:1px;background:var(--border)}
+/* Hoy. Es la referencia que convierte el dibujo en una decision: lo que esta
+   a la derecha todavia se puede mover. */
+.gantt-hoy{position:absolute;top:0;bottom:0;width:2px;background:var(--amarillo);z-index:2}
+
+/* Un carril por cada grupo de barras que no se pisan. Dos trabajos a la vez
+   sobre el mismo buque caen en carriles distintos, y ESO es ver el conflicto. */
+.gantt-carril{position:relative;height:26px;margin:3px 0}
+
+.gantt-barra{position:absolute;top:0;height:26px;display:flex;align-items:center;
+  padding:0 8px;border-radius:var(--r);overflow:hidden;
+  font:600 12px/1 var(--sans);white-space:nowrap;transition:var(--tr)}
+.gantt-barra-texto{overflow:hidden;text-overflow:ellipsis}
+.gantt-barra:hover{filter:brightness(1.08)}
+.gantt-barra.es-firme{background:var(--navy);color:#fff}
+.gantt-barra.es-firme:hover{color:#fff}
+/* Firme pero con fecha estimada: el trabajo es cierto, la ventana no. */
+.gantt-barra.es-estimada{background:repeating-linear-gradient(135deg,var(--navy),var(--navy) 6px,#17395c 6px,#17395c 12px)}
+/* Una oportunidad es posible, no cierta: va hueca para que no compita con lo
+   firme, que es lo que de verdad ocupa el buque. */
+.gantt-barra.es-posible{background:var(--surface2);border:1px dashed var(--muted);color:var(--muted)}
+.gantt-barra.es-posible:hover{color:var(--navy)}
+/* Dos trabajos firmes a la vez sobre el mismo buque. */
+.gantt-barra.pisada{box-shadow:inset 3px 0 0 var(--danger),inset -3px 0 0 var(--danger)}
+/* Una oportunidad que cae sobre un buque ya tomado. No es rojo: no esta mal
+   cotizar, pero hay que verlo. */
+.gantt-barra.sobre-firme{border-color:var(--warn);border-style:solid;color:var(--warn)}
+.gantt-barra.sobre-firme:hover{color:var(--warn)}
+/* Sin fecha de fin: la barra llega al borde y se corta en diagonal para no
+   afirmar un final que nadie cargo. */
+.gantt-barra.abierta{border-top-right-radius:0;border-bottom-right-radius:0;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent)}
+
+.gantt-banda-titulo{font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  background:var(--surface2);padding:8px 12px;border-bottom:1px solid var(--border)}
+
+.gantt-ref{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.gantt-chip{display:flex;align-items:center;gap:7px;padding:5px 10px;font-size:13px;
+  color:var(--muted);border:1px solid var(--border2);border-radius:var(--r)}
+.gantt-chip i{width:14px;height:10px;flex:none;border-radius:2px}
+.gantt-chip i.m-firme{background:var(--navy)}
+.gantt-chip i.m-estimada{background:repeating-linear-gradient(135deg,var(--navy),var(--navy) 4px,#17395c 4px,#17395c 8px)}
+.gantt-chip i.m-posible{background:var(--surface2);border:1px dashed var(--muted)}
+.gantt-chip i.m-pisada{background:var(--danger)}
+.gantt-chip i.m-encima{background:var(--surface2);border:1px solid var(--warn)}
+
+@media (max-width:768px){
+  .gantt{overflow-x:auto}
+  .gantt-buque{width:120px;padding:8px}
+  .gantt-barra-texto{font-size:11px}
+}
+@media print{
+  .gantt-ref{display:none}
+  .gantt-barra{color:#000!important;border:1px solid #000}
+  .gantt-barra.es-firme{background:#d8dee4}
+}
