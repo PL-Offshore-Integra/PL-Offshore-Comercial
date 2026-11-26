@@ -1,15 +1,7 @@
 import Link from "next/link";
-import { fechaConHoraSiTiene } from "@/lib/fechas";
+import ProyectosTabla, { type PlataDeFacturas } from "@/components/ProyectosTabla";
 import { createClient } from "@/lib/supabase/server";
-import { ESTADOS_PROYECTO, type ProyectoConOperaciones } from "@/lib/types";
-
-function plata(valor: number, moneda: string) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: moneda === "ARS" ? "ARS" : "USD",
-  }).format(valor);
-}
-
+import { netoDeFactura, type FacturaListada, type ProyectoConOperaciones } from "@/lib/types";
 
 export default async function ProyectosPage() {
   const supabase = await createClient();
@@ -23,11 +15,26 @@ export default async function ProyectosPage() {
 
   const proyectos = (data ?? []) as ProyectoConOperaciones[];
 
-  // Agrupados por estado, en el orden en que avanza un trabajo.
-  const grupos = ESTADOS_PROYECTO.map((e) => ({
-    ...e,
-    items: proyectos.filter((p) => p.estado === e.id),
-  })).filter((g) => g.items.length > 0);
+  // Las facturas de todos los proyectos en una sola consulta, para poder
+  // mostrar en el listado lo facturado y lo cobrado. Son pocas —una por
+  // factura emitida— asi que se traen enteras y se suman aca, con las mismas
+  // reglas que usa la ficha: facturado es el importe, cobrado es el neto de
+  // las que tienen moneda de cobro.
+  const { data: fact } = await supabase
+    .from("facturas_listado")
+    .select("proyecto_id, importe, comision, cobro_moneda");
+  const facturas = (fact ?? []) as Pick<
+    FacturaListada,
+    "proyecto_id" | "importe" | "comision" | "cobro_moneda"
+  >[];
+
+  const plataPorProyecto: Record<string, PlataDeFacturas> = {};
+  for (const f of facturas) {
+    if (!f.proyecto_id) continue;
+    const acum = (plataPorProyecto[f.proyecto_id] ??= { facturado: 0, cobrado: 0 });
+    acum.facturado += Number(f.importe ?? 0);
+    if (f.cobro_moneda) acum.cobrado += netoDeFactura(f);
+  }
 
   return (
     <div>
@@ -51,94 +58,9 @@ export default async function ProyectosPage() {
         </div>
       )}
 
-      {grupos.map((grupo) => (
-        <div key={grupo.id} className="card">
-          <div className="card-title">
-            <span className={`badge ${grupo.color}`}>
-              {grupo.label} ({grupo.items.length})
-            </span>
-          </div>
-          <div className="table-wrap">
-            <table className="tabla-lista">
-              <thead>
-                <tr>
-                  <th>Nro</th>
-                  <th>Proyecto</th>
-                  <th>Cliente</th>
-                  <th>Buque</th>
-                  <th>Salidas</th>
-                  <th>Inicio</th>
-                  <th>Fin</th>
-                  <th>Valor</th>
-                  <th>IVA</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {grupo.items.map((p) => {
-                  // Lo que paso le gana a lo que se estimaba: si hay
-                  // operaciones cargadas, las fechas salen de la primera y de
-                  // la ultima salida. Si no, de la estimacion, marcada como
-                  // tal.
-                  const inicio = p.arranco ?? p.fecha_inicio_estimada;
-                  const fin = p.termino ?? p.fecha_fin_estimada;
-                  const salidas = Number(p.operaciones ?? 0);
-                  const ejecutado = Number(p.valor_ejecutado ?? 0);
-                  return (
-                    <tr key={p.id}>
-                      <td className="text-mono cel-nro">{p.nro_proyecto ?? "-"}</td>
-                      <td className="cel-compania">{p.nombre}</td>
-                      {/* Los dos clientes en una celda: quien contrata arriba y
-                          para quien es el trabajo debajo. Una columna aparte
-                          sumaria ancho para un dato que casi siempre se lee
-                          junto al otro. */}
-                      <td>
-                        {p.compania ?? "-"}
-                        {p.cliente_final && (
-                          <div className="text-muted cel-sub">para {p.cliente_final}</div>
-                        )}
-                      </td>
-                      <td className="text-muted">{p.buque ?? "-"}</td>
-                      <td className="text-mono">
-                        {salidas === 0 ? <span className="text-muted">—</span> : salidas}
-                      </td>
-                      <td className="text-mono">
-                        {fechaConHoraSiTiene(inicio)}
-                        {!p.arranco && p.fecha_inicio_estimada && (
-                          <span className="text-muted"> est.</span>
-                        )}
-                      </td>
-                      <td className="text-mono">
-                        {fechaConHoraSiTiene(fin)}
-                        {!p.termino && p.fecha_fin_estimada && (
-                          <span className="text-muted"> est.</span>
-                        )}
-                      </td>
-                      {/* Arriba lo acordado, debajo lo que suman las salidas.
-                          Son dos numeros distintos y los dos importan: uno es
-                          el trato, el otro lo que se hizo. */}
-                      <td className="text-mono cel-valor">
-                        {plata(p.valor, p.moneda)}
-                        {salidas > 0 && (
-                          <div className="text-muted cel-sub">
-                            {plata(ejecutado, p.moneda)} hecho
-                          </div>
-                        )}
-                      </td>
-                      <td className="text-mono">{p.iva === "21" ? "21%" : "Exento"}</td>
-                      <td style={{ textAlign: "right" }}>
-                        <Link href={`/proyectos/${p.id}`} className="btn btn-ghost btn-sm">
-                          Abrir
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ))}
+      {proyectos.length > 0 && (
+        <ProyectosTabla proyectos={proyectos} facturas={plataPorProyecto} />
+      )}
     </div>
   );
 }
